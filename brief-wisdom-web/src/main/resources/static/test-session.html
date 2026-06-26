@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SessionId 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-item {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+        .success {
+            color: #4caf50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .info-text {
+            color: #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 SessionId 传递测试</h1>
+        
+        <div class="info">
+            <strong>说明：</strong>这个页面用于测试 sessionId 是否正确传递到后端。
+        </div>
+
+        <button onclick="testCreateSession()">1. 创建会话</button>
+        <button onclick="testGetSessions()">2. 获取会话列表</button>
+        <button onclick="testSendMessageWithSession()">3. 发送消息（带sessionId）</button>
+        <button onclick="clearLog()">清空日志</button>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        const API_BASE = 'http://localhost:8090/api/ai';
+
+        function addLog(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const logItem = document.createElement('div');
+            logItem.className = `log-item ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logItem.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logItem);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function testCreateSession() {
+            try {
+                addLog('正在创建会话...', 'info-text');
+                const response = await fetch(`${API_BASE}/session`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSessionId = data.data;
+                    addLog(`✅ 创建会话成功！sessionId: ${currentSessionId}`, 'success');
+                } else {
+                    addLog(`❌ 创建会话失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ 请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetSessions() {
+            try {
+                addLog('正在获取会话列表...', 'info-text');
+                const response = await fetch(`${API_BASE}/sessions`);
+                const data = await response.json();
+                
+                if (data.success && data.data.length > 0) {
+                    addLog(`✅ 获取到 ${data.data.length} 个会话`, 'success');
+                    data.data.forEach((session, index) => {
+                        addLog(`  ${index + 1}. ${session.title} (ID: ${session.sessionId})`, 'info');
+                    });
+                    if (!currentSessionId && data.data.length > 0) {
+                        currentSessionId = data.data[0].sessionId;
+                        addLog(`已自动选择第一个会话: ${currentSessionId}`, 'info-text');
+                    }
+                } else {
+                    addLog('⚠️ 没有会话，请先创建', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ 请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAIWithSession() {
+            if (!currentSessionId) {
+                addLog('❌ 错误：currentSessionId 为空！请先创建或选择会话', 'error');
+                return;
+            }
+
+            try {
+                const message = '你好，这是一个测试消息';
+                const url = `${API_BASE}/chat/session/${currentSessionId}`;
+                
+                addLog('========== 开始测试 ==========', 'info-text');
+                addLog(`currentSessionId: ${currentSessionId}`, 'info');
+                addLog(`请求 URL: ${url}`, 'info');
+                addLog(`请求消息: ${message}`, 'info');
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(`✅ AI 回复: ${data.data}`, 'success');
+                } else {
+                    addLog(`❌ 请求失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ 网络错误: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // 页面加载时自动获取会话列表
+        window.addEventListener('load', () => {
+            addLog('页面加载完成，建议按顺序执行测试步骤', 'info-text');
+            testGetSessions();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: brief-wisdom
+  profiles:
+    include: ai
+  datasource:
+    url: jdbc:mysql://localhost:3306/brief_wisdom?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+  # DevTools 热部署配置
+  devtools:
+    restart:
+      enabled: true  # 启用热部署
+      additional-paths: src/main/java  # 监控的额外路径
+      exclude: static/**,templates/**  # 排除静态资源（使用 livereload）
+    livereload:
+      enabled: true  # 启用 LiveReload
+      port: 35729
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.mouhin.brief.wisdom.persistence.model
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: assign_uuid
+      logic-delete-field: is_deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 分页配置 - 按业务维度配置每页查询条数
+app:
+  pagination:
+    session-list:
+      default-size: 20    # 会话列表默认每页条数
+      max-size: 100       # 会话列表最大每页条数
+    message-history:
+      default-size: 50    # 消息历史默认每页条数
+      max-size: 200       # 消息历史最大每页条数
+
+# 微信开放平台扫码登录配置
+wechat:
+  open:
+    app-id: ${WECHAT_APP_ID:your-app-id}
+    app-secret: ${WECHAT_APP_SECRET:your-app-secret}
+    # 授权回调地址，需与微信开放平台配置一致
+    redirect-uri: ${WECHAT_REDIRECT_URI:http://localhost:8090/auth/wechat/callback}
+    # 微信开放平台接口地址
+    authorize-url: https://open.weixin.qq.com/connect/qrconnect
+    token-url: https://api.weixin.qq.com/sns/oauth2/access_token
+    userinfo-url: https://api.weixin.qq.com/sns/userinfo

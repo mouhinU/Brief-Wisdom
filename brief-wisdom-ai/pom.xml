@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.mouhin</groupId>
+		<artifactId>Brief-Wisdom</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+	<artifactId>brief-wisdom-ai</artifactId>
+	<name>brief-wisdom-ai</name>
+	<description>AI Module - AI Integration and Services</description>
+	<dependencies>
+		<!-- Spring AI Alibaba -->
+		<dependency>
+			<groupId>com.alibaba.cloud.ai</groupId>
+			<artifactId>spring-ai-alibaba-starter</artifactId>
+			<version>1.0.0-M6.1</version>
+		</dependency>
+		
+		<!-- Persistence Module -->
+		<dependency>
+			<groupId>com.mouhin</groupId>
+			<artifactId>brief-wisdom-persistence</artifactId>
+		</dependency>
+	</dependencies>
+</project>

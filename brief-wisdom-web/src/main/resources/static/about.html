@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>蒙斌 - Java资深软件开发工程师 | 个人简历</title>
+  <link rel="stylesheet" href="css/about.css">
+</head>
+<body>
+
+  <!-- 返回主页 -->
+  <a href="/" class="back-link">← 返回主页</a>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <button id="themeToggle" onclick="toggleTheme()" title="切换深色/浅色主题">🌙</button>
+    <button onclick="exportPDF()" title="导出 PDF（Ctrl+P）">📄</button>
+  </div>
+
+  <!-- 页头 -->
+  <header>
+    <h1 class="name">蒙斌</h1>
+    <p class="title">Java资深软件开发工程师</p>
+    <p class="summary">
+      资深技术专家，专注于企业级业务系统研发、架构设计与平台化建设，擅长从0到1构建高可用、高性能的数据化平台，并主导多个系统的重构与攻坚，具备出色的跨团队协作与项目管理能力，推动技术驱动业务增长。
+    </p>
+    <div class="contact-bar">
+      <a href="tel:+8615926330615" class="contact-item">📱 +86 159 2633 0615</a>
+      <a href="mailto:mouhin@126.com" class="contact-item">✉️ mouhin@126.com</a>
+      <a href="https://mouhinu.github.io/" target="_blank" class="contact-item">🔗 mouhinu.github.io</a>
+      <span class="contact-item">📍 湖北武汉</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- 求职意向 -->
+    <section class="section">
+      <h2 class="section-title">🎯 求职意向</h2>
+      <div class="item-description job-info">
+        <div class="job-item">
+          <strong>职位：</strong>
+          <span>Java资深软件开发工程师 / 技术经理 / 项目Leader</span>
+        </div>
+        <div class="job-item">
+          <strong>薪资：</strong>
+          <span>15-25K/月</span>
+        </div>
+        <div class="job-item">
+          <strong>到岗时间：</strong>
+          <span>一月内/面议</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 专业技能 -->
+    <section class="section">
+      <h2 class="section-title">🛠️ 专业技能</h2>
+      <ul>
+        <li><strong>核心技术栈</strong>：Java、Spring Boot、Spring Cloud、Spring MVC、MyBatis/MyBatis-Plus</li>
+        <li><strong>分布式架构</strong>：微服务架构设计、服务治理、API网关、注册中心、配置中心、链路追踪、分布式事务</li>
+        <li><strong>中间件与存储</strong>：MySQL、Redis、MongoDB、RocketMQ/Kafka、Oracle</li>
+        <li><strong>其他语言</strong>：C# (.NET Core)、Go、C/C++</li>
+        <li><strong>云原生技术</strong>：Docker、Kubernetes、DevOps、CI/CD、监控告警(Prometheus/Grafana)</li>
+        <li><strong>工具与平台</strong>：Git、Maven/Gradle、阿里云(EDAS/HSF/OSS)、Linux、Nginx</li>
+        <li><strong>架构设计</strong>：领域驱动设计(DDD)、设计模式、分布式系统设计、性能调优、系统重构</li>
+        <li><strong>管理能力</strong>：技术团队管理(10+人)、项目管理(PMP)、敏捷开发、技术规划、人才培养</li>
+      </ul>
+    </section>
+
+    <!-- 工作与项目经历 -->
+    <section class="section">
+      <h2 class="section-title">💼 工作经历与项目经验</h2>
+      <div id="projects-container">
+        <div class="loading"><p>正在加载项目经历...</p></div>
+      </div>
+    </section>
+
+    <!-- 教育背景 -->
+    <section class="section">
+      <h2 class="section-title">🎓 教育背景</h2>
+      <div class="edu-item">
+        <div>武汉大学 <span style="color:var(--text-light)">|</span> 行政管理</div>
+        <div class="item-date">2016 ~ 2018</div>
+      </div>
+      <div class="edu-item" style="margin-top:10px;">
+        <div>湖北民族学院 <span style="color:var(--text-light)">|</span> 计算机科学与技术</div>
+        <div class="item-date">2009 ~ 2012</div>
+      </div>
+    </section>
+
+    <!-- 证书与荣誉 -->
+    <section class="section">
+      <h2 class="section-title">🏆 证书与荣誉</h2>
+      <div class="certifications">
+        <div class="cert-item">
+          <div style="font-weight:600;color:var(--primary)">PMP项目管理专业人士认证、CSPM2</div>
+          <div class="cert-description">2023年获得</div>
+        </div>
+        <div class="cert-item">
+          <div style="font-weight:600;color:var(--primary)">优秀员工</div>
+          <div class="cert-description">2017、2018、2019、2020年获得</div>
+        </div>
+        <div class="cert-item">
+          <div style="font-weight:600;color:var(--primary)">全国大学生数学建模竞赛全国二等奖</div>
+          <div class="cert-description">（CUMCM-2011）</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 自我评价 -->
+    <section class="section">
+      <h2 class="section-title">📋 自我评价</h2>
+      <ul>
+        <li>拥有出色的<strong>团队协作与沟通能力</strong>，能够高效解决复杂问题并推动团队目标达成。</li>
+        <li>始终秉持<strong>从客户视角出发</strong>的理念，追求技术为业务创造实际价值。</li>
+        <li>坚持高质量交付，注重代码可维护性、技术业务文档的沉淀及系统稳定性。</li>
+        <li>阅读技术书籍，研究新兴工具和技术趋势。</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>最后更新于 <span id="currentYear"></span> 年 <span id="currentMonth"></span> 月 | 本简历由 Brief Wisdom 托管</p>
+    <p style="margin-top:5px;font-size:0.85rem">© 蒙斌 · Java资深软件开发工程师</p>
+  </footer>
+
+  <script src="js/about.js"></script>
+</body>
+</html>

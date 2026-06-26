@@ -1,0 +1,8 @@
+# Spring AI Configuration - OpenAI
+spring:
+  ai:
+    dashscope:
+      api-key: sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg
+      chat:
+        options:
+          model: qwen-max # 可选模型，如 qwen-plus, qwen-turbo

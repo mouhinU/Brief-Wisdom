@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能助手</title>
+    <link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+    <!-- 右上角：关于我入口 -->
+    <a href="about.html" class="about-nav-link">👤 关于我</a>
+
+    <!-- 主页内容 -->
+    <div class="main-content">
+        <h1>欢迎来到 Brief Wisdom</h1>
+        <p>这是一个智能平台。点击右下角的AI助手图标，随时与我对话！</p>
+    </div>
+
+    <!-- AI助手悬浮按钮 -->
+    <div class="ai-fab" id="aiFab" onclick="toggleChat()">
+        <span class="ai-fab-icon">🤖</span>
+    </div>
+
+    <!-- AI助手悬浮窗口 -->
+    <div class="chat-popup" id="chatPopup">
+        <!-- 会话侧边栏 -->
+        <div class="session-sidebar">
+            <div class="session-header">
+                <h2>💬 会话历史</h2>
+                <button class="new-session-btn" onclick="createNewSession()">+ 新建会话</button>
+            </div>
+            <div class="session-list" id="sessionList">
+                <!-- 会话列表将动态加载 -->
+            </div>
+        </div>
+
+        <!-- 聊天主区域 -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <h1>🤖 AI 智能助手</h1>
+                <p>有任何问题都可以问我哦~</p>
+                <button class="close-button" onclick="toggleChat()">×</button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message">
+                    <h2>欢迎使用 AI 智能助手!</h2>
+                    <p>请输入您的问题,我会尽力为您解答</p>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input 
+                        type="text" 
+                        class="chat-input" 
+                        id="chatInput" 
+                        placeholder="输入您的问题..."
+                        autocomplete="off"
+                    >
+                    <button class="send-button" id="sendButton" onclick="sendMessage()">
+                        发送
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 marked.js 用于 Markdown 解析 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 引入自定义 JS -->
+    <script src="js/chat.js"></script>
+</body>
+</html>
