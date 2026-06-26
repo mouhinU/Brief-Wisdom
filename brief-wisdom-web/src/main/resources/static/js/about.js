@@ -55,8 +55,12 @@ function exportPDF() {
 // ===== 项目数据加载 =====
 async function loadProjects() {
   try {
-    const response = await fetch('data/project.json');
-    const phases = await response.json();
+    const response = await fetch('/api/resume/experiences');
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || '接口返回失败');
+    }
+    const phases = result.data;
     const container = document.getElementById('projects-container');
     if (!container) return;
     container.innerHTML = '';

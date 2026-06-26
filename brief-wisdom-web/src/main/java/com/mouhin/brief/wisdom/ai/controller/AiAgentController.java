@@ -37,9 +37,9 @@ public class AiAgentController {
      */
     @PostMapping("/chat/session/{sessionId}")
     public ApiResponse chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
-        log.info("收到聊天请求 - sessionId: {}, message: {}", sessionId, request.getMessage());
+        log.info("收到聊天请求 - sessionId: {}, message: {}, model: {}", sessionId, request.getMessage(), request.getModel());
         try {
-            String response = aiAgentService.chatWithSession(sessionId, request.getMessage());
+            String response = aiAgentService.chatWithSession(sessionId, "default-user", request.getMessage(), request.getModel());
             return ApiResponse.success(response);
         } catch (Exception e) {
             log.error("聊天失败: ", e);
@@ -165,6 +165,7 @@ public class AiAgentController {
     @Data
     public static class ChatRequest {
         private String message;
+        private String model;  // 可选：指定使用的模型
     }
 
     @Data

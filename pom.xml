@@ -22,6 +22,7 @@
 		<module>brief-wisdom-ai</module>
         <module>brief-wisdom-persistence</module>
         <module>brief-wisdom-resume</module>
+        <module>brief-wisdom-common</module>
     </modules>
 	<url/>
 	<licenses>
@@ -60,6 +61,11 @@
 			<dependency>
 				<groupId>com.mouhin</groupId>
 				<artifactId>brief-wisdom-ai</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.mouhin</groupId>
+				<artifactId>brief-wisdom-resume</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 		</dependencies>

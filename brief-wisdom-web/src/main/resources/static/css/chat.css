@@ -254,6 +254,36 @@ body {
     opacity: 0.9;
 }
 
+/* 模型选择器 */
+.model-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.model-selector label {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.model-selector select {
+    padding: 3px 8px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+}
+
+.model-selector select option {
+    background: #333;
+    color: white;
+}
+
 .close-button {
     position: absolute;
     top: 15px;
@@ -316,6 +346,10 @@ body {
     word-wrap: break-word;
     line-height: 1.5;
     font-size: 14px;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
 }
 
 .message.user .message-content {
@@ -500,12 +534,16 @@ body {
     border-radius: 8px;
     overflow-x: auto;
     margin: 8px 0;
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 .message.ai .message-content pre code {
     background: transparent;
     padding: 0;
     color: inherit;
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 .message.ai .message-content blockquote {

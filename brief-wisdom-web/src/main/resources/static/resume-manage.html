@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简历数据管理</title>
+  <link rel="stylesheet" href="css/navbar.css">
+  <link rel="stylesheet" href="css/resume-manage.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>简历数据管理</h1>
+      <a href="/" class="back-link">← 返回主页</a>
+    </header>
+
+    <!-- Tab 导航 -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="experiences">工作经历</button>
+      <button class="tab-btn" data-tab="projects">项目</button>
+      <button class="tab-btn" data-tab="achievements">项目成果</button>
+      <button class="tab-btn" data-tab="stacks">技术栈</button>
+    </nav>
+
+    <!-- 工作经历 Tab -->
+    <section id="experiences-tab" class="tab-content active">
+      <div class="section-header">
+        <h2>工作经历管理</h2>
+        <button class="btn btn-primary" onclick="showExperienceForm()">+ 新增工作经历</button>
+      </div>
+      <div id="experiences-list" class="data-list"></div>
+    </section>
+
+    <!-- 项目 Tab -->
+    <section id="projects-tab" class="tab-content">
+      <div class="section-header">
+        <h2>项目管理</h2>
+        <button class="btn btn-primary" onclick="showProjectForm()">+ 新增项目</button>
+      </div>
+      <div class="filter-bar">
+        <label>筛选工作经历：</label>
+        <select id="project-experience-filter" onchange="loadProjects()">
+          <option value="">全部</option>
+        </select>
+      </div>
+      <div id="projects-list" class="data-list"></div>
+    </section>
+
+    <!-- 项目成果 Tab -->
+    <section id="achievements-tab" class="tab-content">
+      <div class="section-header">
+        <h2>项目成果管理</h2>
+        <button class="btn btn-primary" onclick="showAchievementForm()">+ 新增项目成果</button>
+      </div>
+      <div class="filter-bar">
+        <label>筛选项目：</label>
+        <select id="achievement-project-filter" onchange="loadAchievements()">
+          <option value="">全部</option>
+        </select>
+      </div>
+      <div id="achievements-list" class="data-list"></div>
+    </section>
+
+    <!-- 技术栈 Tab -->
+    <section id="stacks-tab" class="tab-content">
+      <div class="section-header">
+        <h2>技术栈管理</h2>
+        <button class="btn btn-primary" onclick="showStackForm()">+ 新增技术栈</button>
+      </div>
+      <div class="filter-bar">
+        <label>筛选工作经历：</label>
+        <select id="stack-experience-filter" onchange="loadStacks()">
+          <option value="">全部</option>
+        </select>
+      </div>
+      <div id="stacks-list" class="data-list"></div>
+    </section>
+
+    <!-- 弹窗 -->
+    <div id="modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-title">新增</h3>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <form id="modal-form" class="modal-form"></form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 公共导航栏 -->
+  <script src="js/navbar.js"></script>
+  <script src="js/resume-manage.js"></script>
+</body>
+</html>

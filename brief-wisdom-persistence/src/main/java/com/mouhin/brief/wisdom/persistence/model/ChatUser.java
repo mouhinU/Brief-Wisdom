@@ -29,6 +29,9 @@ public class ChatUser implements Serializable {
     
     @TableField(value = "avatar")
     private String avatar;
+
+    @TableField(value = "user_level")
+    private String userLevel;  // 用户级别: admin/vip/normal
     
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;

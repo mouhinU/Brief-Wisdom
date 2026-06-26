@@ -35,6 +35,16 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/data/**", "/images/**").permitAll()
                 // AI 聊天接口公开（现有功能不需要登录）
                 .requestMatchers("/api/ai/**").permitAll()
+                // 简历数据接口公开
+                .requestMatchers("/api/resume/**").permitAll()
+                // 菜单接口公开
+                .requestMatchers("/api/menu/**").permitAll()
+                // 简历管理页面公开
+                .requestMatchers("/resume-manage.html").permitAll()
+                // 系统设置页面公开
+                .requestMatchers("/system-settings.html").permitAll()
+                // AI助手管理页面公开
+                .requestMatchers("/ai-manage.html").permitAll()
                 // 认证相关接口公开（登录/回调/状态检查）
                 .requestMatchers("/auth/**", "/api/auth/status", "/api/auth/login/wechat").permitAll()
                 // 获取当前用户信息需要登录

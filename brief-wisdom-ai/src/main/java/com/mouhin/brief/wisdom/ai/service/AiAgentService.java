@@ -8,11 +8,16 @@ import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.mapper.ChatMessageMapper;
 import com.mouhin.brief.wisdom.persistence.mapper.ChatSessionMapper;
 import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
+import com.mouhin.brief.wisdom.persistence.mapper.AiModelMapper;
+import com.mouhin.brief.wisdom.persistence.model.AiModel;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -25,6 +30,7 @@ public class AiAgentService {
     private final ChatSessionMapper sessionMapper;
     private final ChatMessageMapper messageMapper;
     private final ChatUserMapper userMapper;
+    private final AiModelMapper aiModelMapper;
     
     // 默认用户ID（用于未登录场景）
     private static final String DEFAULT_USER_ID = "default-user";
@@ -32,11 +38,13 @@ public class AiAgentService {
     public AiAgentService(ChatClient chatClient, 
                          ChatSessionMapper sessionMapper,
                          ChatMessageMapper messageMapper,
-                         ChatUserMapper userMapper) {
+                         ChatUserMapper userMapper,
+                         AiModelMapper aiModelMapper) {
         this.chatClient = chatClient;
         this.sessionMapper = sessionMapper;
         this.messageMapper = messageMapper;
         this.userMapper = userMapper;
+        this.aiModelMapper = aiModelMapper;
         
         // 初始化默认用户
         initDefaultUser();
@@ -209,19 +217,54 @@ public class AiAgentService {
     }
 
     /**
-     * 简单的聊天对话（无上下文）
+     * 获取当前激活的模型名称
+     */
+    public String getActiveModelName() {
+        try {
+            AiModel model = aiModelMapper.selectOne(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiModel>()
+                            .eq(AiModel::getIsActive, 1)
+                            .eq(AiModel::getIsEnabled, 1)
+            );
+            return model != null ? model.getModelName() : "qwen-plus";
+        } catch (Exception e) {
+            log.warn("获取激活模型失败，使用默认模型: ", e);
+            return "qwen-plus";
+        }
+    }
+
+    /**
+     * 构建带模型选项的 DashScopeChatOptions
+     */
+    private DashScopeChatOptions buildModelOptions(String modelName) {
+        return DashScopeChatOptions.builder()
+                .withModel(modelName)
+                .build();
+    }
+
+    /**
+     * 简单聊天对话（无上下文）
      * @param message 用户消息
      * @return AI 回复
      */
     public String chat(String message) {
-        log.info("收到用户消息: {}", message);
+        return chat(message, null);
+    }
+
+    /**
+     * 简单聊天对话（指定模型）
+     */
+    public String chat(String message, String modelName) {
+        log.info("收到用户消息: {}, 模型: {}", message, modelName);
+        String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
         
         String response = chatClient.prompt()
+                .options(buildModelOptions(model))
                 .user(message)
                 .call()
                 .content();
         
-        log.info("AI 回复: {}", response);
+        log.info("AI 回复(模型: {}): {}", model, response);
         return response;
     }
 
@@ -233,22 +276,18 @@ public class AiAgentService {
      */
     @Transactional
     public String chatWithSession(String sessionId, String message) {
-        return chatWithSession(sessionId, DEFAULT_USER_ID, message);
+        return chatWithSession(sessionId, DEFAULT_USER_ID, message, null);
     }
     
     /**
-     * 带上下文的聊天对话（指定用户）
-     * @param sessionId 会话ID
-     * @param userId 用户ID
-     * @param message 用户消息
-     * @return AI 回复
+     * 带上下文的聊天对话（指定用户和模型）
      */
     @Transactional
-    public String chatWithSession(String sessionId, String userId, String message) {
+    public String chatWithSession(String sessionId, String userId, String message, String modelName) {
         log.info("========== 开始处理聊天请求 ==========");
-        log.info("sessionId: {}", sessionId);
-        log.info("userId: {}", userId);
-        log.info("message: {}", message);
+        log.info("sessionId: {}, userId: {}, model: {}", sessionId, userId, modelName);
+        
+        String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
         
         // 验证会话是否存在且属于该用户
         LambdaQueryWrapper<ChatSession> qw = new LambdaQueryWrapper<>();
@@ -287,6 +326,7 @@ public class AiAgentService {
         
         // 调用 AI
         String response = chatClient.prompt()
+                .options(buildModelOptions(model))
                 .user(context.toString())
                 .call()
                 .content();
@@ -297,7 +337,7 @@ public class AiAgentService {
         aiMsg.setUserId(userId);
         aiMsg.setRole("assistant");
         aiMsg.setContent(response);
-        aiMsg.setModel("qwen-plus");  // 记录使用的模型
+        aiMsg.setModel(model);  // 记录使用的模型
         aiMsg.setMessageType("text");
         messageMapper.insert(aiMsg);
         

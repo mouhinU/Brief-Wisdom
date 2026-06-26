@@ -9,6 +9,12 @@ const sessionList = document.getElementById('sessionList');
 // 当前会话 ID
 let currentSessionId = null;
 
+// 当前选中的模型
+let currentModel = null;
+
+// 可用模型列表
+let availableModels = [];
+
 // 分页状态
 let sessionCurrentPage = 1;
 let sessionHasMore = false;
@@ -32,6 +38,46 @@ async function loadPaginationConfig() {
         }
     } catch (error) {
         console.warn('加载分页配置失败，使用默认值:', error);
+    }
+}
+
+// 加载可用模型列表
+async function loadModels() {
+    try {
+        const response = await fetch('/api/ai/models/enabled');
+        const data = await response.json();
+        if (data.success && data.data) {
+            availableModels = data.data;
+            renderModelSelector();
+        }
+    } catch (error) {
+        console.warn('加载模型列表失败:', error);
+    }
+}
+
+// 渲染模型选择器
+function renderModelSelector() {
+    const selector = document.getElementById('modelSelector');
+    if (!selector) return;
+    
+    selector.innerHTML = availableModels.map(m => 
+        `<option value="${m.modelName}" ${m.isActive === 1 ? 'selected' : ''}>${m.displayName}</option>`
+    ).join('');
+    
+    // 设置当前模型为激活的模型
+    const activeModel = availableModels.find(m => m.isActive === 1);
+    if (activeModel) {
+        currentModel = activeModel.modelName;
+        selector.value = currentModel;
+    }
+}
+
+// 模型切换事件
+function onModelChange() {
+    const selector = document.getElementById('modelSelector');
+    if (selector) {
+        currentModel = selector.value;
+        console.log('切换模型:', currentModel);
     }
 }
 
@@ -361,6 +407,7 @@ async function sendMessage() {
         const url = `/api/ai/chat/session/${currentSessionId}`;
         console.log('========== 发送请求 ==========');
         console.log('currentSessionId:', currentSessionId);
+        console.log('model:', currentModel);
         console.log('请求 URL:', url);
         console.log('请求消息:', message);
         
@@ -370,7 +417,8 @@ async function sendMessage() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                message: message
+                message: message,
+                model: currentModel
             })
         });
 
@@ -501,8 +549,9 @@ chatInput.addEventListener('keypress', function(e) {
 // 页面加载完成后聚焦输入框并加载分页配置
 window.addEventListener('load', async function() {
     chatInput.focus();
-    // 初始化时加载分页配置
+    // 初始化时加载配置
     await loadPaginationConfig();
+    await loadModels();
 });
 
 // 会话列表滚动监听 - 触底自动加载下一页

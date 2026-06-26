@@ -19,6 +19,10 @@ DROP TABLE IF EXISTS chat_message;
 DROP TABLE IF EXISTS chat_session;
 DROP TABLE IF EXISTS user_oauth;
 DROP TABLE IF EXISTS chat_user;
+DROP TABLE IF EXISTS project_achievement;
+DROP TABLE IF EXISTS project;
+DROP TABLE IF EXISTS work_experience_stack;
+DROP TABLE IF EXISTS work_experience;
 
 CREATE TABLE chat_user (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键',
@@ -26,6 +30,7 @@ CREATE TABLE chat_user (
     username VARCHAR(100) NOT NULL UNIQUE COMMENT '用户名',
     nickname VARCHAR(200) COMMENT '昵称',
     avatar VARCHAR(500) COMMENT '头像URL',
+    user_level VARCHAR(20) NOT NULL DEFAULT 'normal' COMMENT '用户级别: admin-管理员, vip-会员, normal-普通用户',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
@@ -102,7 +107,74 @@ CREATE TABLE chat_message (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息表';
 
 -- ============================================
--- 5. 初始化数据
+-- 5. 工作经历表 (work_experience)
+-- ============================================
+CREATE TABLE work_experience (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键',
+    title VARCHAR(500) NOT NULL COMMENT '职位标题',
+    job VARCHAR(200) NOT NULL COMMENT '岗位角色',
+    description TEXT COMMENT '整体描述',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序序号',
+    is_visible TINYINT NOT NULL DEFAULT 1 COMMENT '是否显示: 1-显示, 0-隐藏',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    INDEX idx_sort_order (sort_order),
+    INDEX idx_is_visible (is_visible),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工作经历表';
+
+-- ============================================
+-- 6. 项目表 (project)
+-- ============================================
+CREATE TABLE project (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键',
+    experience_id BIGINT NOT NULL COMMENT '关联 work_experience.id',
+    name VARCHAR(200) NOT NULL COMMENT '项目名称',
+    lifecycle VARCHAR(100) COMMENT '项目周期',
+    background TEXT COMMENT '项目背景',
+    duty TEXT COMMENT '职责描述',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序序号',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    INDEX idx_experience_id (experience_id),
+    INDEX idx_sort_order (sort_order),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目表';
+
+-- ============================================
+-- 7. 项目成果表 (project_achievement)
+-- ============================================
+CREATE TABLE project_achievement (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键',
+    project_id BIGINT NOT NULL COMMENT '关联 project.id',
+    content TEXT NOT NULL COMMENT '成果内容',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序序号',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    INDEX idx_project_id (project_id),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目成果表';
+
+-- ============================================
+-- 8. 技术栈表 (work_experience_stack)
+-- ============================================
+CREATE TABLE work_experience_stack (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键',
+    experience_id BIGINT NOT NULL COMMENT '关联 work_experience.id',
+    tech_name VARCHAR(100) NOT NULL COMMENT '技术名称',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序序号',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    INDEX idx_experience_id (experience_id),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工作经历技术栈表';
+
+-- ============================================
+-- 9. 初始化数据
 -- ============================================
 
 -- 插入默认用户
@@ -112,11 +184,15 @@ ON DUPLICATE KEY UPDATE username=username;
 INSERT INTO chat_user (user_id, username, nickname, avatar) VALUES('admin', 'mougin', 'mouhin', NULL);
 
 -- ============================================
--- 6. 验证
+-- 10. 验证
 -- ============================================
 SELECT '数据库初始化完成！' AS status;
 SELECT COUNT(*) AS user_count FROM chat_user;
 SELECT COUNT(*) AS session_count FROM chat_session;
 SELECT COUNT(*) AS message_count FROM chat_message;
 SELECT COUNT(*) AS oauth_count FROM user_oauth;
+SELECT COUNT(*) AS experience_count FROM work_experience;
+SELECT COUNT(*) AS project_count FROM project;
+SELECT COUNT(*) AS achievement_count FROM project_achievement;
+SELECT COUNT(*) AS stack_count FROM work_experience_stack;
 

@@ -1,0 +1,128 @@
+/* ===== 全局导航栏样式 ===== */
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #e1e5eb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.navbar-brand {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-decoration: none;
+  letter-spacing: 0.5px;
+}
+
+.navbar-brand:hover {
+  color: #4a90d9;
+}
+
+.navbar-menu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-menu li a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #555;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.navbar-menu li a:hover {
+  background: #f0f5ff;
+  color: #4a90d9;
+}
+
+.navbar-menu li a.active {
+  background: #e8f0fe;
+  color: #4a90d9;
+}
+
+.navbar-menu li a .menu-icon {
+  font-size: 16px;
+}
+
+/* 页面需要给 body 加 padding-top 避免被导航栏遮挡 */
+body {
+  padding-top: 56px;
+}
+
+/* 深色主题适配 */
+[data-theme="dark"] .navbar {
+  background: rgba(30, 30, 30, 0.95);
+  border-bottom-color: #333;
+}
+
+[data-theme="dark"] .navbar-brand {
+  color: #f0f0f0;
+}
+
+[data-theme="dark"] .navbar-menu li a {
+  color: #ccc;
+}
+
+[data-theme="dark"] .navbar-menu li a:hover {
+  background: rgba(74, 144, 217, 0.15);
+  color: #6aabf0;
+}
+
+[data-theme="dark"] .navbar-menu li a.active {
+  background: rgba(74, 144, 217, 0.2);
+  color: #6aabf0;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 12px;
+    height: 50px;
+  }
+
+  .navbar-brand {
+    font-size: 16px;
+  }
+
+  .navbar-menu {
+    gap: 2px;
+  }
+
+  .navbar-menu li a {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .navbar-menu li a .menu-text {
+    display: none;
+  }
+
+  .navbar-menu li a .menu-icon {
+    font-size: 18px;
+  }
+
+  body {
+    padding-top: 50px;
+  }
+}

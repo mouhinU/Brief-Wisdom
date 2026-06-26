@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统设置</title>
+  <link rel="stylesheet" href="css/navbar.css">
+  <link rel="stylesheet" href="css/system-settings.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>系统设置</h1>
+    </header>
+
+    <!-- 菜单管理 -->
+    <section class="settings-section">
+      <div class="section-header">
+        <h2>菜单管理</h2>
+        <button class="btn btn-primary" onclick="showMenuForm()">+ 新增菜单</button>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>排序</th>
+              <th>图标</th>
+              <th>菜单名称</th>
+              <th>链接</th>
+              <th>打开方式</th>
+              <th>显示</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="menu-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 弹窗 -->
+    <div id="modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-title">新增菜单</h3>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <form id="menu-form" class="modal-form" onsubmit="saveMenu(event)">
+          <input type="hidden" id="menu-id">
+          <div class="form-group">
+            <label>菜单名称 *</label>
+            <input type="text" id="menu-name" required placeholder="例如：首页">
+          </div>
+          <div class="form-group">
+            <label>链接 *</label>
+            <input type="text" id="menu-url" required placeholder="例如：/ 或 /about.html">
+          </div>
+          <div class="form-group">
+            <label>图标</label>
+            <input type="text" id="menu-icon" placeholder="Emoji 或图标类名，例如：🏠">
+          </div>
+          <div class="form-group">
+            <label>排序序号</label>
+            <input type="number" id="menu-sort" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>打开方式</label>
+            <select id="menu-target">
+              <option value="_self">当前窗口</option>
+              <option value="_blank">新窗口</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>是否显示</label>
+            <select id="menu-visible">
+              <option value="1">显示</option>
+              <option value="0">隐藏</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 公共导航栏 -->
+  <script src="js/navbar.js"></script>
+  <script src="js/system-settings.js"></script>
+</body>
+</html>

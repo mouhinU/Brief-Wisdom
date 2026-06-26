@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 智能助手</title>
+    <link rel="stylesheet" href="css/navbar.css">
     <link rel="stylesheet" href="css/chat.css">
 </head>
 <body>
@@ -38,6 +39,12 @@
         <div class="chat-main">
             <div class="chat-header">
                 <h1>🤖 AI 智能助手</h1>
+                <div class="model-selector">
+                    <label>模型：</label>
+                    <select id="modelSelector" onchange="onModelChange()">
+                        <option value="">加载中...</option>
+                    </select>
+                </div>
                 <p>有任何问题都可以问我哦~</p>
                 <button class="close-button" onclick="toggleChat()">×</button>
             </div>
@@ -74,6 +81,8 @@
 
     <!-- 引入 marked.js 用于 Markdown 解析 -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 引入公共导航栏 -->
+    <script src="js/navbar.js"></script>
     <!-- 引入自定义 JS -->
     <script src="js/chat.js"></script>
 </body>
