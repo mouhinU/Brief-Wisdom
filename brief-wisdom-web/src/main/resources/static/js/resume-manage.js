@@ -19,14 +19,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== Tab 切换 =====
 function initTabs() {
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  document.querySelectorAll('.tab-btn:not([data-tab="editor"])').forEach(btn => {
     btn.addEventListener('click', () => {
+      switchToManage();
+      // 找到对应的 tab-content
+      const tabId = `${btn.dataset.tab}-tab`;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active');
+      const target = document.getElementById(tabId);
+      if (target) target.classList.add('active');
     });
   });
+}
+
+// 切换到在线编辑器
+function switchToEditor() {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="editor"]').classList.add('active');
+  document.getElementById('editor-tab').classList.add('active');
+  if (typeof initEditor === 'function') initEditor();
+}
+
+// 切换到数据管理
+function switchToManage() {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 }
 
 // ===== 通用 API 请求 =====

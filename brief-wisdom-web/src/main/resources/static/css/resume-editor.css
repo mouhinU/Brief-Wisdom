@@ -1,0 +1,376 @@
+/* ===== 在线编辑器样式 ===== */
+
+.editor-container {
+  margin-top: 8px;
+}
+
+/* 步骤导航 */
+.editor-steps {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 6px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.step-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.step-btn:hover {
+  background: #f0f5ff;
+  color: #4a90d9;
+}
+
+.step-btn.active {
+  background: #4a90d9;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(74, 144, 217, 0.3);
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.step-btn.active .step-num {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* 编辑器主体 - 左右分栏 */
+.editor-body {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  min-height: 520px;
+}
+
+/* 左侧列表面板 */
+.editor-list-panel {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eef0f3;
+  background: #fafbfc;
+}
+
+.editor-list-header h3 {
+  font-size: 15px;
+  color: #1a1a1a;
+}
+
+.editor-list-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* 列表项 */
+.editor-list-item {
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.editor-list-item:hover {
+  background: #f8faff;
+}
+
+.editor-list-item.active {
+  background: #f0f5ff;
+  border-left-color: #4a90d9;
+}
+
+.editor-list-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-list-item-meta {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 右侧表单面板 */
+.editor-form-panel {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
+}
+
+.editor-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  color: #999;
+  font-size: 15px;
+}
+
+/* 编辑器表单 */
+.editor-form-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.editor-form-group {
+  margin-bottom: 18px;
+}
+
+.editor-form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  color: #555;
+}
+
+.editor-form-group input,
+.editor-form-group textarea,
+.editor-form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dde1e7;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.editor-form-group input:focus,
+.editor-form-group textarea:focus,
+.editor-form-group select:focus {
+  outline: none;
+  border-color: #4a90d9;
+  box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.1);
+}
+
+.editor-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* 表单操作按钮 */
+.editor-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #eef0f3;
+}
+
+.editor-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.editor-btn-primary {
+  background: #4a90d9;
+  color: #fff;
+}
+
+.editor-btn-primary:hover {
+  background: #3a7bc8;
+}
+
+.editor-btn-secondary {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.editor-btn-secondary:hover {
+  background: #dee2e6;
+}
+
+.editor-btn-danger {
+  background: #fff0f0;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+}
+
+.editor-btn-danger:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.editor-btn-add {
+  background: #f0f5ff;
+  color: #4a90d9;
+  border: 1px dashed #4a90d9;
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+}
+
+.editor-btn-add:hover {
+  background: #4a90d9;
+  color: #fff;
+}
+
+/* 子项管理（技术栈、成果） */
+.sub-items-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed #e1e5eb;
+}
+
+.sub-items-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.sub-items-header h4 {
+  font-size: 15px;
+  color: #333;
+}
+
+.sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8f9fb;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.sub-item-content {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+}
+
+.sub-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.sub-item-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sub-item-btn-edit {
+  background: #f0f5ff;
+  color: #4a90d9;
+}
+
+.sub-item-btn-edit:hover {
+  background: #4a90d9;
+  color: #fff;
+}
+
+.sub-item-btn-delete {
+  background: #fff0f0;
+  color: #e74c3c;
+}
+
+.sub-item-btn-delete:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+/* 子项内联编辑 */
+.sub-item-inline-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sub-item-inline-form input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #dde1e7;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.sub-item-inline-form input:focus {
+  outline: none;
+  border-color: #4a90d9;
+}
+
+.sub-item-inline-form button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* 空状态 */
+.editor-list-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .editor-body {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-list-panel {
+    max-height: 250px;
+  }
+}

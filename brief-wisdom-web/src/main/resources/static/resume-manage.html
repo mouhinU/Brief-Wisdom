@@ -6,6 +6,7 @@
   <title>简历数据管理</title>
   <link rel="stylesheet" href="css/navbar.css?v=5">
   <link rel="stylesheet" href="css/resume-manage.css">
+  <link rel="stylesheet" href="css/resume-editor.css">
 </head>
 <body>
   <div class="container">
@@ -16,11 +17,34 @@
 
     <!-- Tab 导航 -->
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="experiences">工作经历</button>
+      <button class="tab-btn" data-tab="editor" onclick="switchToEditor()">在线编辑</button>
+      <button class="tab-btn active" data-tab="experiences" onclick="switchToManage()">工作经历</button>
       <button class="tab-btn" data-tab="projects">项目</button>
       <button class="tab-btn" data-tab="achievements">项目成果</button>
       <button class="tab-btn" data-tab="stacks">技术栈</button>
     </nav>
+
+    <!-- 在线编辑 Tab -->
+    <section id="editor-tab" class="tab-content">
+      <div class="editor-container">
+        <!-- 步骤导航 -->
+        <div class="editor-steps">
+          <button class="step-btn active" data-step="1" onclick="goToStep(1)">
+            <span class="step-num">1</span> 工作经历 & 技术栈
+          </button>
+          <button class="step-btn" data-step="2" onclick="goToStep(2)">
+            <span class="step-num">2</span> 项目 & 成果
+          </button>
+        </div>
+        <!-- 编辑器主体 -->
+        <div class="editor-body">
+          <div class="editor-list-panel" id="editor-list-panel"></div>
+          <div class="editor-form-panel" id="editor-form-panel">
+            <div class="editor-empty">请从左侧选择或新增项目进行编辑</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- 工作经历 Tab -->
     <section id="experiences-tab" class="tab-content active">
@@ -91,5 +115,6 @@
   <!-- 公共导航栏 -->
   <script src="js/navbar.js?v=5"></script>
   <script src="js/resume-manage.js"></script>
+  <script src="js/resume-editor.js"></script>
 </body>
 </html>
