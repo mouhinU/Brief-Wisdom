@@ -98,12 +98,8 @@ async function doLogin() {
         const data = await resp.json();
 
         if (data.success) {
-            closeAuthModal();
-            // 刷新导航栏认证状态
-            if (typeof refreshAuthUI === 'function') refreshAuthUI();
-            // 清空表单
-            document.getElementById('loginUsername').value = '';
-            document.getElementById('loginPassword').value = '';
+            // 登录成功，刷新页面以重新初始化所有组件（AI助手会话列表等）
+            window.location.reload();
         } else {
             showError('loginError', data.error || data.message || '登录失败');
         }

@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.common.resume;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -14,6 +15,8 @@ public class ProjectAchievementDTO implements Serializable {
     private Long projectId;
     private String content;
     private Integer sortOrder;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateTime;
 }

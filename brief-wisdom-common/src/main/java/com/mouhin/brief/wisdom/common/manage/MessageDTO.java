@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.common.manage;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -18,6 +19,7 @@ public class MessageDTO implements Serializable {
     private String model;
     private Integer tokens;
     private Double cost;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime timestamp;
     private String messageType;
 }

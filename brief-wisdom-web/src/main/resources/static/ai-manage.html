@@ -15,8 +15,8 @@
 
     <!-- 顶部 Tab 导航 -->
     <nav class="manage-tabs">
-      <button class="manage-tab-btn active" data-tab="sessions" onclick="switchManageTab('sessions')">会话历史</button>
-      <button class="manage-tab-btn" data-tab="models" onclick="switchManageTab('models')">模型管理</button>
+        <button class="manage-tab-btn" data-tab="models" onclick="switchManageTab('models')">模型管理</button>
+        <button class="manage-tab-btn active" data-tab="sessions" onclick="switchManageTab('sessions')">会话历史</button>
     </nav>
 
     <!-- Tab 1: 会话历史 -->
@@ -138,6 +138,17 @@
           </form>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- 详情弹窗 -->
+  <div id="detail-modal" class="modal" style="display:none;">
+    <div class="modal-content detail-modal-content">
+      <div class="modal-header">
+        <h3 id="detail-modal-title">详情</h3>
+        <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+      </div>
+      <div id="detail-modal-body" class="detail-modal-body"></div>
     </div>
   </div>
 

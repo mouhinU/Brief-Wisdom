@@ -8,6 +8,7 @@ const API_BASE = '/api/ai/manage';
 // 当前选中状态
 let selectedUserId = null;
 let selectedSessionId = null;
+let currentMessages = []; // 缓存当前消息列表
 
 document.addEventListener('DOMContentLoaded', () => {
   loadUsers();
@@ -16,20 +17,60 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== 筛选事件 =====
 
 function onLevelFilterChange() {
-  loadUsers();
-  // 清空右侧
-  clearSessions();
+  const mode = document.getElementById('query-mode').value;
+  if (mode === 'level') {
+    // 按级别查询模式：选级别直接加载会话
+    loadSessionsByLevel();
+  } else {
+    loadUsers();
+    clearSessions();
+  }
   clearMessages();
 }
 
 function onQueryModeChange() {
   const mode = document.getElementById('query-mode').value;
   if (mode === 'level') {
-    // 按级别查询模式：选择级别后直接查会话
-    loadUsers(); // 仍然显示用户列表
+    // 按级别查询模式：选级别后直接加载会话
+    loadSessionsByLevel();
+  } else {
+    loadUsers();
+    clearSessions();
   }
-  clearSessions();
   clearMessages();
+}
+
+// ===== 按级别直接加载会话 =====
+async function loadSessionsByLevel() {
+  const level = document.getElementById('level-filter').value;
+  if (!level) {
+    clearSessions();
+    clearMessages();
+    return;
+  }
+  // 同时加载用户列表（仅供参考）
+  loadUsers();
+
+  const levelLabels = { admin: '管理员', vip: '会员', normal: '普通用户' };
+  document.getElementById('session-title').textContent = `${levelLabels[level] || level} 的会话`;
+
+  const url = `${API_BASE}/sessions/level/${level}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      alert(`加载会话失败 (HTTP ${res.status})`);
+      return;
+    }
+    const result = await res.json();
+    if (!result.success) {
+      alert('加载会话失败: ' + (result.error || result.msg || '未知错误'));
+      return;
+    }
+    renderSessions(result.data);
+  } catch (err) {
+    console.error('[loadSessionsByLevel] error:', err);
+    alert('加载会话异常: ' + err.message);
+  }
 }
 
 // ===== 加载用户列表 =====
@@ -61,10 +102,10 @@ function renderUsers(users) {
 
   container.innerHTML = users.map(u => `
     <div class="user-item ${selectedUserId === u.userId ? 'active' : ''}"
-         onclick="selectUser('${u.userId}', '${escapeAttr(u.nickname || u.username)}')">
+         onclick="selectUser('${u.userId}', '${escapeAttr(u.nickname || u.username)}', this)">
       <div class="user-avatar">${getAvatarEmoji(u.userLevel)}</div>
       <div class="user-info">
-        <div class="user-name">${escapeHtml(u.nickname || u.username)}</div>
+        <div class="user-name">${manageEscapeHtml(u.nickname || u.username)}</div>
         <div class="user-meta">
           <span class="level-badge level-${u.userLevel}">${levelLabel(u.userLevel)}</span>
           <span>${u.sessionCount} 个会话</span>
@@ -75,27 +116,20 @@ function renderUsers(users) {
 }
 
 // ===== 选择用户 → 加载会话 =====
-async function selectUser(userId, userName) {
+async function selectUser(userId, userName, el) {
   selectedUserId = userId;
   selectedSessionId = null;
   clearMessages();
 
   // 更新用户列表高亮
-  document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.user-item').forEach(e => e.classList.remove('active'));
+  if (el) el.classList.add('active');
 
   const mode = document.getElementById('query-mode').value;
   document.getElementById('session-title').textContent = `${userName} 的会话`;
 
   try {
-    let url;
-    if (mode === 'level') {
-      const level = document.getElementById('level-filter').value || 'normal';
-      url = `${API_BASE}/sessions/level/${level}`;
-    } else {
-      url = `${API_BASE}/sessions/user/${userId}`;
-    }
-
+    const url = `${API_BASE}/sessions/user/${userId}`;
     const res = await fetch(url);
     const result = await res.json();
     if (!result.success) {
@@ -118,23 +152,23 @@ function renderSessions(sessions) {
   }
 
   container.innerHTML = sessions.map(s => `
-    <div class="session-item" onclick="selectSession('${s.sessionId}', '${escapeAttr(s.title)}')">
-      <div class="session-title">${escapeHtml(s.title)}</div>
+    <div class="session-item" onclick="manageSelectSession('${s.sessionId}', '${escapeAttr(s.title)}', this)">
+      <div class="session-title">${manageEscapeHtml(s.title)}</div>
       <div class="session-meta">
         <span>${s.messageCount || 0} 条消息</span>
-        <span>${formatTime(s.updateTime)}</span>
+        <span>${manageFormatTime(s.updateTime)}</span>
       </div>
     </div>
   `).join('');
 }
 
 // ===== 选择会话 → 加载消息 =====
-async function selectSession(sessionId, title) {
+async function manageSelectSession(sessionId, title, el) {
   selectedSessionId = sessionId;
 
   // 更新会话列表高亮
-  document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.session-item').forEach(e => e.classList.remove('active'));
+  if (el) el.classList.add('active');
 
   document.getElementById('message-title').textContent = title || '消息详情';
 
@@ -152,24 +186,175 @@ async function selectSession(sessionId, title) {
 }
 
 function renderMessages(messages) {
+  currentMessages = messages || [];
   const container = document.getElementById('message-list');
-  document.getElementById('message-count').textContent = messages.length;
+  document.getElementById('message-count').textContent = currentMessages.length;
 
-  if (!messages || messages.length === 0) {
+  if (!currentMessages.length) {
     container.innerHTML = '<div class="empty-hint">暂无消息</div>';
     return;
   }
 
-  container.innerHTML = messages.map(m => `
-    <div class="message-item">
+  container.innerHTML = currentMessages.map((m, i) => `
+    <div class="message-item message-clickable" onclick="showMessageDetail(${i})">
       <div>
         <span class="message-role role-${m.role}">${m.role === 'user' ? '用户' : 'AI'}</span>
       </div>
-      <div class="message-content">${escapeHtml(m.content)}</div>
-      <div class="message-time">${formatTime(m.timestamp)}</div>
-      ${m.model ? `<div class="message-model">模型: ${escapeHtml(m.model)}</div>` : ''}
+      <div class="message-content">${manageEscapeHtml(m.content)}</div>
+      <div class="message-time">${manageFormatTime(m.timestamp)}</div>
+      ${m.model ? `<div class="message-model">模型: ${manageEscapeHtml(m.model)}</div>` : ''}
     </div>
   `).join('');
+}
+
+// ===== 消息详情弹窗 =====
+function showMessageDetail(index) {
+  const m = currentMessages[index];
+  if (!m) return;
+
+  const roleLabel = m.role === 'user' ? '用户' : 'AI';
+  document.getElementById('detail-modal-title').textContent = `${roleLabel} 消息详情`;
+
+  const rows = [
+    { label: '角色', value: roleLabel },
+    { label: '消息类型', value: m.messageType || '-' },
+    { label: '模型', value: m.model || '-' },
+    { label: 'Token数', value: m.tokens != null ? m.tokens : '-' },
+  ];
+
+  let html = '<div class="detail-rows">';
+  rows.forEach(r => {
+    html += `<div class="detail-row"><span class="detail-label">${r.label}</span><span class="detail-value">${manageEscapeHtml(String(r.value))}</span></div>`;
+  });
+  html += '</div>';
+
+  // 检测内容类型并格式化渲染
+  const fmt = detectAndFormatContent(m.content || '');
+  html += `<div class="detail-content-section">`;
+  html += `<div class="detail-content-label">消息内容 <span class="detail-content-type">${fmt.type}</span></div>`;
+  html += `<div class="detail-content-body ${fmt.cssClass}">${fmt.html}</div>`;
+  html += '</div>';
+
+  document.getElementById('detail-modal-body').innerHTML = html;
+  document.getElementById('detail-modal').style.display = 'flex';
+}
+
+/**
+ * 检测内容类型并格式化渲染
+ * 支持: JSON, XML/HTML, Markdown, 纯文本
+ */
+function detectAndFormatContent(content) {
+  const trimmed = content.trim();
+
+  // 1. 检测 JSON
+  if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+      (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const pretty = JSON.stringify(parsed, null, 2);
+      return {
+        type: 'JSON',
+        cssClass: 'content-code',
+        html: `<pre class="detail-pre">${manageEscapeHtml(pretty)}</pre>`
+      };
+    } catch (_) { /* not valid JSON, fall through */ }
+  }
+
+  // 2. 检测 XML（以 < 开头且包含标签结构）
+  if (trimmed.startsWith('<') && /<\/?[a-zA-Z][\s\S]*>/.test(trimmed)) {
+    // 检查是否像 HTML/XML 而非 Markdown
+    if (trimmed.startsWith('<?xml') || trimmed.startsWith('<!') ||
+        /<\/[a-zA-Z]+>/.test(trimmed) ||
+        (/<[a-zA-Z][^>]*\/>/.test(trimmed) && !trimmed.includes('```'))) {
+      const pretty = formatXml(trimmed);
+      return {
+        type: 'XML',
+        cssClass: 'content-code',
+        html: `<pre class="detail-pre">${manageEscapeHtml(pretty)}</pre>`
+      };
+    }
+  }
+
+  // 3. 检测 Markdown（含 ```代码块、# 标题、- 列表、**粗体** 等特征）
+  if (/^#{1,6}\s/m.test(trimmed) ||
+      /```/.test(trimmed) ||
+      /^\s*[-*+]\s/m.test(trimmed) ||
+      /\*\*[^*]+\*\*/.test(trimmed) ||
+      /^\s*\d+\.\s/m.test(trimmed) ||
+      /\[.+\]\(.+\)/.test(trimmed)) {
+    return {
+      type: 'Markdown',
+      cssClass: 'content-markdown',
+      html: renderMarkdown(trimmed)
+    };
+  }
+
+  // 4. 默认: 纯文本
+  return {
+    type: 'Text',
+    cssClass: '',
+    html: manageEscapeHtml(content)
+  };
+}
+
+/**
+ * 简易 XML 格式化
+ */
+function formatXml(xml) {
+  let formatted = '';
+  let indent = 0;
+  // 按标签拆分
+  const parts = xml.replace(/>\s*</g, '>\n<').split('\n');
+  parts.forEach(part => {
+    const line = part.trim();
+    if (!line) return;
+    // 关闭标签减少缩进
+    if (/^<\//.test(line)) indent = Math.max(indent - 1, 0);
+    formatted += '  '.repeat(indent) + line + '\n';
+    // 开标签增加缩进（排除自闭合和关闭标签）
+    if (/^<[^\/!?][^>]*[^\/]>$/.test(line) && !/^<[^>]*\/>$/.test(line)) {
+      indent++;
+    }
+  });
+  return formatted.trim();
+}
+
+/**
+ * 渲染 Markdown → HTML（优先使用 marked.js，降级为简单转换）
+ */
+function renderMarkdown(md) {
+  if (typeof marked !== 'undefined' && marked.parse) {
+    // 使用 marked.js（navbar.js 已动态加载）
+    return marked.parse(md);
+  }
+  // 降级：简易 Markdown 转换
+  let html = manageEscapeHtml(md);
+  // 代码块
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="detail-pre"><code>$2</code></pre>');
+  // 行内代码
+  html = html.replace(/`([^`]+)`/g, '<code class="detail-inline-code">$1</code>');
+  // 标题
+  html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+  html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+  html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+  // 粗体/斜体
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // 链接
+  html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+  // 无序列表
+  html = html.replace(/^\s*[-*+]\s+(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  // 换行
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').style.display = 'none';
 }
 
 // ===== 清空方法 =====
@@ -198,23 +383,27 @@ function getAvatarEmoji(level) {
   return map[level] || '👤';
 }
 
-function formatTime(timeStr) {
+function manageFormatTime(timeStr) {
   if (!timeStr) return '-';
   try {
     const d = new Date(timeStr);
-    if (isNaN(d.getTime())) return timeStr;
+    if (isNaN(d.getTime())) return String(timeStr);
     const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   } catch {
-    return timeStr;
+    return String(timeStr);
   }
 }
 
-function escapeHtml(str) {
+function manageEscapeHtml(str) {
   if (!str) return '';
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function escapeHtml(str) {
+  return manageEscapeHtml(str);
 }
 
 function escapeAttr(str) {
@@ -262,10 +451,10 @@ function renderModelTable(models) {
   tbody.innerHTML = models.map(m => `
     <tr>
       <td>${m.sortOrder ?? 0}</td>
-      <td><code>${escapeHtml(m.modelName)}</code></td>
-      <td>${escapeHtml(m.displayName)}</td>
-      <td>${escapeHtml(m.provider)}</td>
-      <td>${escapeHtml(m.description || '-')}</td>
+      <td><code>${manageEscapeHtml(m.modelName)}</code></td>
+      <td>${manageEscapeHtml(m.displayName)}</td>
+      <td>${manageEscapeHtml(m.provider)}</td>
+      <td>${manageEscapeHtml(m.description || '-')}</td>
       <td>
         <span class="status-badge ${m.isEnabled === 1 ? 'status-enabled' : 'status-disabled'}">
           ${m.isEnabled === 1 ? '启用' : '禁用'}

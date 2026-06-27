@@ -565,3 +565,227 @@ header h1 {
   gap: 10px;
   margin-top: 20px;
 }
+
+/* ===== Message Clickable ===== */
+.message-clickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.message-clickable:hover {
+  background: #f8faff;
+}
+
+/* ===== Detail Modal ===== */
+.detail-modal-content {
+  width: 720px;
+  max-width: 92vw;
+  max-height: 90vh;
+}
+
+.detail-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 60px);
+}
+
+.detail-rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eef0f3;
+  border-right: 1px solid #eef0f3;
+}
+
+.detail-row:nth-child(even) {
+  border-right: none;
+}
+
+.detail-row:nth-last-child(-n+2) {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.detail-content-section {
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.detail-content-label {
+  font-size: 12px;
+  color: #999;
+  padding: 10px 16px;
+  background: #fafbfc;
+  border-bottom: 1px solid #eef0f3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-content-type {
+  font-size: 10px;
+  font-weight: 600;
+  color: #4a90d9;
+  background: #e8f0fe;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.detail-content-body {
+  padding: 16px;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+/* Code content (JSON/XML) */
+.detail-content-body.content-code {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  border-radius: 0 0 8px 8px;
+}
+
+.detail-pre {
+  margin: 0;
+  white-space: pre;
+  word-break: normal;
+  tab-size: 2;
+}
+
+/* Markdown content */
+.detail-content-body.content-markdown {
+  white-space: normal;
+}
+
+.detail-content-body.content-markdown h1,
+.detail-content-body.content-markdown h2,
+.detail-content-body.content-markdown h3,
+.detail-content-body.content-markdown h4,
+.detail-content-body.content-markdown h5,
+.detail-content-body.content-markdown h6 {
+  margin: 16px 0 8px 0;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.detail-content-body.content-markdown h1 { font-size: 20px; }
+.detail-content-body.content-markdown h2 { font-size: 18px; }
+.detail-content-body.content-markdown h3 { font-size: 16px; }
+
+.detail-content-body.content-markdown p {
+  margin: 8px 0;
+}
+
+.detail-content-body.content-markdown ul,
+.detail-content-body.content-markdown ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.detail-content-body.content-markdown li {
+  margin: 4px 0;
+}
+
+.detail-content-body.content-markdown code {
+  background: #f0f2f5;
+  color: #d63384;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+}
+
+.detail-content-body.content-markdown pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 14px 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.detail-content-body.content-markdown pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 13px;
+}
+
+.detail-content-body.content-markdown blockquote {
+  border-left: 3px solid #4a90d9;
+  padding: 4px 16px;
+  margin: 12px 0;
+  color: #666;
+  background: #f8faff;
+  border-radius: 0 4px 4px 0;
+}
+
+.detail-content-body.content-markdown a {
+  color: #4a90d9;
+  text-decoration: none;
+}
+
+.detail-content-body.content-markdown a:hover {
+  text-decoration: underline;
+}
+
+.detail-content-body.content-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+}
+
+.detail-content-body.content-markdown th,
+.detail-content-body.content-markdown td {
+  border: 1px solid #eef0f3;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.detail-content-body.content-markdown th {
+  background: #f8f9fb;
+  font-weight: 600;
+}
+
+.detail-content-body.content-markdown hr {
+  border: none;
+  border-top: 1px solid #eef0f3;
+  margin: 16px 0;
+}
+
+.detail-content-body.content-markdown img {
+  max-width: 100%;
+  border-radius: 6px;
+}
