@@ -1,9 +1,12 @@
-package com.mouhin.brief.wisdom.web.config;
+package com.mouhin.brief.wisdom.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,7 +28,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             // 禁用 CSRF（前后端分离，使用 Session 认证）
-            .csrf(csrf -> csrf.disable())
+            .csrf(AbstractHttpConfigurer::disable)
             // 允许 H2 Console 使用 frame
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             // 路由权限配置
@@ -45,8 +48,8 @@ public class SecurityConfig {
                 .requestMatchers("/system-settings.html").permitAll()
                 // AI助手管理页面公开
                 .requestMatchers("/ai-manage.html").permitAll()
-                // 认证相关接口公开（登录/回调/状态检查）
-                .requestMatchers("/auth/**", "/api/auth/status", "/api/auth/login/wechat").permitAll()
+                // 认证相关接口公开（登录/回调/状态检查/注册）
+                .requestMatchers("/auth/**", "/api/auth/status", "/api/auth/login/wechat", "/api/auth/register", "/api/auth/login").permitAll()
                 // 获取当前用户信息需要登录
                 .requestMatchers("/api/auth/user").authenticated()
                 // 其余全部公开
@@ -78,5 +81,13 @@ public class SecurityConfig {
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
+    }
+
+    /**
+     * 密码加密器（BCrypt）
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

@@ -6,7 +6,7 @@ import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
 import com.mouhin.brief.wisdom.persistence.mapper.UserOauthMapper;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.UserOauth;
-import com.mouhin.brief.wisdom.web.config.WechatProperties;
+import com.mouhin.brief.wisdom.config.WechatProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

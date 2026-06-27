@@ -1,10 +1,5 @@
-const aiFab = document.getElementById('aiFab');
-const chatPopup = document.getElementById('chatPopup');
-const chatMessages = document.getElementById('chatMessages');
-const chatInput = document.getElementById('chatInput');
-const sendButton = document.getElementById('sendButton');
-const typingIndicator = document.getElementById('typingIndicator');
-const sessionList = document.getElementById('sessionList');
+// DOM 元素引用（动态注入时可能延迟获取）
+function getEl(id) { return document.getElementById(id); }
 
 // 当前会话 ID
 let currentSessionId = null;
@@ -81,22 +76,29 @@ function onModelChange() {
     }
 }
 
-// 配置 marked.js
-marked.setOptions({
-    breaks: true,  // 支持换行符
-    gfm: true,     // 启用 GitHub Flavored Markdown
-    headerIds: false,
-    mangle: false
-});
+// 配置 marked.js（如果已加载）
+if (typeof marked !== 'undefined') {
+    marked.setOptions({
+        breaks: true,
+        gfm: true,
+        headerIds: false,
+        mangle: false
+    });
+}
 
 // 切换聊天窗口显示/隐藏
 function toggleChat() {
+    const chatPopup = getEl('chatPopup');
+    if (!chatPopup) return;
     chatPopup.classList.toggle('show');
     if (chatPopup.classList.contains('show')) {
-        // 加载会话列表
-        loadSessions();
+        // 仅在会话列表为空时才加载（避免重复请求）
+        if (allSessions.length === 0 && !sessionIsLoading) {
+            loadSessions();
+        }
         setTimeout(() => {
-            chatInput.focus();
+            const input = getEl('chatInput');
+            if (input) input.focus();
         }, 300);
     }
 }
@@ -109,7 +111,8 @@ async function loadSessions() {
 
     try {
         const pageSize = paginationConfig.sessionList.defaultSize;
-        const response = await fetch(`/api/ai/sessions?page=1&size=${pageSize}`);
+        const url = `/api/ai/sessions?page=1&size=${pageSize}`;
+        const response = await fetch(url);
         const data = await response.json();
         
         if (data.success) {
@@ -121,11 +124,8 @@ async function loadSessions() {
             renderSessionList(allSessions);
             updateLoadMoreIndicator();
             
-            // 如果没有会话，创建一个
-            if (allSessions.length === 0) {
-                await createNewSession();
-            } else if (!currentSessionId) {
-                // 选中第一个会话
+            // 选中第一个会话（不自动创建）
+            if (allSessions.length > 0 && !currentSessionId) {
                 currentSessionId = allSessions[0].sessionId;
                 await loadSessionHistory(currentSessionId);
                 // 重新渲染以更新高亮
@@ -149,7 +149,8 @@ async function loadMoreSessions() {
     try {
         const nextPage = sessionCurrentPage + 1;
         const pageSize = paginationConfig.sessionList.defaultSize;
-        const response = await fetch(`/api/ai/sessions?page=${nextPage}&size=${pageSize}`);
+        const url = `/api/ai/sessions?page=${nextPage}&size=${pageSize}`;
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.success) {
@@ -174,13 +175,15 @@ async function loadMoreSessions() {
 
 // 显示/隐藏加载更多指示器
 function showLoadMoreIndicator() {
+    const list = getEl('sessionList');
+    if (!list) return;
     let indicator = document.getElementById('loadMoreIndicator');
     if (!indicator) {
         indicator = document.createElement('div');
         indicator.id = 'loadMoreIndicator';
         indicator.className = 'load-more-indicator';
         indicator.innerHTML = '<span>加载中...</span>';
-        sessionList.appendChild(indicator);
+        list.appendChild(indicator);
     }
     indicator.style.display = 'flex';
 }
@@ -190,23 +193,29 @@ function updateLoadMoreIndicator() {
     if (indicator) {
         indicator.remove();
     }
+    const list = getEl('sessionList');
+    if (!list) return;
     if (sessionHasMore) {
         indicator = document.createElement('div');
         indicator.id = 'loadMoreIndicator';
         indicator.className = 'load-more-indicator';
         indicator.innerHTML = '<span>↓ 下拉加载更多</span>';
-        sessionList.appendChild(indicator);
+        list.appendChild(indicator);
     }
 }
 
 // 渲染会话列表（全量替换）
 function renderSessionList(sessions) {
-    sessionList.innerHTML = '';
+    const list = getEl('sessionList');
+    if (!list) return;
+    list.innerHTML = '';
     appendSessionItems(sessions);
 }
 
 // 追加会话项（增量添加）
 function appendSessionItems(sessions) {
+    const list = getEl('sessionList');
+    if (!list) return;
     // 移除加载更多指示器（稍后重新添加）
     const existingIndicator = document.getElementById('loadMoreIndicator');
     if (existingIndicator) {
@@ -235,7 +244,7 @@ function appendSessionItems(sessions) {
             }
         };
         
-        sessionList.appendChild(sessionItem);
+        list.appendChild(sessionItem);
     });
 }
 
@@ -281,7 +290,9 @@ async function selectSession(sessionId) {
     });
     
     // 找到对应的会话项并添加高亮
-    const sessionItems = sessionList.querySelectorAll('.session-item');
+    const list = getEl('sessionList');
+    if (!list) return;
+    const sessionItems = list.querySelectorAll('.session-item');
     sessionItems.forEach(item => {
         const deleteBtn = item.querySelector('.delete-session-btn');
         if (deleteBtn) {
@@ -337,7 +348,7 @@ async function loadSessionHistory(sessionId) {
             
             // 加载历史消息
             data.data.forEach(msg => {
-                addMessage(msg.content, msg.role === 'user' ? 'user' : 'ai', false);
+                addMessage(msg.content, msg.role === 'user' ? 'user' : 'ai', false, msg.model);
             });
         } else {
             console.log('没有历史消息');
@@ -350,8 +361,10 @@ async function loadSessionHistory(sessionId) {
 
 // 清空聊天消息
 function clearChatMessages() {
+    const messages = getEl('chatMessages');
+    if (!messages) return;
     // 总是清空所有消息，显示欢迎界面
-    chatMessages.innerHTML = `
+    messages.innerHTML = `
         <div class="welcome-message">
             <h2>欢迎使用 AI 智能助手!</h2>
             <p>请输入您的问题,我会尽力为您解答</p>
@@ -361,6 +374,9 @@ function clearChatMessages() {
 
 // 发送消息
 async function sendMessage() {
+    const chatInput = getEl('chatInput');
+    const sendButton = getEl('sendButton');
+    if (!chatInput) return;
     const message = chatInput.value.trim();
     
     if (!message) {
@@ -377,9 +393,12 @@ async function sendMessage() {
     console.log('准备发送消息，sessionId:', currentSessionId, '消息:', message);
 
     // 清空欢迎消息
-    const welcomeMessage = chatMessages.querySelector('.welcome-message');
-    if (welcomeMessage) {
-        welcomeMessage.remove();
+    const messages = getEl('chatMessages');
+    if (messages) {
+        const welcomeMessage = messages.querySelector('.welcome-message');
+        if (welcomeMessage) {
+            welcomeMessage.remove();
+        }
     }
 
     // 添加用户消息
@@ -389,7 +408,7 @@ async function sendMessage() {
     chatInput.value = '';
     
     // 禁用发送按钮
-    sendButton.disabled = true;
+    if (sendButton) sendButton.disabled = true;
     
     // 显示打字指示器
     showTypingIndicator();
@@ -400,7 +419,7 @@ async function sendMessage() {
             console.error('错误：currentSessionId 为空！');
             hideTypingIndicator();
             addMessage('错误：会话ID为空，请刷新页面重试', 'ai');
-            sendButton.disabled = false;
+            if (sendButton) sendButton.disabled = false;
             return;
         }
         
@@ -429,7 +448,7 @@ async function sendMessage() {
         hideTypingIndicator();
 
         if (data.success) {
-            addMessage(data.data, 'ai');
+            addMessage(data.data, 'ai', true, currentModel);
             // 更新会话列表（可能标题变了）
             await loadSessions();
         } else {
@@ -440,13 +459,13 @@ async function sendMessage() {
         hideTypingIndicator();
         addMessage('抱歉,网络请求失败: ' + error.message, 'ai');
     } finally {
-        sendButton.disabled = false;
-        chatInput.focus();
+        if (sendButton) sendButton.disabled = false;
+        if (chatInput) chatInput.focus();
     }
 }
 
 // 添加消息到聊天窗口
-function addMessage(text, sender, scroll = true) {
+function addMessage(text, sender, scroll = true, modelName = null) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}`;
     
@@ -461,16 +480,25 @@ function addMessage(text, sender, scroll = true) {
             console.error('Markdown 解析错误:', error);
             messageContent.textContent = text;
         }
+        // 显示模型名称
+        if (modelName) {
+            const modelLabel = document.createElement('div');
+            modelLabel.className = 'message-model-label';
+            modelLabel.textContent = modelName;
+            messageDiv.appendChild(modelLabel);
+        }
     } else {
         messageContent.textContent = text;
     }
     
     messageDiv.appendChild(messageContent);
-    chatMessages.appendChild(messageDiv);
-    
-    // 滚动到底部
-    if (scroll) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+    const messages = getEl('chatMessages');
+    if (messages) {
+        messages.appendChild(messageDiv);
+        // 滚动到底部
+        if (scroll) {
+            messages.scrollTop = messages.scrollHeight;
+        }
     }
 }
 
@@ -529,38 +557,50 @@ function escapeHtml(text) {
 
 // 显示打字指示器
 function showTypingIndicator() {
+    const typingIndicator = getEl('typingIndicator');
+    const messages = getEl('chatMessages');
+    if (!typingIndicator || !messages) return;
     typingIndicator.classList.add('show');
-    chatMessages.appendChild(typingIndicator);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    messages.appendChild(typingIndicator);
+    messages.scrollTop = messages.scrollHeight;
 }
 
 // 隐藏打字指示器
 function hideTypingIndicator() {
-    typingIndicator.classList.remove('show');
+    const typingIndicator = getEl('typingIndicator');
+    if (typingIndicator) typingIndicator.classList.remove('show');
 }
 
 // 按 Enter 键发送消息
-chatInput.addEventListener('keypress', function(e) {
+document.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-        sendMessage();
+        const input = e.target;
+        if (input && input.id === 'chatInput') {
+            sendMessage();
+        }
     }
 });
 
 // 页面加载完成后聚焦输入框并加载分页配置
 window.addEventListener('load', async function() {
-    chatInput.focus();
+    const chatInput = getEl('chatInput');
+    if (chatInput) chatInput.focus();
     // 初始化时加载配置
     await loadPaginationConfig();
     await loadModels();
+    // 直接加载当前登录用户的会话
+    await loadSessions();
 });
 
 // 会话列表滚动监听 - 触底自动加载下一页
-sessionList.addEventListener('scroll', function() {
+document.addEventListener('scroll', function(e) {
+    const list = getEl('sessionList');
+    if (!list || e.target !== list) return;
     // 距离底部 30px 时触发加载
     const threshold = 30;
-    const isNearBottom = sessionList.scrollTop + sessionList.clientHeight >= sessionList.scrollHeight - threshold;
+    const isNearBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - threshold;
 
     if (isNearBottom && sessionHasMore && !sessionIsLoading) {
         loadMoreSessions();
     }
-});
+}, true);

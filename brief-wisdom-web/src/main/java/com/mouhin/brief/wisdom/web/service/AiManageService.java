@@ -1,13 +1,15 @@
 package com.mouhin.brief.wisdom.web.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mouhin.brief.wisdom.common.manage.MessageDTO;
+import com.mouhin.brief.wisdom.common.manage.SessionDTO;
+import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.persistence.mapper.ChatMessageMapper;
 import com.mouhin.brief.wisdom.persistence.mapper.ChatSessionMapper;
 import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
 import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
 import com.mouhin.brief.wisdom.persistence.model.ChatSession;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -138,44 +140,5 @@ public class AiManageService {
         dto.setTimestamp(msg.getTimestamp());
         dto.setMessageType(msg.getMessageType());
         return dto;
-    }
-
-    // ===== DTO 类 =====
-
-    @Data
-    public static class UserDTO {
-        private Long id;
-        private String userId;
-        private String username;
-        private String nickname;
-        private String avatar;
-        private String userLevel;
-        private LocalDateTime createTime;
-        private Integer sessionCount;
-    }
-
-    @Data
-    public static class SessionDTO {
-        private String sessionId;
-        private String userId;
-        private String title;
-        private String description;
-        private Integer messageCount;
-        private LocalDateTime createTime;
-        private LocalDateTime updateTime;
-    }
-
-    @Data
-    public static class MessageDTO {
-        private Long id;
-        private String sessionId;
-        private String userId;
-        private String role;
-        private String content;
-        private String model;
-        private Integer tokens;
-        private Double cost;
-        private LocalDateTime timestamp;
-        private String messageType;
     }
 }

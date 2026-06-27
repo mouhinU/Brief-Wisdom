@@ -30,6 +30,9 @@ public class ChatUser implements Serializable {
     @TableField(value = "avatar")
     private String avatar;
 
+    @TableField(value = "password")
+    private String password;  // BCrypt加密后的密码，null表示未设置密码（仅第三方登录）
+
     @TableField(value = "user_level")
     private String userLevel;  // 用户级别: admin/vip/normal
     

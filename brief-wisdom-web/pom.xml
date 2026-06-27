@@ -17,6 +17,11 @@
 			<groupId>com.mouhin</groupId>
 			<artifactId>brief-wisdom-api</artifactId>
 		</dependency>
+
+        <dependency>
+            <groupId>com.mouhin</groupId>
+            <artifactId>brief-wisdom-common</artifactId>
+        </dependency>
 		<dependency>
 			<groupId>com.mouhin</groupId>
 			<artifactId>brief-wisdom-ai</artifactId>

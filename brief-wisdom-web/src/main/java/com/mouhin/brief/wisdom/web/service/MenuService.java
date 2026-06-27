@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.web.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mouhin.brief.wisdom.common.menu.MenuDTO;
 import com.mouhin.brief.wisdom.persistence.mapper.SysMenuMapper;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import lombok.RequiredArgsConstructor;
@@ -20,22 +21,22 @@ public class MenuService {
     /**
      * 获取所有可见菜单，按 sort_order 排序
      */
-    public List<SysMenu> listVisibleMenus() {
+    public List<MenuDTO> listVisibleMenus() {
         return sysMenuMapper.selectList(
                 new LambdaQueryWrapper<SysMenu>()
                         .eq(SysMenu::getIsVisible, 1)
                         .orderByAsc(SysMenu::getSortOrder)
-        );
+        ).stream().map(this::toMenuDTO).toList();
     }
 
     /**
      * 获取所有菜单（含隐藏）
      */
-    public List<SysMenu> listAllMenus() {
+    public List<MenuDTO> listAllMenus() {
         return sysMenuMapper.selectList(
                 new LambdaQueryWrapper<SysMenu>()
                         .orderByAsc(SysMenu::getSortOrder)
-        );
+        ).stream().map(this::toMenuDTO).toList();
     }
 
     /**
@@ -64,5 +65,28 @@ public class MenuService {
      */
     public void deleteMenu(Long id) {
         sysMenuMapper.deleteById(id);
+    }
+
+    /**
+     * 切换菜单显示/隐藏状态
+     */
+    public void toggleVisible(Long id) {
+        SysMenu menu = sysMenuMapper.selectById(id);
+        if (menu != null) {
+            menu.setIsVisible(menu.getIsVisible() == 1 ? 0 : 1);
+            sysMenuMapper.updateById(menu);
+        }
+    }
+
+    private MenuDTO toMenuDTO(SysMenu m) {
+        MenuDTO dto = new MenuDTO();
+        dto.setId(m.getId());
+        dto.setName(m.getName());
+        dto.setUrl(m.getUrl());
+        dto.setIcon(m.getIcon());
+        dto.setTarget(m.getTarget());
+        dto.setSortOrder(m.getSortOrder());
+        dto.setIsVisible(m.getIsVisible());
+        return dto;
     }
 }

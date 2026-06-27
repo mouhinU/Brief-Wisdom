@@ -27,6 +27,44 @@ header h1 {
   color: #1a1a1a;
 }
 
+/* Tab 导航 - 与AI助手管理页一致的下划线风格 */
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e1e5eb;
+}
+
+.settings-tab-btn {
+  padding: 10px 24px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.settings-tab-btn:hover {
+  color: #4a90d9;
+}
+
+.settings-tab-btn.active {
+  color: #4a90d9;
+  border-bottom-color: #4a90d9;
+}
+
+.settings-tab-content {
+  display: none;
+}
+
+.settings-tab-content.active {
+  display: block;
+}
+
 /* Section */
 .settings-section {
   background: #fff;
@@ -104,6 +142,21 @@ header h1 {
   color: #fff;
 }
 
+.btn-toggle-vis {
+  background: #fff8e1;
+  color: #f57c00;
+  border: 1px solid #f57c00;
+  padding: 4px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.btn-toggle-vis:hover {
+  background: #f57c00;
+  color: #fff;
+}
+
 /* Table */
 .table-wrapper {
   overflow-x: auto;
@@ -159,6 +212,118 @@ header h1 {
 
 .icon-cell {
   font-size: 20px;
+}
+
+/* 用户筛选栏 */
+.user-filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.user-filter-bar select,
+.user-filter-bar input {
+  padding: 7px 12px;
+  border: 1px solid #dde1e7;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+
+.user-filter-bar select:focus,
+.user-filter-bar input:focus {
+  border-color: #4a90d9;
+}
+
+.user-filter-bar input {
+  width: 180px;
+}
+
+.btn-sm {
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+/* 用户级别标签 */
+.level-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.level-admin {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.level-vip {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.level-normal {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* 重置密码按钮 */
+.btn-reset-pwd {
+  background: #fff8e1;
+  color: #f57c00;
+  border: 1px solid #f57c00;
+  padding: 4px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.btn-reset-pwd:hover {
+  background: #f57c00;
+  color: #fff;
+}
+
+/* 分页 */
+.pagination-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eef0f3;
+}
+
+.page-btn {
+  padding: 6px 12px;
+  border: 1px solid #dde1e7;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover {
+  border-color: #4a90d9;
+  color: #4a90d9;
+}
+
+.page-btn.active {
+  background: #4a90d9;
+  color: #fff;
+  border-color: #4a90d9;
+}
+
+.page-info {
+  font-size: 13px;
+  color: #999;
+  margin-left: 8px;
+}
+
+/* 小弹窗 */
+.modal-sm {
+  width: 380px;
 }
 
 /* Modal */

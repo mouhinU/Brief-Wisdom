@@ -2,7 +2,7 @@ package com.mouhin.brief.wisdom.resume;
 
 import com.mouhin.brief.wisdom.resume.dto.WorkExperienceVO;
 import com.mouhin.brief.wisdom.resume.service.ResumeService;
-import lombok.Data;
+import com.mouhin.brief.wisdom.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -30,34 +30,13 @@ public class ResumeController {
      * 返回结构与原 project.json 一致，前端无需修改渲染逻辑。
      */
     @GetMapping("/experiences")
-    public ApiResponse listExperiences() {
+    public ApiResponse<List<WorkExperienceVO>> listExperiences() {
         try {
             List<WorkExperienceVO> data = resumeService.listAllExperiences();
             return ApiResponse.success(data);
         } catch (Exception e) {
             log.error("获取简历数据失败: ", e);
-            return ApiResponse.error("获取简历数据失败: " + e.getMessage());
-        }
-    }
-
-    @Data
-    public static class ApiResponse {
-        private boolean success;
-        private Object data;
-        private String error;
-
-        public static ApiResponse success(Object data) {
-            ApiResponse response = new ApiResponse();
-            response.setSuccess(true);
-            response.setData(data);
-            return response;
-        }
-
-        public static ApiResponse error(String error) {
-            ApiResponse response = new ApiResponse();
-            response.setSuccess(false);
-            response.setError(error);
-            return response;
+            return ApiResponse.fail("获取简历数据失败: " + e.getMessage());
         }
     }
 }

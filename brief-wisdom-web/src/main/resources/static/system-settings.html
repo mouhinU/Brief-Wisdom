@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>系统设置</title>
-  <link rel="stylesheet" href="css/navbar.css">
-  <link rel="stylesheet" href="css/system-settings.css">
+  <link rel="stylesheet" href="css/navbar.css?v=5">
+  <link rel="stylesheet" href="css/system-settings.css?v=5">
 </head>
 <body>
   <div class="container">
@@ -13,31 +13,74 @@
       <h1>系统设置</h1>
     </header>
 
-    <!-- 菜单管理 -->
-    <section class="settings-section">
-      <div class="section-header">
-        <h2>菜单管理</h2>
-        <button class="btn btn-primary" onclick="showMenuForm()">+ 新增菜单</button>
-      </div>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>排序</th>
-              <th>图标</th>
-              <th>菜单名称</th>
-              <th>链接</th>
-              <th>打开方式</th>
-              <th>显示</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="menu-table-body"></tbody>
-        </table>
-      </div>
-    </section>
+    <!-- Tab 导航 -->
+    <nav class="settings-tabs">
+      <button class="settings-tab-btn active" data-tab="menu" onclick="switchSettingsTab('menu')">菜单管理</button>
+      <button class="settings-tab-btn" data-tab="user" onclick="switchSettingsTab('user')">用户管理</button>
+    </nav>
 
-    <!-- 弹窗 -->
+    <!-- Tab 1: 菜单管理 -->
+    <div id="menu-tab-content" class="settings-tab-content active">
+      <section class="settings-section">
+        <div class="section-header">
+          <h2>菜单管理</h2>
+          <button class="btn btn-primary" onclick="showMenuForm()">+ 新增菜单</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>排序</th>
+                <th>图标</th>
+                <th>菜单名称</th>
+                <th>链接</th>
+                <th>打开方式</th>
+                <th>显示</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="menu-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Tab 2: 用户管理 -->
+    <div id="user-tab-content" class="settings-tab-content">
+      <section class="settings-section">
+        <div class="section-header">
+          <h2>用户管理</h2>
+          <div class="user-filter-bar">
+            <select id="user-level-filter" onchange="loadUsers()">
+              <option value="">全部级别</option>
+              <option value="admin">管理员</option>
+              <option value="vip">会员</option>
+              <option value="normal">普通用户</option>
+            </select>
+            <input type="text" id="user-search-input" placeholder="搜索用户名/昵称" onkeydown="if(event.key==='Enter')loadUsers()">
+            <button class="btn btn-primary btn-sm" onclick="loadUsers()">搜索</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>用户名</th>
+                <th>昵称</th>
+                <th>级别</th>
+                <th>注册时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="user-table-body"></tbody>
+          </table>
+        </div>
+        <!-- 分页 -->
+        <div class="pagination-bar" id="user-pagination"></div>
+      </section>
+    </div>
+
+    <!-- 菜单弹窗 -->
     <div id="modal" class="modal" style="display:none;">
       <div class="modal-content">
         <div class="modal-header">
@@ -83,10 +126,35 @@
         </form>
       </div>
     </div>
+
+    <!-- 用户级别修改弹窗 -->
+    <div id="user-level-modal" class="modal" style="display:none;">
+      <div class="modal-content modal-sm">
+        <div class="modal-header">
+          <h3>修改用户级别</h3>
+          <button class="modal-close" onclick="closeUserLevelModal()">×</button>
+        </div>
+        <form class="modal-form" onsubmit="saveUserLevel(event)">
+          <input type="hidden" id="user-level-id">
+          <div class="form-group">
+            <label>用户级别</label>
+            <select id="user-level-select">
+              <option value="admin">管理员</option>
+              <option value="vip">会员</option>
+              <option value="normal">普通用户</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeUserLevelModal()">取消</button>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- 公共导航栏 -->
-  <script src="js/navbar.js"></script>
-  <script src="js/system-settings.js"></script>
+  <script src="js/navbar.js?v=5"></script>
+  <script src="js/system-settings.js?v=5"></script>
 </body>
 </html>

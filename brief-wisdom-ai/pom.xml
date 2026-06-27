@@ -23,5 +23,11 @@
 			<groupId>com.mouhin</groupId>
 			<artifactId>brief-wisdom-persistence</artifactId>
 		</dependency>
+
+		<!-- Common Module -->
+		<dependency>
+			<groupId>com.mouhin</groupId>
+			<artifactId>brief-wisdom-common</artifactId>
+		</dependency>
 	</dependencies>
 </project>

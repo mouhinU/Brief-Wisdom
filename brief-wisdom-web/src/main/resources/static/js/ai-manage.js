@@ -231,14 +231,14 @@ function switchManageTab(tab) {
     content.classList.toggle('active', content.id === `${tab}-tab-content`);
   });
   if (tab === 'models') {
-    loadModels();
+    loadManageModels();
   }
 }
 
 // ===== 模型管理 =====
 const MODEL_API = '/api/ai/models';
 
-async function loadModels() {
+async function loadManageModels() {
   try {
     const res = await fetch(MODEL_API);
     const result = await res.json();
@@ -338,7 +338,7 @@ async function saveModel(e) {
       return;
     }
     closeModelModal();
-    loadModels();
+    loadManageModels();
   } catch (err) {
     alert('保存异常: ' + err.message);
   }
@@ -353,7 +353,7 @@ async function deleteModel(id) {
       alert('删除失败: ' + result.error);
       return;
     }
-    loadModels();
+    loadManageModels();
   } catch (err) {
     alert('删除异常: ' + err.message);
   }
@@ -368,7 +368,7 @@ async function activateModel(id) {
       alert('激活失败: ' + result.error);
       return;
     }
-    loadModels();
+    loadManageModels();
   } catch (err) {
     alert('激活异常: ' + err.message);
   }
@@ -382,7 +382,7 @@ async function toggleModel(id, enabled) {
       alert('操作失败: ' + result.error);
       return;
     }
-    loadModels();
+    loadManageModels();
   } catch (err) {
     alert('操作异常: ' + err.message);
   }

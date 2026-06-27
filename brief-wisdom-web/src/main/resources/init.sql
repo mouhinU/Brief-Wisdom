@@ -30,6 +30,7 @@ CREATE TABLE chat_user (
     username VARCHAR(100) NOT NULL UNIQUE COMMENT '用户名',
     nickname VARCHAR(200) COMMENT '昵称',
     avatar VARCHAR(500) COMMENT '头像URL',
+    password VARCHAR(200) DEFAULT NULL COMMENT 'BCrypt加密后的密码',
     user_level VARCHAR(20) NOT NULL DEFAULT 'normal' COMMENT '用户级别: admin-管理员, vip-会员, normal-普通用户',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

@@ -20,6 +20,13 @@ spring:
     livereload:
       enabled: true  # 启用 LiveReload
       port: 35729
+  # 静态资源缓存控制（开发阶段禁用缓存）
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
+          must-revalidate: true
 
 # MyBatis-Plus 配置
 mybatis-plus:
@@ -50,9 +57,24 @@ wechat:
   open:
     app-id: ${WECHAT_APP_ID:your-app-id}
     app-secret: ${WECHAT_APP_SECRET:your-app-secret}
-    # 授权回调地址，需与微信开放平台配置一致
     redirect-uri: ${WECHAT_REDIRECT_URI:http://localhost:8090/auth/wechat/callback}
-    # 微信开放平台接口地址
     authorize-url: https://open.weixin.qq.com/connect/qrconnect
     token-url: https://api.weixin.qq.com/sns/oauth2/access_token
     userinfo-url: https://api.weixin.qq.com/sns/userinfo
+
+# 钉钉扫码登录配置（OAuth2.0）
+dingtalk:
+  app-key: ${DINGTALK_APP_KEY:your-app-key}
+  app-secret: ${DINGTALK_APP_SECRET:your-app-secret}
+  redirect-uri: ${DINGTALK_REDIRECT_URI:http://localhost:8090/auth/dingtalk/callback}
+  authorize-url: https://login.dingtalk.com/oauth2/auth
+  token-url: https://api.dingtalk.com/v1.0/oauth2/userAccessToken
+  userinfo-url: https://api.dingtalk.com/v1.0/contact/users/me
+
+# 支付宝扫码登录配置
+alipay:
+  app-id: ${ALIPAY_APP_ID:your-app-id}
+  private-key: ${ALIPAY_PRIVATE_KEY:your-private-key}
+  alipay-public-key: ${ALIPAY_PUBLIC_KEY:your-alipay-public-key}
+  redirect-uri: ${ALIPAY_REDIRECT_URI:http://localhost:8090/auth/alipay/callback}
+  gateway-url: https://openapi.alipay.com/gateway.do

@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.web.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mouhin.brief.wisdom.common.ai.AiModelDTO;
 import com.mouhin.brief.wisdom.persistence.mapper.AiModelMapper;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
 import lombok.RequiredArgsConstructor;
@@ -21,40 +22,41 @@ public class AiModelService {
     /**
      * 获取所有模型列表
      */
-    public List<AiModel> listModels() {
+    public List<AiModelDTO> listModels() {
         return aiModelMapper.selectList(
                 new LambdaQueryWrapper<AiModel>()
                         .orderByAsc(AiModel::getSortOrder)
-        );
+        ).stream().map(this::toDTO).toList();
     }
 
     /**
      * 获取所有启用的模型
      */
-    public List<AiModel> listEnabledModels() {
+    public List<AiModelDTO> listEnabledModels() {
         return aiModelMapper.selectList(
                 new LambdaQueryWrapper<AiModel>()
                         .eq(AiModel::getIsEnabled, 1)
                         .orderByAsc(AiModel::getSortOrder)
-        );
+        ).stream().map(this::toDTO).toList();
     }
 
     /**
      * 获取当前激活的模型
      */
-    public AiModel getActiveModel() {
-        return aiModelMapper.selectOne(
+    public AiModelDTO getActiveModel() {
+        AiModel model = aiModelMapper.selectOne(
                 new LambdaQueryWrapper<AiModel>()
                         .eq(AiModel::getIsActive, 1)
                         .eq(AiModel::getIsEnabled, 1)
         );
+        return model != null ? toDTO(model) : null;
     }
 
     /**
      * 获取当前激活模型的名称（model_name）
      */
     public String getActiveModelName() {
-        AiModel model = getActiveModel();
+        AiModelDTO model = getActiveModel();
         return model != null ? model.getModelName() : "qwen-plus";
     }
 
@@ -107,5 +109,20 @@ public class AiModelService {
             }
             aiModelMapper.updateById(model);
         }
+    }
+
+    private AiModelDTO toDTO(AiModel m) {
+        AiModelDTO dto = new AiModelDTO();
+        dto.setId(m.getId());
+        dto.setModelName(m.getModelName());
+        dto.setDisplayName(m.getDisplayName());
+        dto.setProvider(m.getProvider());
+        dto.setDescription(m.getDescription());
+        dto.setIsActive(m.getIsActive());
+        dto.setIsEnabled(m.getIsEnabled());
+        dto.setSortOrder(m.getSortOrder());
+        dto.setCreateTime(m.getCreateTime());
+        dto.setUpdateTime(m.getUpdateTime());
+        return dto;
     }
 }

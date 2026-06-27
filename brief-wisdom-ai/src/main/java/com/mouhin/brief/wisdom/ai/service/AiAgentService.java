@@ -2,6 +2,9 @@ package com.mouhin.brief.wisdom.ai.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
+import com.mouhin.brief.wisdom.common.PageResult;
+import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
 import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
 import com.mouhin.brief.wisdom.persistence.model.ChatSession;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
@@ -10,10 +13,8 @@ import com.mouhin.brief.wisdom.persistence.mapper.ChatSessionMapper;
 import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
 import com.mouhin.brief.wisdom.persistence.mapper.AiModelMapper;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -111,7 +112,7 @@ public class AiAgentService {
      * 获取所有会话列表
      * @return 会话元数据列表
      */
-    public List<SessionMeta> listSessions() {
+    public List<SessionMetaDTO> listSessions() {
         return listSessions(DEFAULT_USER_ID);
     }
     
@@ -120,10 +121,10 @@ public class AiAgentService {
      * @param userId 用户ID
      * @return 会话元数据列表
      */
-    public List<SessionMeta> listSessions(String userId) {
+    public List<SessionMetaDTO> listSessions(String userId) {
         List<ChatSession> sessions = sessionMapper.selectByUserIdOrderByUpdateTimeDesc(userId);
         return sessions.stream().map(session -> {
-            SessionMeta meta = new SessionMeta();
+            SessionMetaDTO meta = new SessionMetaDTO();
             meta.setSessionId(session.getSessionId());
             meta.setUserId(session.getUserId());
             meta.setTitle(session.getTitle());
@@ -145,7 +146,7 @@ public class AiAgentService {
      * @param size 每页大小
      * @return 分页结果
      */
-    public PageResult<SessionMeta> listSessionsPaged(int page, int size) {
+    public PageResult<SessionMetaDTO> listSessionsPaged(int page, int size) {
         return listSessionsPaged(DEFAULT_USER_ID, page, size);
     }
 
@@ -156,7 +157,7 @@ public class AiAgentService {
      * @param size 每页大小
      * @return 分页结果
      */
-    public PageResult<SessionMeta> listSessionsPaged(String userId, int page, int size) {
+    public PageResult<SessionMetaDTO> listSessionsPaged(String userId, int page, int size) {
         // 使用 MyBatis-Plus 分页查询
         Page<ChatSession> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<ChatSession> queryWrapper = new LambdaQueryWrapper<>();
@@ -166,8 +167,8 @@ public class AiAgentService {
         Page<ChatSession> pageResult = sessionMapper.selectPage(pageParam, queryWrapper);
 
         // 转换为 SessionMeta
-        List<SessionMeta> sessionMetas = pageResult.getRecords().stream().map(session -> {
-            SessionMeta meta = new SessionMeta();
+        List<SessionMetaDTO> sessionMetas = pageResult.getRecords().stream().map(session -> {
+            SessionMetaDTO meta = new SessionMetaDTO();
             meta.setSessionId(session.getSessionId());
             meta.setUserId(session.getUserId());
             meta.setTitle(session.getTitle());
@@ -182,7 +183,7 @@ public class AiAgentService {
         }).toList();
 
         // 封装分页结果
-        PageResult<SessionMeta> result = new PageResult<>();
+        PageResult<SessionMetaDTO> result = new PageResult<>();
         result.setRecords(sessionMetas);
         result.setTotal(pageResult.getTotal());
         result.setPage(pageResult.getCurrent());
@@ -198,10 +199,10 @@ public class AiAgentService {
      * @param sessionId 会话ID
      * @return 消息列表
      */
-    public List<ChatMessageDto> getSessionHistory(String sessionId) {
+    public List<ChatMessageDTO> getSessionHistory(String sessionId) {
         List<ChatMessage> messages = messageMapper.selectBySessionIdOrderByTimestampAsc(sessionId);
         return messages.stream().map(msg -> {
-            ChatMessageDto dto = new ChatMessageDto();
+            ChatMessageDTO dto = new ChatMessageDTO();
             dto.setId(msg.getId());
             dto.setSessionId(msg.getSessionId());
             dto.setUserId(msg.getUserId());
@@ -386,43 +387,5 @@ public class AiAgentService {
     public String askQuestion(String question) {
         String systemPrompt = "你是一个专业的AI助手,请简洁明了地回答问题。";
         return chatWithSystemPrompt(systemPrompt, question);
-    }
-    
-    // DTO类：用于返回给前端的消息
-    @Data
-    public static class ChatMessageDto {
-        private Long id;              // 消息ID
-        private String sessionId;     // 会话ID
-        private String userId;        // 用户ID
-        private String role;          // user 或 assistant
-        private String content;       // 消息内容
-        private String model;         // AI模型
-        private Integer tokens;       // token数量
-        private Double cost;          // 费用
-        private LocalDateTime timestamp;  // 时间戳
-        private String messageType;   // 消息类型
-    }
-    
-    // 内部类：会话元数据
-    @Data
-    public static class SessionMeta {
-        private String sessionId;
-        private String userId;
-        private String title;
-        private String description;
-        private Integer messageCount;
-        private LocalDateTime createTime;
-        private LocalDateTime updateTime;
-    }
-
-    // 内部类：分页结果
-    @Data
-    public static class PageResult<T> {
-        private List<T> records;
-        private long total;
-        private long page;
-        private long size;
-        private long pages;
-        private boolean hasMore;
     }
 }
