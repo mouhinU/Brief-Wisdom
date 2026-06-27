@@ -92,14 +92,25 @@ function toggleChat() {
     if (!chatPopup) return;
     chatPopup.classList.toggle('show');
     if (chatPopup.classList.contains('show')) {
-        // 仅在会话列表为空时才加载（避免重复请求）
-        if (allSessions.length === 0 && !sessionIsLoading) {
-            loadSessions();
-        }
+        // 初始化聊天：加载会话列表，若无会话则自动创建
+        ensureChatInitialized();
         setTimeout(() => {
             const input = getEl('chatInput');
             if (input) input.focus();
         }, 300);
+    }
+}
+
+// 确保聊天已初始化（有可用会话）
+async function ensureChatInitialized() {
+    // 如果还没加载过会话列表，先加载
+    if (allSessions.length === 0 && !sessionIsLoading) {
+        await loadSessions();
+    }
+    // 如果加载后仍没有会话（新用户/未登录用户），自动创建一个
+    if (!currentSessionId) {
+        console.log('没有可用会话，自动创建新会话...');
+        await createNewSession();
     }
 }
 
@@ -248,7 +259,7 @@ function appendSessionItems(sessions) {
     });
 }
 
-// 创建新会话
+// 创建新会话（返回 sessionId 或 null）
 async function createNewSession() {
     try {
         const response = await fetch('/api/ai/session', {
@@ -256,7 +267,7 @@ async function createNewSession() {
         });
         const data = await response.json();
         
-        if (data.success) {
+        if (data.success && data.data) {
             const newSessionId = data.data;
             currentSessionId = newSessionId;
             
@@ -267,9 +278,18 @@ async function createNewSession() {
             await loadSessions();
             
             console.log('创建新会话成功:', newSessionId);
+            return newSessionId;
+        } else {
+            console.error('创建会话返回失败:', data);
+            // 显示后端返回的具体错误信息
+            const errorMsg = data.msg || data.error || '创建会话失败';
+            addMessage('错误：' + errorMsg, 'ai');
+            return null;
         }
     } catch (error) {
         console.error('创建会话失败:', error);
+        addMessage('错误：网络请求失败，请检查网络连接', 'ai');
+        return null;
     }
 }
 
@@ -386,8 +406,13 @@ async function sendMessage() {
     // 确保有当前会话
     if (!currentSessionId) {
         console.log('没有当前会话，创建新会话...');
-        await createNewSession();
-        console.log('创建后的 currentSessionId:', currentSessionId);
+        const newId = await createNewSession();
+        console.log('创建后的 currentSessionId:', newId);
+        if (!newId) {
+            // createNewSession() 已经显示了错误信息
+            if (sendButton) sendButton.disabled = false;
+            return;
+        }
     }
     
     console.log('准备发送消息，sessionId:', currentSessionId, '消息:', message);
@@ -581,8 +606,11 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// 页面加载完成后聚焦输入框并加载分页配置
-window.addEventListener('load', async function() {
+// 初始化函数（支持动态加载场景）
+let chatAppInitialized = false;
+async function initChatApp() {
+    if (chatAppInitialized) return;
+    chatAppInitialized = true;
     const chatInput = getEl('chatInput');
     if (chatInput) chatInput.focus();
     // 初始化时加载配置
@@ -590,6 +618,13 @@ window.addEventListener('load', async function() {
     await loadModels();
     // 直接加载当前登录用户的会话
     await loadSessions();
+}
+
+// 页面常规加载场景
+window.addEventListener('load', function() {
+    // 若窗口已加载完毕（动态注入场景由 navbar.js 调用 initChatApp），则跳过
+    if (document.readyState === 'complete') return;
+    initChatApp();
 });
 
 // 会话列表滚动监听 - 触底自动加载下一页

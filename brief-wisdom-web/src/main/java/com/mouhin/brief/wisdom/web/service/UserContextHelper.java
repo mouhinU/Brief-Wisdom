@@ -28,8 +28,7 @@ public class UserContextHelper {
     /** 默认昵称 */
     private static final String DEFAULT_NICKNAME = "访客用户";
 
-    private static final String SPRING_SECURITY_CONTEXT_KEY =
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
 
     /**
      * 获取当前登录用户的 userId

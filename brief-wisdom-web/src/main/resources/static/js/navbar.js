@@ -229,8 +229,15 @@ function loadChatScriptsIfNeeded() {
   // 加载 chat.js
   if (typeof toggleChat === 'undefined') {
     const chatScript = document.createElement('script');
-    chatScript.src = 'js/chat.js?v=5';
+    chatScript.src = 'js/chat.js?v=6';
+    chatScript.onload = function() {
+      // chat.js 加载完成后初始化（会话列表、模型列表等）
+      if (typeof initChatApp === 'function') initChatApp();
+    };
     document.head.appendChild(chatScript);
+  } else {
+    // chat.js 已存在但可能是动态注入的，确保初始化已执行
+    if (typeof initChatApp === 'function') initChatApp();
   }
 }
 

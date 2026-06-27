@@ -35,6 +35,9 @@
           <button class="step-btn" data-step="2" onclick="goToStep(2)">
             <span class="step-num">2</span> 项目 & 成果
           </button>
+          <button class="step-btn preview-step-btn" onclick="previewResume()">
+            <span class="step-num">👁</span> 预览简历
+          </button>
         </div>
         <!-- 编辑器主体 -->
         <div class="editor-body">
@@ -99,6 +102,23 @@
       </div>
       <div id="stacks-list" class="data-list"></div>
     </section>
+
+    <!-- 简历预览弹窗 -->
+    <div id="resume-preview-modal" class="resume-preview-overlay" style="display:none;">
+      <div class="resume-preview-container">
+        <div class="resume-preview-toolbar">
+          <h3>简历预览</h3>
+          <div class="resume-preview-actions">
+            <button class="editor-btn editor-btn-secondary" onclick="refreshPreview()">🔄 刷新</button>
+            <button class="editor-btn editor-btn-primary" onclick="openFullResume()">🔗 完整页面</button>
+            <button class="editor-btn editor-btn-danger" onclick="closePreview()">✕ 关闭</button>
+          </div>
+        </div>
+        <div class="resume-preview-body" id="resume-preview-body">
+          <div class="editor-empty">点击"刷新"加载简历预览...</div>
+        </div>
+      </div>
+    </div>
 
     <!-- 弹窗 -->
     <div id="modal" class="modal" style="display:none;">

@@ -431,3 +431,112 @@ function escAttr(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+
+// ===== 简历预览 =====
+async function previewResume() {
+  const modal = document.getElementById('resume-preview-modal');
+  modal.style.display = 'flex';
+  await refreshPreview();
+}
+
+function closePreview() {
+  document.getElementById('resume-preview-modal').style.display = 'none';
+}
+
+function openFullResume() {
+  window.open('/about.html', '_blank');
+}
+
+async function refreshPreview() {
+  const body = document.getElementById('resume-preview-body');
+  body.innerHTML = '<div class="editor-empty">正在加载简历数据...</div>';
+  try {
+    const res = await fetch('/api/resume/experiences');
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || '加载失败');
+    const experiences = result.data || [];
+    renderPreview(experiences);
+  } catch (e) {
+    body.innerHTML = '<div class="preview-empty"><div class="preview-empty-icon">❗</div><p>加载失败: ' + esc(e.message) + '</p></div>';
+  }
+}
+
+function renderPreview(experiences) {
+  const body = document.getElementById('resume-preview-body');
+  if (!experiences || experiences.length === 0) {
+    body.innerHTML = '<div class="preview-empty"><div class="preview-empty-icon">📄</div><p>暂无简历数据，请先添加工作经历</p></div>';
+    return;
+  }
+
+  let html = '<div class="preview-header"><div class="preview-name">个人简历</div>';
+  html += '<div class="preview-title">工作经历与项目经验</div></div>';
+
+  // 工作经历部分
+  html += '<div class="preview-section">';
+  html += '<div class="preview-section-title">💼 工作经历与项目经验</div>';
+
+  experiences.forEach(exp => {
+    html += '<div class="preview-exp-item">';
+    html += '<div class="preview-exp-header">';
+    html += '<div><div class="preview-exp-title">' + esc(exp.title) + '</div>';
+    html += '<div class="preview-exp-job">' + esc(exp.job) + '</div></div>';
+    html += '</div>';
+
+    if (exp.description) {
+      html += '<div class="preview-exp-desc">' + esc(exp.description) + '</div>';
+    }
+
+    // 项目经验
+    if (exp.projects && exp.projects.length > 0) {
+      exp.projects.forEach(proj => {
+        html += '<div class="preview-project">';
+        html += '<div class="preview-project-name">' + esc(proj.name) + '</div>';
+        if (proj.lifecycle) {
+          html += '<div class="preview-project-lifecycle">📅 ' + esc(proj.lifecycle) + '</div>';
+        }
+        if (proj.background) {
+          html += '<div class="preview-project-bg"><strong>项目背景:</strong> ' + esc(proj.background) + '</div>';
+        }
+        if (proj.duty) {
+          html += '<div class="preview-project-duty"><strong>工作职责:</strong> ' + esc(proj.duty) + '</div>';
+        }
+        if (proj.achievements && proj.achievements.length > 0) {
+          html += '<div><strong>项目成果:</strong></div>';
+          html += '<ul class="preview-achievements">';
+          proj.achievements.forEach(a => {
+            html += '<li>' + esc(a) + '</li>';
+          });
+          html += '</ul>';
+        }
+        html += '</div>';
+      });
+    }
+
+    // 技术栈
+    if (exp.stacks && exp.stacks.length > 0) {
+      html += '<div class="preview-stacks">';
+      exp.stacks.forEach(s => {
+        html += '<span class="preview-stack-tag">' + esc(s) + '</span>';
+      });
+      html += '</div>';
+    }
+
+    html += '</div>'; // close preview-exp-item
+  });
+
+  html += '</div>'; // close preview-section
+  body.innerHTML = html;
+}
+
+// 点击遮罩关闭预览
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'resume-preview-modal') closePreview();
+});
+
+// ESC 关闭预览
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('resume-preview-modal');
+    if (modal && modal.style.display !== 'none') closePreview();
+  }
+});

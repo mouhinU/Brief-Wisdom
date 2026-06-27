@@ -61,10 +61,14 @@ public class AiAgentService {
         if (existingUser == null) {
             ChatUser defaultUser = new ChatUser();
             defaultUser.setUserId(DEFAULT_USER_ID);
-            defaultUser.setUsername("guest");
+            defaultUser.setUsername("guest-" + DEFAULT_USER_ID);
             defaultUser.setNickname("访客");
-            userMapper.insert(defaultUser);
-            log.info("创建默认用户: {}", DEFAULT_USER_ID);
+            try {
+                userMapper.insert(defaultUser);
+                log.info("创建默认用户: {}", DEFAULT_USER_ID);
+            } catch (Exception e) {
+                log.warn("创建默认用户失败（可能已存在）: {}", e.getMessage());
+            }
         }
     }
 
@@ -84,6 +88,9 @@ public class AiAgentService {
      */
     @Transactional
     public String createSession(String userId) {
+        // 确保用户存在（防止外键约束失败）
+        ensureUserExists(userId);
+        
         ChatSession session = new ChatSession();
         session.setSessionId(UUID.randomUUID().toString());
         session.setUserId(userId);
@@ -93,6 +100,31 @@ public class AiAgentService {
         sessionMapper.insert(session);
         log.info("为用户 {} 创建新会话: {}", userId, session.getSessionId());
         return session.getSessionId();
+    }
+    
+    /**
+     * 确保用户存在于数据库中（防止外键约束失败）
+     * 如果用户不存在或已被逻辑删除，则创建/恢复
+     */
+    private void ensureUserExists(String userId) {
+        LambdaQueryWrapper<ChatUser> qw = new LambdaQueryWrapper<>();
+        qw.eq(ChatUser::getUserId, userId);
+        ChatUser existingUser = userMapper.selectOne(qw);
+        if (existingUser != null) {
+            return;
+        }
+        // 用户不存在，创建（username 使用 userId 后缀避免唯一键冲突）
+        ChatUser user = new ChatUser();
+        user.setUserId(userId);
+        user.setUsername("guest-" + userId);
+        user.setNickname("访客");
+        try {
+            userMapper.insert(user);
+            log.info("动态创建用户: {}", userId);
+        } catch (Exception e) {
+            // 唯一键冲突时忽略（并发场景）
+            log.warn("创建用户失败（可能已存在）: userId={}, error={}", userId, e.getMessage());
+        }
     }
 
     /**

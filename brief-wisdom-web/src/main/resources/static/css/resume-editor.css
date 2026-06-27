@@ -59,6 +59,20 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
+.preview-step-btn {
+  flex: 0 0 auto;
+  max-width: 160px;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #86efac;
+}
+
+.preview-step-btn:hover {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+
 /* 编辑器主体 - 左右分栏 */
 .editor-body {
   display: grid;
@@ -372,5 +386,216 @@
 
   .editor-list-panel {
     max-height: 250px;
+  }
+}
+
+/* ===== 简历预览弹窗 ===== */
+.resume-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: previewFadeIn 0.2s ease;
+}
+
+@keyframes previewFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.resume-preview-container {
+  background: #fff;
+  border-radius: 12px;
+  width: 92vw;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.resume-preview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eef0f3;
+  background: #fafbfc;
+  flex-shrink: 0;
+}
+
+.resume-preview-toolbar h3 {
+  font-size: 17px;
+  color: #1a1a1a;
+}
+
+.resume-preview-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.resume-preview-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 40px;
+  background: #fff;
+}
+
+/* 预览内容样式 */
+.preview-header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #eef0f3;
+}
+
+.preview-header .preview-name {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.preview-header .preview-title {
+  font-size: 16px;
+  color: #4a90d9;
+  font-weight: 500;
+}
+
+.preview-section {
+  margin-bottom: 28px;
+}
+
+.preview-section-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a1a1a;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #4a90d9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-exp-item {
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: #f8f9fb;
+  border-radius: 8px;
+  border-left: 3px solid #4a90d9;
+}
+
+.preview-exp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.preview-exp-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.preview-exp-job {
+  font-size: 14px;
+  color: #4a90d9;
+  font-weight: 500;
+}
+
+.preview-exp-desc {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.preview-project {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #eef0f3;
+}
+
+.preview-project-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.preview-project-lifecycle {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.preview-project-bg {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.preview-project-duty {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.preview-achievements {
+  padding-left: 18px;
+  margin: 0;
+}
+
+.preview-achievements li {
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.preview-stacks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.preview-stack-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.preview-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.preview-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+  .resume-preview-body {
+    padding: 20px 16px;
+  }
+
+  .resume-preview-container {
+    width: 98vw;
+    max-height: 95vh;
   }
 }
