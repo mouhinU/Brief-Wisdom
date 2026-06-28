@@ -16,10 +16,15 @@ let sessionHasMore = false;
 let sessionIsLoading = false;
 let allSessions = [];  // 累积存储所有已加载的会话
 
+// 消息历史分页状态
+let historyCurrentPage = 1;
+let historyHasMore = false;
+let historyIsLoading = false;
+
 // 分页配置（从后端动态获取）
 let paginationConfig = {
     sessionList: { defaultSize: 20, maxSize: 100 },
-    messageHistory: { defaultSize: 50, maxSize: 200 }
+    messageHistory: { defaultSize: 20, maxSize: 200 }
 };
 
 // 加载分页配置（页面初始化时调用一次）
@@ -352,31 +357,181 @@ async function deleteSession(event, sessionId) {
     }
 }
 
-// 加载会话历史
+// 加载会话历史（分页，初始加载最新一页）
 async function loadSessionHistory(sessionId) {
+    // 重置消息历史分页状态
+    historyCurrentPage = 1;
+    historyHasMore = false;
+    historyIsLoading = false;
+
     try {
         console.log('正在加载会话历史:', sessionId);
-        const response = await fetch(`/api/ai/session/${sessionId}/history`);
+        const pageSize = paginationConfig.messageHistory.defaultSize;
+        const response = await fetch(`/api/ai/session/${sessionId}/history?page=1&size=${pageSize}`);
         const data = await response.json();
-        
+
         console.log('历史记录响应:', data);
-        
-        if (data.success && data.data.length > 0) {
-            console.log(`加载到 ${data.data.length} 条历史消息`);
-            // 清空当前消息
-            clearChatMessages();
-            
-            // 加载历史消息
-            data.data.forEach(msg => {
+
+        // 清空当前消息
+        clearChatMessages();
+
+        if (data.success && data.data.records && data.data.records.length > 0) {
+            const records = data.data.records;
+            historyCurrentPage = 1;
+            historyHasMore = data.data.hasMore;
+
+            console.log(`加载到 ${records.length} 条历史消息，还有更多: ${historyHasMore}`);
+
+            // 渲染消息（接口已按正序返回）
+            records.forEach(msg => {
                 addMessage(msg.content, msg.role === 'user' ? 'user' : 'ai', false, msg.model);
             });
+
+            // 如果有更多历史消息，显示顶部加载提示
+            if (historyHasMore) {
+                showHistoryLoadMoreIndicator();
+            }
+
+            // 滚动到底部
+            const messages = getEl('chatMessages');
+            if (messages) {
+                messages.scrollTop = messages.scrollHeight;
+            }
         } else {
             console.log('没有历史消息');
-            clearChatMessages();
         }
     } catch (error) {
         console.error('加载历史记录失败:', error);
     }
+}
+
+// 加载更多历史消息（向上滚动触发，加载更早的消息）
+async function loadMoreHistory() {
+    if (historyIsLoading || !historyHasMore || !currentSessionId) {
+        return;
+    }
+
+    historyIsLoading = true;
+    showHistoryLoadingIndicator();
+
+    try {
+        const nextPage = historyCurrentPage + 1;
+        const pageSize = paginationConfig.messageHistory.defaultSize;
+        const response = await fetch(`/api/ai/session/${currentSessionId}/history?page=${nextPage}&size=${pageSize}`);
+        const data = await response.json();
+
+        if (data.success && data.data.records && data.data.records.length > 0) {
+            const records = data.data.records;
+            historyCurrentPage = nextPage;
+            historyHasMore = data.data.hasMore;
+
+            console.log(`加载到第 ${nextPage} 页，共 ${records.length} 条更早的消息`);
+
+            // 在顶部插入更早的消息（接口返回正序，需要倒序插入到顶部）
+            prependMessages(records);
+
+            // 更新加载提示
+            if (historyHasMore) {
+                showHistoryLoadMoreIndicator();
+            } else {
+                removeHistoryLoadIndicator();
+                showHistoryFullyLoaded();
+            }
+        } else {
+            // 没有更多数据
+            historyHasMore = false;
+            removeHistoryLoadIndicator();
+            showHistoryFullyLoaded();
+        }
+    } catch (error) {
+        console.error('加载更多历史消息失败:', error);
+    } finally {
+        historyIsLoading = false;
+    }
+}
+
+// 在聊天窗口顶部插入消息（用于加载更早的历史消息）
+function prependMessages(records) {
+    const messages = getEl('chatMessages');
+    if (!messages) return;
+
+    // 记录当前滚动高度，用于加载后保持位置
+    const oldScrollHeight = messages.scrollHeight;
+
+    // 移除顶部的加载指示器
+    removeHistoryLoadIndicator();
+
+    // 将消息按顺序插入到顶部（欢迎消息之后）
+    const welcomeMsg = messages.querySelector('.welcome-message');
+    const insertBefore = welcomeMsg ? welcomeMsg.nextSibling : messages.firstChild;
+
+    records.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${msg.role === 'user' ? 'user' : 'ai'}`;
+
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+
+        if (msg.role === 'user') {
+            messageContent.textContent = msg.content;
+        } else {
+            try {
+                messageContent.innerHTML = marked.parse(msg.content);
+            } catch (e) {
+                messageContent.textContent = msg.content;
+            }
+            if (msg.model) {
+                const modelLabel = document.createElement('div');
+                modelLabel.className = 'message-model-label';
+                modelLabel.textContent = msg.model;
+                messageDiv.appendChild(modelLabel);
+            }
+        }
+
+        messageDiv.appendChild(messageContent);
+        messages.insertBefore(messageDiv, insertBefore);
+    });
+
+    // 保持用户当前的阅读位置（不跳到顶部或底部）
+    const newScrollHeight = messages.scrollHeight;
+    messages.scrollTop = oldScrollHeight > 0 ? (messages.scrollTop + (newScrollHeight - oldScrollHeight)) : 0;
+}
+
+// 消息历史 - 顶部"加载更多"指示器
+function showHistoryLoadMoreIndicator() {
+    removeHistoryLoadIndicator();
+    const messages = getEl('chatMessages');
+    if (!messages) return;
+
+    const indicator = document.createElement('div');
+    indicator.id = 'historyLoadMore';
+    indicator.className = 'history-load-more-indicator';
+    indicator.innerHTML = '<span>↑ 滚动加载更早消息</span>';
+    indicator.onclick = () => loadMoreHistory();
+    messages.insertBefore(indicator, messages.firstChild);
+}
+
+function showHistoryLoadingIndicator() {
+    removeHistoryLoadIndicator();
+    const messages = getEl('chatMessages');
+    if (!messages) return;
+
+    const indicator = document.createElement('div');
+    indicator.id = 'historyLoadMore';
+    indicator.className = 'history-load-more-indicator';
+    indicator.innerHTML = '<span>加载中...</span>';
+    messages.insertBefore(indicator, messages.firstChild);
+}
+
+function removeHistoryLoadIndicator() {
+    const indicator = document.getElementById('historyLoadMore');
+    if (indicator) indicator.remove();
+}
+
+function showHistoryFullyLoaded() {
+    const messages = getEl('chatMessages');
+    if (!messages) return;
+    // 不再显示任何提示，已加载全部
 }
 
 // 清空聊天消息
@@ -386,7 +541,6 @@ function clearChatMessages() {
     // 总是清空所有消息，显示欢迎界面
     messages.innerHTML = `
         <div class="welcome-message">
-            <h2>欢迎使用 AI 智能助手!</h2>
             <p>请输入您的问题,我会尽力为您解答</p>
         </div>
     `;
@@ -637,5 +791,18 @@ document.addEventListener('scroll', function(e) {
 
     if (isNearBottom && sessionHasMore && !sessionIsLoading) {
         loadMoreSessions();
+    }
+}, true);
+
+// 消息历史滚动监听 - 触顶自动加载更早消息
+document.addEventListener('scroll', function(e) {
+    const messages = getEl('chatMessages');
+    if (!messages || e.target !== messages) return;
+    // 距离顶部 30px 时触发加载
+    const threshold = 30;
+    const isNearTop = messages.scrollTop <= threshold;
+
+    if (isNearTop && historyHasMore && !historyIsLoading) {
+        loadMoreHistory();
     }
 }, true);

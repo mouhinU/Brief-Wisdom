@@ -227,26 +227,72 @@ public class AiAgentService {
     }
 
     /**
-     * 获取会话历史消息
+     * 获取会话历史消息（全量，用于向后兼容）
      * @param sessionId 会话ID
      * @return 消息列表
      */
     public List<ChatMessageDTO> getSessionHistory(String sessionId) {
         List<ChatMessage> messages = messageMapper.selectBySessionIdOrderByTimestampAsc(sessionId);
-        return messages.stream().map(msg -> {
-            ChatMessageDTO dto = new ChatMessageDTO();
-            dto.setId(msg.getId());
-            dto.setSessionId(msg.getSessionId());
-            dto.setUserId(msg.getUserId());
-            dto.setRole(msg.getRole());
-            dto.setContent(msg.getContent());
-            dto.setModel(msg.getModel());
-            dto.setTokens(msg.getTokens());
-            dto.setCost(msg.getCost());
-            dto.setTimestamp(msg.getTimestamp());
-            dto.setMessageType(msg.getMessageType());
-            return dto;
-        }).toList();
+        return messages.stream().map(this::toChatMessageDTO).toList();
+    }
+
+    /**
+     * 分页获取会话历史消息（倒序分页，第1页为最新消息）
+     * <p>
+     * 返回的 records 按时间正序排列（方便前端直接渲染），
+     * 但分页逻辑按倒序切片：page=1 取最新的 size 条。
+     *
+     * @param sessionId 会话ID
+     * @param page      页码，从1开始
+     * @param size      每页条数
+     * @return 分页结果
+     */
+    public PageResult<ChatMessageDTO> getSessionHistoryPaged(String sessionId, int page, int size) {
+        // 按时间倒序分页查询（最新的在前面）
+        Page<ChatMessage> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ChatMessage::getSessionId, sessionId)
+                .orderByDesc(ChatMessage::getTimestamp);
+
+        Page<ChatMessage> pageResult = messageMapper.selectPage(pageParam, queryWrapper);
+
+        // 转换为 DTO
+        List<ChatMessageDTO> dtos = pageResult.getRecords().stream()
+                .map(this::toChatMessageDTO)
+                .toList();
+
+        // 反转为正序（方便前端直接按顺序渲染）
+        List<ChatMessageDTO> reversedDtos = new ArrayList<>(dtos);
+        Collections.reverse(reversedDtos);
+
+        // 封装分页结果
+        PageResult<ChatMessageDTO> result = new PageResult<>();
+        result.setRecords(reversedDtos);
+        result.setTotal(pageResult.getTotal());
+        result.setPage(pageResult.getCurrent());
+        result.setSize(pageResult.getSize());
+        result.setPages(pageResult.getPages());
+        result.setHasMore(pageResult.getCurrent() < pageResult.getPages());
+
+        return result;
+    }
+
+    /**
+     * ChatMessage 实体转 ChatMessageDTO
+     */
+    private ChatMessageDTO toChatMessageDTO(ChatMessage msg) {
+        ChatMessageDTO dto = new ChatMessageDTO();
+        dto.setId(msg.getId());
+        dto.setSessionId(msg.getSessionId());
+        dto.setUserId(msg.getUserId());
+        dto.setRole(msg.getRole());
+        dto.setContent(msg.getContent());
+        dto.setModel(msg.getModel());
+        dto.setTokens(msg.getTokens());
+        dto.setCost(msg.getCost());
+        dto.setTimestamp(msg.getTimestamp());
+        dto.setMessageType(msg.getMessageType());
+        return dto;
     }
 
     /**

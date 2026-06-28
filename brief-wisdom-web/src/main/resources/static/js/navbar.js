@@ -197,8 +197,7 @@ function injectAiAssistant() {
       </div>
       <div class="chat-messages" id="chatMessages">
         <div class="welcome-message">
-          <h2>欢迎使用 AI 智能助手!</h2>
-          <p>请输入您的问题,我会尽力为您解答</p>
+          <p>请输入您的问题,我会尽力为您解答1</p>
         </div>
       </div>
       <div class="typing-indicator" id="typingIndicator">

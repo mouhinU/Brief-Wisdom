@@ -1048,3 +1048,25 @@ body {
 .chat-messages::-webkit-scrollbar-track { background: #f1f1f1; }
 .chat-messages::-webkit-scrollbar-thumb { background: #667eea; border-radius: 4px; }
 .chat-messages::-webkit-scrollbar-thumb:hover { background: #764ba2; }
+
+/* 消息历史 - 顶部加载更多指示器 */
+.history-load-more-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 16px;
+    margin: 8px 0;
+    color: #888;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+}
+
+.history-load-more-indicator:hover {
+    color: #667eea;
+}
+
+.history-load-more-indicator span {
+    animation: pulse 1.5s infinite;
+}

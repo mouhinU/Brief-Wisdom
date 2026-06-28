@@ -106,13 +106,24 @@ public class AiAgentController {
     }
 
     /**
-     * 获取会话历史消息
+     * 获取会话历史消息（支持分页，第1页为最新消息）
+     * <p>
+     * 默认每页条数由 application.yml 中 app.pagination.message-history 配置
+     *
+     * @param sessionId 会话ID
+     * @param page      当前页码，从 1 开始，默认 1
+     * @param size      每页大小，不传则使用配置的默认值，超过配置的最大值会被截断
      */
     @GetMapping("/session/{sessionId}/history")
-    public ApiResponse<List<ChatMessageDTO>> getSessionHistory(@PathVariable String sessionId) {
+    public ApiResponse<PageResult<ChatMessageDTO>> getSessionHistory(
+            @PathVariable String sessionId,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", required = false) Integer size) {
         try {
-            var history = aiAgentService.getSessionHistory(sessionId);
-            return ApiResponse.success(history);
+            PaginationProperties.PageConfig config = paginationProperties.getMessageHistory();
+            int resolvedSize = config.resolveSize(size);
+            var result = aiAgentService.getSessionHistoryPaged(sessionId, page, resolvedSize);
+            return ApiResponse.success(result);
         } catch (Exception e) {
             return ApiResponse.fail("获取历史记录失败: " + e.getMessage());
         }

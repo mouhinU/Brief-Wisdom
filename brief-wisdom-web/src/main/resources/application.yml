@@ -49,7 +49,7 @@ app:
       default-size: 20    # 会话列表默认每页条数
       max-size: 100       # 会话列表最大每页条数
     message-history:
-      default-size: 50    # 消息历史默认每页条数
+      default-size: 20    # 消息历史默认每页条数
       max-size: 200       # 消息历史最大每页条数
 
 # 微信开放平台扫码登录配置

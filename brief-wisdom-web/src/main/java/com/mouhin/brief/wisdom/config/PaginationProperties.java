@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  *       default-size: 20
  *       max-size: 100
  *     message-history:
- *       default-size: 50
+ *       default-size: 20
  *       max-size: 200
  * </pre>
  */
@@ -32,7 +32,7 @@ public class PaginationProperties {
     /**
      * 消息历史分页配置
      */
-    private PageConfig messageHistory = new PageConfig(50, 200);
+    private PageConfig messageHistory = new PageConfig(20, 200);
 
     /**
      * 单个业务的分页配置
