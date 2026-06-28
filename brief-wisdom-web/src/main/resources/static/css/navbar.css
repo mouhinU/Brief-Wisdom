@@ -1085,3 +1085,40 @@ body {
 .history-load-more-indicator span {
     animation: pulse 1.5s infinite;
 }
+
+/* 聊天区域加载中提示 */
+.chat-loading-indicator {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 16px;
+    color: #888;
+    font-size: 13px;
+    gap: 12px;
+}
+
+.chat-loading-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #e0e0e0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 会话列表加载中提示 */
+.session-loading-indicator {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 16px;
+    color: #999;
+    font-size: 12px;
+    gap: 10px;
+}

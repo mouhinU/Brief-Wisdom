@@ -221,4 +221,17 @@ public class AiAgentController {
         log.info("[SSE] 用户 {} 请求建立 SSE 连接", userId);
         return chatSyncService.createConnection(userId);
     }
+
+    /**
+     * 断开 SSE 连接
+     * <p>
+     * 前端关闭聊天窗口时调用，主动清理服务端的 SSE 连接资源。
+     */
+    @DeleteMapping("/sync/events")
+    public ApiResponse<Boolean> disconnectSync() {
+        String userId = userContextHelper.getCurrentUserId();
+        chatSyncService.disconnectUser(userId);
+        log.info("[SSE] 用户 {} 主动断开 SSE 连接", userId);
+        return ApiResponse.success(true);
+    }
 }

@@ -96,14 +96,33 @@ if (typeof marked !== 'undefined') {
     });
 }
 
+// 显示会话列表加载中提示
+function showSessionListLoading() {
+    const list = getEl('sessionList');
+    if (!list) return;
+    list.innerHTML = `
+        <div class="session-loading-indicator">
+            <div class="chat-loading-spinner"></div>
+            <span>加载中...</span>
+        </div>
+    `;
+}
+
 // 切换聊天窗口显示/隐藏
-function toggleChat() {
+async function toggleChat() {
     const chatPopup = getEl('chatPopup');
     if (!chatPopup) return;
     chatPopup.classList.toggle('show');
     if (chatPopup.classList.contains('show')) {
+        // 仅在首次加载时显示 loading 提示
+        if (!chatDataLoaded) {
+            showSessionListLoading();
+            showChatLoading();
+        }
+        // 首次打开时懒加载数据（模型列表、会话列表等）
+        await ensureChatDataLoaded();
         // 初始化聊天：加载会话列表，若无会话则自动创建
-        ensureChatInitialized();
+        await ensureChatInitialized();
         connectSyncSSE();
         setTimeout(() => {
             const input = getEl('chatInput');
@@ -430,12 +449,27 @@ async function deleteSession(event, sessionId) {
     }
 }
 
+// 显示聊天区域加载中提示
+function showChatLoading() {
+    const messages = getEl('chatMessages');
+    if (!messages) return;
+    messages.innerHTML = `
+        <div class="chat-loading-indicator">
+            <div class="chat-loading-spinner"></div>
+            <span>加载中...</span>
+        </div>
+    `;
+}
+
 // 加载会话历史（分页，初始加载最新一页）
 async function loadSessionHistory(sessionId) {
     // 重置消息历史分页状态
     historyCurrentPage = 1;
     historyHasMore = false;
     historyIsLoading = false;
+
+    // 显示加载中提示
+    showChatLoading();
 
     try {
         console.log('正在加载会话历史:', sessionId);
@@ -835,17 +869,20 @@ document.addEventListener('keypress', function(e) {
 
 // 初始化函数（支持动态加载场景）
 let chatAppInitialized = false;
+let chatDataLoaded = false;
 async function initChatApp() {
     if (chatAppInitialized) return;
     chatAppInitialized = true;
     // 初始化弹窗拖动
     initPopupDrag();
-    const chatInput = getEl('chatInput');
-    if (chatInput) chatInput.focus();
-    // 初始化时加载配置
+}
+
+// 懒加载聊天数据（首次打开聊天窗口时调用）
+async function ensureChatDataLoaded() {
+    if (chatDataLoaded) return;
+    chatDataLoaded = true;
     await loadPaginationConfig();
     await loadModels();
-    // 直接加载当前登录用户的会话
     await loadSessions();
 }
 
@@ -873,7 +910,15 @@ document.addEventListener('scroll', function(e) {
 
 // 连接 SSE
 function connectSyncSSE() {
-    disconnectSyncSSE();
+    // 先关闭旧的 EventSource（不发 DELETE，由关闭聊天窗口时统一清理）
+    if (syncReconnectTimer) {
+        clearTimeout(syncReconnectTimer);
+        syncReconnectTimer = null;
+    }
+    if (syncEventSource) {
+        syncEventSource.close();
+        syncEventSource = null;
+    }
 
     try {
         syncEventSource = new EventSource('/api/ai/sync/events');
@@ -918,6 +963,8 @@ function disconnectSyncSSE() {
         syncEventSource.close();
         syncEventSource = null;
     }
+    // 通知服务端清理 SSE 连接资源
+    fetch('/api/ai/sync/events', { method: 'DELETE' }).catch(() => {});
 }
 
 // 延迟重连

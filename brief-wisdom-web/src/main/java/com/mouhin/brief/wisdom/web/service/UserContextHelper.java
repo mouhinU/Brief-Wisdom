@@ -145,9 +145,9 @@ public class UserContextHelper {
     // ========== 访客指纹生成 ==========
 
     /**
-     * 基于客户端 IP 生成唯一访客ID
+     * 基于客户端 IP + 浏览器类型 + 设备类型 生成唯一访客ID
      * <p>
-     * 同一设备（同一 IP）→ 相同的指纹 → 相同的 userId，
+     * 同一设备（同一 IP）+ 同一浏览器 + 同一设备类型 → 相同的指纹 → 相同的 userId，
      * 保证未登录访客的会话数据隔离与连续性。
      *
      * @param request HTTP 请求
@@ -155,14 +155,56 @@ public class UserContextHelper {
      */
     private String generateGuestId(HttpServletRequest request) {
         String ip = getClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
+        if (userAgent == null) {
+            userAgent = "";
+        }
 
-        String hash = sha256Hex(ip);
+        // IP + 浏览器类型 + 设备类型组合作为指纹因子
+        String browserType = extractBrowserType(userAgent);
+        String deviceType = extractDeviceType(userAgent);
+        String hash = sha256Hex(ip + browserType + deviceType);
         // 取前 16 位作为指纹，足够唯一且不会过长
         String fingerprint = hash.substring(0, 16);
 
         String guestId = GUEST_PREFIX + fingerprint;
-        log.debug("生成访客ID: ip={}, guestId={}", ip, guestId);
+        log.debug("生成访客ID: ip={}, browser={}, device={}, guestId={}", ip, browserType, deviceType, guestId);
         return guestId;
+    }
+
+    /**
+     * 从 User-Agent 中提取浏览器类型（如 Chrome、Firefox、Safari、Edge 等）
+     * <p>
+     * 只取浏览器内核标识，忽略版本号，避免浏览器升级后访客ID变化。
+     */
+    private String extractBrowserType(String userAgent) {
+        if (userAgent == null || userAgent.isEmpty()) {
+            return "unknown";
+        }
+        // 按优先级匹配（注意：Edge 的 UA 也包含 Chrome，需先判断 Edge）
+        String ua = userAgent.toLowerCase();
+        if (ua.contains("edg/")) return "edge";
+        if (ua.contains("chrome")) return "chrome";
+        if (ua.contains("firefox")) return "firefox";
+        if (ua.contains("safari")) return "safari";
+        if (ua.contains("opera") || ua.contains("opr/")) return "opera";
+        return "other";
+    }
+
+    /**
+     * 从 User-Agent 中提取设备类型（pc / mobile / tablet）
+     */
+    private String extractDeviceType(String userAgent) {
+        if (userAgent == null || userAgent.isEmpty()) {
+            return "unknown";
+        }
+        String ua = userAgent.toLowerCase();
+        // 平板优先判断（部分平板 UA 同时包含 mobile 和 tablet）
+        if (ua.contains("tablet") || ua.contains("ipad")) return "tablet";
+        // 移动端特征
+        if (ua.contains("mobile") || ua.contains("android") && !ua.contains("tablet")
+                || ua.contains("iphone") || ua.contains("ipod")) return "mobile";
+        return "pc";
     }
 
     /**

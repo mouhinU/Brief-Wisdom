@@ -37,6 +37,9 @@ public class ChatSyncService {
      * @return SseEmitter 实例
      */
     public SseEmitter createConnection(String userId) {
+        // 清理该用户的所有旧连接（前端关闭 EventSource 后服务端不会立即感知）
+//        clearUserEmitters(userId);
+
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
 
         // 注册回调：连接完成/超时/出错时自动移除
@@ -141,6 +144,23 @@ public class ChatSyncService {
     public int getEmitterCount(String userId) {
         List<SseEmitter> emitters = userEmitters.get(userId);
         return emitters != null ? emitters.size() : 0;
+    }
+
+    /**
+     * 断开指定用户的所有 SSE 连接（前端关闭聊天窗口时调用）
+     */
+    public void disconnectUser(String userId) {
+        List<SseEmitter> oldEmitters = userEmitters.remove(userId);
+        if (oldEmitters != null) {
+            for (SseEmitter emitter : oldEmitters) {
+                try {
+                    emitter.complete();
+                } catch (Exception ignored) {
+                    // 忽略：可能已经超时或出错
+                }
+            }
+            log.info("[SSE] 用户 {} 断开连接，清理 {} 个连接", userId, oldEmitters.size());
+        }
     }
 
     /**
