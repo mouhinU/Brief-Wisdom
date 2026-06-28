@@ -95,17 +95,27 @@ public class AiAgentService {
      * 昵称显示为 "访客"。
      */
     private void ensureUserExists(String userId) {
+        // 1. 先用 @TableLogic 感知的查询找未删除的用户
         LambdaQueryWrapper<ChatUser> qw = new LambdaQueryWrapper<>();
         qw.eq(ChatUser::getUserId, userId);
         ChatUser existingUser = userMapper.selectOne(qw);
         if (existingUser != null) {
+            return; // 用户存在且未删除，直接返回
+        }
+    
+        // 2. 查找是否存在已逻辑删除的记录（绕过 @TableLogic）
+        ChatUser deletedUser = userMapper.selectByUserIdIncludeDeleted(userId);
+        if (deletedUser != null) {
+            // 存在已删除的记录，恢复它（避免 UNIQUE 约束冲突）
+            userMapper.restoreByUserId(userId);
+            log.info("恢复已删除用户: {}", userId);
             return;
         }
-        // 用户不存在，创建（username 使用 userId 后缀避免唯一键冲突）
+    
+        // 3. 完全不存在，创建新用户
         ChatUser user = new ChatUser();
         user.setUserId(userId);
         user.setUsername("guest-" + userId);
-        // 访客用户显示“访客”，登录用户显示其昵称
         user.setNickname(userId.startsWith("guest-") ? "访客" : userId);
         try {
             userMapper.insert(user);

@@ -33,7 +33,8 @@ CREATE TABLE ai_model (
 INSERT INTO ai_model (model_name, display_name, provider, description, is_active, is_enabled, sort_order) VALUES
 ('qwen-max', '通义千问 Max', 'dashscope', '最强模型，适合复杂任务', 0, 1, 1),
 ('qwen-plus', '通义千问 Plus', 'dashscope', '均衡模型，性价比高', 1, 1, 2),
-('qwen-turbo', '通义千问 Turbo', 'dashscope', '快速模型，响应最快', 0, 1, 3);
+('qwen-turbo', '通义千问 Turbo', 'dashscope', '快速模型，响应最快', 0, 1, 3),
+('qwen3.7-plus', 'Qwen3.7-Plus', 'dashscope', 'Qwen3.7 Plus，新一代增强模型', 0, 1, 4);
 
 -- 确保只有一个激活模型
 UPDATE ai_model SET is_active = 0;

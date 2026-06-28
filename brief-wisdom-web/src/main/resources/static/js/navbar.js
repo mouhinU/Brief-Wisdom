@@ -179,9 +179,9 @@ function injectAiAssistant() {
     <div class="session-sidebar">
       <div class="session-header">
         <h2>💬 会话历史</h2>
-        <button class="new-session-btn" onclick="createNewSession()">+ 新建会话</button>
       </div>
       <div class="session-list" id="sessionList"></div>
+      <button class="new-session-btn" onclick="createNewSession()">+ 新建会话</button>
     </div>
     <div class="chat-main">
       <div class="chat-header">
