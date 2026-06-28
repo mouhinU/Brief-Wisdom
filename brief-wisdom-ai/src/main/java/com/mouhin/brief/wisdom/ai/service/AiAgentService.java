@@ -16,6 +16,8 @@ import com.mouhin.brief.wisdom.persistence.mapper.AiModelMapper;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -299,6 +301,25 @@ public class AiAgentService {
     }
 
     /**
+     * 根据模型名称和 token 用量计算费用（单位：元）
+     */
+    private Double calculateCost(String modelName, Integer promptTokens, Integer completionTokens) {
+        try {
+            LambdaQueryWrapper<AiModel> qw = new LambdaQueryWrapper<>();
+            qw.eq(AiModel::getModelName, modelName);
+            AiModel aiModel = aiModelMapper.selectOne(qw);
+            if (aiModel != null && aiModel.getInputPricePerMillion() != null && aiModel.getOutputPricePerMillion() != null) {
+                double inputCost = promptTokens / 1_000_000.0 * aiModel.getInputPricePerMillion();
+                double outputCost = completionTokens / 1_000_000.0 * aiModel.getOutputPricePerMillion();
+                return Math.round((inputCost + outputCost) * 10000.0) / 10000.0;  // 保留4位小数
+            }
+        } catch (Exception e) {
+            log.warn("计算费用失败，model: {}, error: {}", modelName, e.getMessage());
+        }
+        return 0.0;
+    }
+
+    /**
      * 获取当前激活的模型名称
      */
     public String getActiveModelName() {
@@ -406,20 +427,40 @@ public class AiAgentService {
             context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
         }
         
-        // 调用 AI
-        String response = chatClient.prompt()
+        // 调用 AI，获取完整响应（包含 token 用量）
+        ChatResponse chatResponse = chatClient.prompt()
                 .options(buildModelOptions(model))
                 .user(context.toString())
                 .call()
-                .content();
+                .chatResponse();
         
-        // 保存 AI 回复
+        // 提取回复内容
+        String response = chatResponse.getResult().getOutput().getText();
+        
+        // 提取 token 用量
+        Integer promptTokens = 0;
+        Integer completionTokens = 0;
+        Integer totalTokens = 0;
+        Usage usage = chatResponse.getMetadata().getUsage();
+        if (usage != null) {
+            promptTokens = usage.getPromptTokens() != null ? usage.getPromptTokens() : 0;
+            completionTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens() : 0;
+            totalTokens = usage.getTotalTokens() != null ? usage.getTotalTokens() : 0;
+        }
+        log.info("Token 用量 - 输入: {}, 输出: {}, 总计: {}", promptTokens, completionTokens, totalTokens);
+        
+        // 计算费用
+        Double cost = calculateCost(model, promptTokens, completionTokens);
+        
+        // 保存 AI 回复（含 token 和费用信息）
         ChatMessage aiMsg = new ChatMessage();
         aiMsg.setSessionId(sessionId);
         aiMsg.setUserId(userId);
         aiMsg.setRole("assistant");
         aiMsg.setContent(response);
-        aiMsg.setModel(model);  // 记录使用的模型
+        aiMsg.setModel(model);
+        aiMsg.setTokens(totalTokens);
+        aiMsg.setCost(cost);
         aiMsg.setMessageType("text");
         messageMapper.insert(aiMsg);
         
@@ -436,7 +477,7 @@ public class AiAgentService {
         session.setUpdateTime(LocalDateTime.now());
         sessionMapper.updateById(session);
         
-        log.info("AI 回复: {}", response);
+        log.info("AI 回复(模型: {}, tokens: {}, cost: {}): {}", model, totalTokens, cost, response);
         
         // SSE 通知其他设备：新消息已添加
         chatSyncService.notifyUser(userId, "message_added", sessionId);

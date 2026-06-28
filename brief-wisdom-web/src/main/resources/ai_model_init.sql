@@ -18,6 +18,8 @@ CREATE TABLE ai_model (
     is_active TINYINT NOT NULL DEFAULT 0 COMMENT '是否激活(同时只激活一个): 1-激活, 0-未激活',
     is_enabled TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用: 1-启用, 0-禁用',
     sort_order INT NOT NULL DEFAULT 0 COMMENT '排序序号',
+    input_price_per_million DOUBLE COMMENT '每百万输入token价格(元)',
+    output_price_per_million DOUBLE COMMENT '每百万输出token价格(元)',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
@@ -30,11 +32,11 @@ CREATE TABLE ai_model (
 -- ============================================
 -- 2. 初始化数据
 -- ============================================
-INSERT INTO ai_model (model_name, display_name, provider, description, is_active, is_enabled, sort_order) VALUES
-('qwen-max', '通义千问 Max', 'dashscope', '最强模型，适合复杂任务', 0, 1, 1),
-('qwen-plus', '通义千问 Plus', 'dashscope', '均衡模型，性价比高', 1, 1, 2),
-('qwen-turbo', '通义千问 Turbo', 'dashscope', '快速模型，响应最快', 0, 1, 3),
-('qwen3.7-plus', 'Qwen3.7-Plus', 'dashscope', 'Qwen3.7 Plus，新一代增强模型', 0, 1, 4);
+INSERT INTO ai_model (model_name, display_name, provider, description, is_active, is_enabled, sort_order, input_price_per_million, output_price_per_million) VALUES
+('qwen-max', '通义千问 Max', 'dashscope', '最强模型，适合复杂任务', 0, 1, 1, 20.0, 60.0),
+('qwen-plus', '通义千问 Plus', 'dashscope', '均衡模型，性价比高', 1, 1, 2, 4.0, 12.0),
+('qwen-turbo', '通义千问 Turbo', 'dashscope', '快速模型，响应最快', 0, 1, 3, 2.0, 6.0),
+('qwen3.7-plus', 'Qwen3.7-Plus', 'dashscope', 'Qwen3.7 Plus，新一代增强模型', 0, 1, 4, 4.0, 12.0);
 
 -- 确保只有一个激活模型
 UPDATE ai_model SET is_active = 0;

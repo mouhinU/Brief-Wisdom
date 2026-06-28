@@ -39,6 +39,12 @@ public class AiModel implements Serializable {
     @TableField(value = "sort_order")
     private Integer sortOrder;
 
+    @TableField(value = "input_price_per_million")
+    private Double inputPricePerMillion;  // 每百万输入token价格(元)
+
+    @TableField(value = "output_price_per_million")
+    private Double outputPricePerMillion;  // 每百万输出token价格(元)
+
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
