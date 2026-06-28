@@ -18,7 +18,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
+import org.springframework.ai.openai.OpenAiChatOptions;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -313,11 +313,11 @@ public class AiAgentService {
     }
 
     /**
-     * 构建带模型选项的 DashScopeChatOptions
+     * 构建带模型选项的 OpenAiChatOptions
      */
-    private DashScopeChatOptions buildModelOptions(String modelName) {
-        return DashScopeChatOptions.builder()
-                .withModel(modelName)
+    private OpenAiChatOptions buildModelOptions(String modelName) {
+        return OpenAiChatOptions.builder()
+                .model(modelName)
                 .build();
     }
 
