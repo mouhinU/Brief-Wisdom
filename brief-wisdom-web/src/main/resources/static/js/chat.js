@@ -200,11 +200,13 @@ function initPopupDrag() {
 
 // 确保聊天已初始化（有可用会话）
 async function ensureChatInitialized() {
-    // 如果还没加载过会话列表，先加载
+    // 如果还没加载过会话列表，先加载（不自动选中会话，显示欢迎界面）
     if (allSessions.length === 0 && !sessionIsLoading) {
-        await loadSessions();
+        await loadSessions(false);
     }
-    // 如果加载后仍没有会话（新用户/未登录用户），自动创建一个
+    // 显示欢迎界面（不加载历史消息）
+    clearChatMessages();
+    // 如果没有会话，自动创建一个（供后续发送消息使用）
     if (!currentSessionId) {
         console.log('没有可用会话，自动创建新会话...');
         await createNewSession();
@@ -212,7 +214,8 @@ async function ensureChatInitialized() {
 }
 
 // 加载会话列表（重置为第一页）
-async function loadSessions() {
+// autoSelect: 是否自动选中第一个会话并加载历史（用户主动点击"新对话"时为 true）
+async function loadSessions(autoSelect = false) {
     sessionCurrentPage = 1;
     allSessions = [];
     sessionHasMore = false;
@@ -232,8 +235,8 @@ async function loadSessions() {
             renderSessionList(allSessions);
             updateLoadMoreIndicator();
             
-            // 选中第一个会话（不自动创建）
-            if (allSessions.length > 0 && !currentSessionId) {
+            // 仅在明确需要时自动选中第一个会话并加载历史
+            if (autoSelect && allSessions.length > 0 && !currentSessionId) {
                 currentSessionId = allSessions[0].sessionId;
                 await loadSessionHistory(currentSessionId);
                 // 重新渲染以更新高亮
@@ -423,11 +426,52 @@ async function selectSession(sessionId) {
     console.log('会话切换完成');
 }
 
+// 自定义居中确认弹窗（返回 Promise）
+function showConfirmDialog(message) {
+    return new Promise((resolve) => {
+        // 移除已存在的弹窗
+        const existing = document.getElementById('chatConfirmDialog');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'chatConfirmDialog';
+        overlay.className = 'chat-confirm-overlay';
+        overlay.innerHTML = `
+            <div class="chat-confirm-modal">
+                <div class="chat-confirm-message">${message}</div>
+                <div class="chat-confirm-buttons">
+                    <button class="chat-confirm-cancel">取消</button>
+                    <button class="chat-confirm-ok">确定</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const cancelBtn = overlay.querySelector('.chat-confirm-cancel');
+        const okBtn = overlay.querySelector('.chat-confirm-ok');
+
+        const close = (result) => {
+            overlay.remove();
+            resolve(result);
+        };
+
+        cancelBtn.onclick = () => close(false);
+        okBtn.onclick = () => close(true);
+        // 点击遮罩层取消
+        overlay.onclick = (e) => {
+            if (e.target === overlay) close(false);
+        };
+        // 默认聚焦确定按钮
+        okBtn.focus();
+    });
+}
+
 // 删除会话
 async function deleteSession(event, sessionId) {
     event.stopPropagation();
     
-    if (!confirm('确定要删除这个会话吗？')) {
+    const confirmed = await showConfirmDialog('确定要删除这个会话吗？');
+    if (!confirmed) {
         return;
     }
     
@@ -641,14 +685,33 @@ function showHistoryFullyLoaded() {
     // 不再显示任何提示，已加载全部
 }
 
-// 清空聊天消息
+// 清空聊天消息，显示欢迎界面
 function clearChatMessages() {
     const messages = getEl('chatMessages');
     if (!messages) return;
-    // 总是清空所有消息，显示欢迎界面
     messages.innerHTML = `
         <div class="welcome-message">
-            <p>请输入您的问题,我会尽力为您解答</p>
+            <h2>👋 你好，我是简知 AI 助手</h2>
+            <p class="welcome-desc">我可以帮你解答问题、提供建议、分析思路。以下是我能做的事情：</p>
+            <div class="welcome-features">
+                <div class="welcome-feature-item">
+                    <span class="feature-icon">💡</span>
+                    <span>知识问答与解释</span>
+                </div>
+                <div class="welcome-feature-item">
+                    <span class="feature-icon">📝</span>
+                    <span>文案撰写与润色</span>
+                </div>
+                <div class="welcome-feature-item">
+                    <span class="feature-icon">🔍</span>
+                    <span>问题分析与思路梳理</span>
+                </div>
+                <div class="welcome-feature-item">
+                    <span class="feature-icon">💻</span>
+                    <span>编程辅助与代码解读</span>
+                </div>
+            </div>
+            <p class="welcome-tips">💬 直接在下方输入框提问即可开始对话，我会记住上下文。</p>
         </div>
     `;
 }

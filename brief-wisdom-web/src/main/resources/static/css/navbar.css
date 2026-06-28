@@ -943,17 +943,50 @@ body {
 .welcome-message {
     text-align: center;
     color: #666;
-    padding: 40px 20px;
+    padding: 30px 20px;
 }
 
 .welcome-message h2 {
     color: #667eea;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    font-size: 20px;
+}
+
+.welcome-message .welcome-desc {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 20px;
+}
+
+.welcome-message .welcome-features {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.welcome-message .welcome-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+    border-radius: 10px;
+    font-size: 13px;
+    color: #444;
+}
+
+.welcome-message .welcome-feature-item .feature-icon {
     font-size: 18px;
 }
 
-.welcome-message p {
-    font-size: 14px;
+.welcome-message .welcome-tips {
+    font-size: 12px;
+    color: #999;
+    padding: 10px 16px;
+    background: #fafafa;
+    border-radius: 8px;
 }
 
 /* AI消息 Markdown 样式 */
@@ -1121,4 +1154,72 @@ body {
     color: #999;
     font-size: 12px;
     gap: 10px;
+}
+
+/* ========== 自定义确认弹窗（浏览器居中） ========== */
+.chat-confirm-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 100000;
+    animation: fadeIn 0.15s ease;
+}
+
+.chat-confirm-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    min-width: 300px;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUpModal 0.2s ease;
+}
+
+.chat-confirm-message {
+    font-size: 15px;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.chat-confirm-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.chat-confirm-cancel, .chat-confirm-ok {
+    padding: 8px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.chat-confirm-cancel {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.chat-confirm-cancel:hover {
+    background: #e0e0e0;
+}
+
+.chat-confirm-ok {
+    background: #667eea;
+    color: white;
+}
+
+.chat-confirm-ok:hover {
+    background: #5a6fd6;
 }

@@ -4,6 +4,8 @@ import com.mouhin.brief.wisdom.ai.req.ChatRequest;
 import com.mouhin.brief.wisdom.ai.req.ChatWithPromptRequest;
 import com.mouhin.brief.wisdom.ai.req.QuestionRequest;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService;
+import com.mouhin.brief.wisdom.ai.service.AiAgentService.ContentSecurityException;
+import com.mouhin.brief.wisdom.ai.service.AiAgentService.RateLimitException;
 import com.mouhin.brief.wisdom.ai.service.ChatSyncService;
 import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.common.PageResult;
@@ -14,6 +16,8 @@ import com.mouhin.brief.wisdom.config.PaginationProperties;
 import com.mouhin.brief.wisdom.web.service.UserContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -35,12 +39,18 @@ public class AiAgentController {
      * 简单聊天接口（无上下文）
      */
     @PostMapping("/chat")
-    public ApiResponse<String> chat(@RequestBody ChatRequest request) {
+    public ResponseEntity<ApiResponse<String>> chat(@RequestBody ChatRequest request) {
         try {
             String response = aiAgentService.chat(request.getMessage());
-            return ApiResponse.success(response);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (ContentSecurityException e) {
+            log.warn("[内容安全] 聊天请求被拦截: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
+        } catch (RateLimitException e) {
+            log.warn("[限流] 聊天请求被限流");
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(ApiResponse.fail(e.getMessage()));
         } catch (Exception e) {
-            return ApiResponse.fail("AI 服务异常: " + e.getMessage());
+            return ResponseEntity.ok(ApiResponse.fail("AI 服务异常: " + e.getMessage()));
         }
     }
 
@@ -48,16 +58,22 @@ public class AiAgentController {
      * 带上下文的聊天接口
      */
     @PostMapping("/chat/session/{sessionId}")
-    public ApiResponse<String> chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
+    public ResponseEntity<ApiResponse<String>> chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
         String userId = userContextHelper.getCurrentUserId();
 
         log.info("收到聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}", sessionId, userId, request.getMessage(), request.getModel());
         try {
             String response = aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel());
-            return ApiResponse.success(response);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (ContentSecurityException e) {
+            log.warn("[内容安全] 聊天请求被拦截 - userId: {}, reason: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
+        } catch (RateLimitException e) {
+            log.warn("[限流] 聊天请求被限流 - userId: {}", userId);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(ApiResponse.fail(e.getMessage()));
         } catch (Exception e) {
             log.error("聊天失败: ", e);
-            return ApiResponse.fail("AI 服务异常: " + e.getMessage());
+            return ResponseEntity.ok(ApiResponse.fail("AI 服务异常: " + e.getMessage()));
         }
     }
 
@@ -180,12 +196,18 @@ public class AiAgentController {
      * 智能问答接口
      */
     @PostMapping("/ask")
-    public ApiResponse<String> ask(@RequestBody QuestionRequest request) {
+    public ResponseEntity<ApiResponse<String>> ask(@RequestBody QuestionRequest request) {
         try {
             String response = aiAgentService.askQuestion(request.getQuestion());
-            return ApiResponse.success(response);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (ContentSecurityException e) {
+            log.warn("[内容安全] 问答请求被拦截: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
+        } catch (RateLimitException e) {
+            log.warn("[限流] 问答请求被限流");
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(ApiResponse.fail(e.getMessage()));
         } catch (Exception e) {
-            return ApiResponse.fail("AI 服务异常: " + e.getMessage());
+            return ResponseEntity.ok(ApiResponse.fail("AI 服务异常: " + e.getMessage()));
         }
     }
 

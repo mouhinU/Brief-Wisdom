@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mouhin.brief.wisdom.ai.prompt.SystemPrompts;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
@@ -35,22 +36,31 @@ public class AiAgentService {
     private final ChatUserRepository userRepository;
     private final AiModelRepository aiModelRepository;
     private final ChatSyncService chatSyncService;
+    private final ContentFilterService contentFilterService;
+    private final RateLimitService rateLimitService;
 
     // 默认用户ID（用于未登录场景）
     private static final String DEFAULT_USER_ID = "default-user";
+
+    // 单条消息最大长度
+    private static final int MAX_MESSAGE_LENGTH = 10000;
 
     public AiAgentService(ChatClient chatClient,
                           ChatSessionRepository sessionRepository,
                           ChatMessageRepository messageRepository,
                           ChatUserRepository userRepository,
                           AiModelRepository aiModelRepository,
-                          ChatSyncService chatSyncService) {
+                          ChatSyncService chatSyncService,
+                          ContentFilterService contentFilterService,
+                          RateLimitService rateLimitService) {
         this.chatClient = chatClient;
         this.sessionRepository = sessionRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.aiModelRepository = aiModelRepository;
         this.chatSyncService = chatSyncService;
+        this.contentFilterService = contentFilterService;
+        this.rateLimitService = rateLimitService;
     }
 
     /**
@@ -342,15 +352,22 @@ public class AiAgentService {
      * 简单聊天对话（指定模型）
      */
     public String chat(String message, String modelName) {
+        validateInput(message);
+        // 输入预过滤
+        checkInputSafety(message);
+
         log.info("收到用户消息: {}, 模型: {}", message, modelName);
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
 
         String response = chatClient.prompt()
+                .system(SystemPrompts.BASE_SYSTEM_PROMPT)
                 .options(buildModelOptions(model))
                 .user(message)
                 .call()
                 .content();
 
+        // 输出过滤
+        response = contentFilterService.filterOutput(response);
         log.info("AI 回复(模型: {}): {}", model, response);
         return response;
     }
@@ -374,6 +391,13 @@ public class AiAgentService {
     public String chatWithSession(String sessionId, String userId, String message, String modelName) {
         log.info("========== 开始处理聊天请求 ==========");
         log.info("sessionId: {}, userId: {}, model: {}", sessionId, userId, modelName);
+
+        // 输入校验
+        validateInput(message);
+        // 限流检查
+        checkRateLimit(userId);
+        // 输入预过滤
+        checkInputSafety(message);
 
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
 
@@ -412,6 +436,7 @@ public class AiAgentService {
 
         // 调用 AI，获取完整响应（包含 token 用量）
         ChatResponse chatResponse = chatClient.prompt()
+                .system(SystemPrompts.BASE_SYSTEM_PROMPT)
                 .options(buildModelOptions(model))
                 .user(context.toString())
                 .call()
@@ -419,6 +444,9 @@ public class AiAgentService {
 
         // 提取回复内容
         String response = chatResponse.getResult().getOutput().getText();
+
+        // 输出过滤
+        response = contentFilterService.filterOutput(response);
 
         // 提取 token 用量
         Integer promptTokens = 0;
@@ -496,8 +524,65 @@ public class AiAgentService {
      * @return 答案
      */
     public String askQuestion(String question) {
-        String systemPrompt = "你是一个专业的AI助手,请简洁明了地回答问题。";
-        return chatWithSystemPrompt(systemPrompt, question);
+        validateInput(question);
+        checkInputSafety(question);
+        String systemPrompt = SystemPrompts.BASE_SYSTEM_PROMPT + "\n\n请简洁明了地回答问题。";
+        String response = chatWithSystemPrompt(systemPrompt, question);
+        return contentFilterService.filterOutput(response);
+    }
+
+    /**
+     * 输入校验（基础格式校验）
+     *
+     * @param message 用户输入
+     */
+    private void validateInput(String message) {
+        if (message == null || message.isBlank()) {
+            throw new IllegalArgumentException("消息内容不能为空");
+        }
+        if (message.length() > MAX_MESSAGE_LENGTH) {
+            throw new IllegalArgumentException("消息长度不能超过" + MAX_MESSAGE_LENGTH + "个字符");
+        }
+    }
+
+    /**
+     * 输入安全预过滤（关键词拦截，命中即拒绝，不消耗模型 token）
+     *
+     * @param message 用户输入
+     */
+    private void checkInputSafety(String message) {
+        if (contentFilterService.isInputBlocked(message)) {
+            throw new ContentSecurityException(contentFilterService.getBlockedMessage());
+        }
+    }
+
+    /**
+     * 限流检查
+     *
+     * @param userId 用户ID
+     */
+    private void checkRateLimit(String userId) {
+        if (rateLimitService.isRateLimited(userId)) {
+            throw new RateLimitException(rateLimitService.getRateLimitMessage());
+        }
+    }
+
+    /**
+     * 内容安全异常（输入违规时抛出）
+     */
+    public static class ContentSecurityException extends RuntimeException {
+        public ContentSecurityException(String message) {
+            super(message);
+        }
+    }
+
+    /**
+     * 限流异常（请求超频时抛出）
+     */
+    public static class RateLimitException extends RuntimeException {
+        public RateLimitException(String message) {
+            super(message);
+        }
     }
 
     /**
