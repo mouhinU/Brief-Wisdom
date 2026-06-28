@@ -91,12 +91,12 @@ public class AiAgentService {
 
     /**
      * 确保用户存在于数据库中（防止外键约束失败）
-     * 如果用户不存在或已被逻辑删除，则创建/恢复。
+     * 如果用户不存在，则创建新用户。
      * <p>
-     * 未登录的访客用户（userId 以 "guest-" 开头）也会自动创建，
-     * 昵称显示为 "访客"。
+     * 对于已逻辑删除的 guest 用户，不自动恢复，而是硬删除旧记录（清除残留数据）
+     * 后创建全新的用户，保证干净的初始状态。
      */
-    private void ensureUserExists(String userId) {
+    public void ensureUserExists(String userId) {
         // 1. 先用 @TableLogic 感知的查询找未删除的用户
         LambdaQueryWrapper<ChatUser> qw = new LambdaQueryWrapper<>();
         qw.eq(ChatUser::getUserId, userId);
@@ -108,16 +108,16 @@ public class AiAgentService {
         // 2. 查找是否存在已逻辑删除的记录（绕过 @TableLogic）
         ChatUser deletedUser = userMapper.selectByUserIdIncludeDeleted(userId);
         if (deletedUser != null) {
-            // 存在已删除的记录，恢复它（避免 UNIQUE 约束冲突）
-            userMapper.restoreByUserId(userId);
-            log.info("恢复已删除用户: {}", userId);
-            return;
+            // 已删除的 guest 用户不自动恢复，硬删除旧记录（级联清除残留的 session/message 等）
+            userMapper.hardDeleteByUserId(userId);
+            log.info("硬删除已删除的 guest 用户旧记录: {}", userId);
+            // 继续往下走，创建全新用户
         }
     
-        // 3. 完全不存在，创建新用户
+        // 3. 创建新用户
         ChatUser user = new ChatUser();
         user.setUserId(userId);
-        user.setUsername("guest-" + userId);
+        user.setUsername(userId);  // userId 本身已含 guest- 前缀
         user.setNickname(userId.startsWith("guest-") ? "访客" : userId);
         try {
             userMapper.insert(user);

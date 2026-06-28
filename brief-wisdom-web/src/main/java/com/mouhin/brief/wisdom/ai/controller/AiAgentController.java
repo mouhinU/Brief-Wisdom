@@ -49,6 +49,7 @@ public class AiAgentController {
     @PostMapping("/chat/session/{sessionId}")
     public ApiResponse<String> chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
         String userId = userContextHelper.getCurrentUserId();
+        
         log.info("收到聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}", sessionId, userId, request.getMessage(), request.getModel());
         try {
             String response = aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel());
@@ -100,6 +101,7 @@ public class AiAgentController {
             @RequestParam(value = "size", required = false) Integer size) {
         try {
             String userId = userContextHelper.getCurrentUserId();
+            
             PaginationProperties.PageConfig config = paginationProperties.getSessionList();
             int resolvedSize = config.resolveSize(size);
             var result = aiAgentService.listSessionsPaged(userId, page, resolvedSize);
@@ -195,6 +197,7 @@ public class AiAgentController {
     public ApiResponse<SyncStatusDTO> getSyncStatus() {
         try {
             String userId = userContextHelper.getCurrentUserId();
+            
             SyncStatusDTO syncStatus = aiAgentService.getSyncStatus(userId);
             return ApiResponse.success(syncStatus);
         } catch (Exception e) {
@@ -213,6 +216,7 @@ public class AiAgentController {
     @GetMapping(value = "/sync/events", produces = "text/event-stream")
     public SseEmitter syncEvents() {
         String userId = userContextHelper.getCurrentUserId();
+        
         log.info("[SSE] 用户 {} 请求建立 SSE 连接", userId);
         return chatSyncService.createConnection(userId);
     }

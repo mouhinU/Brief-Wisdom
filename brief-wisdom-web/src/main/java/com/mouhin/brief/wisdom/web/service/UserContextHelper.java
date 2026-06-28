@@ -67,11 +67,13 @@ public class UserContextHelper {
             }
         }
 
-        // 2. 从 Spring Security 上下文获取
+        // 2. 从 Spring Security 上下文获取（排除匿名访问）
         SecurityContext securityContext = SecurityContextHolder.getContext();
         if (securityContext != null && securityContext.getAuthentication() != null) {
             Authentication auth = securityContext.getAuthentication();
-            if (auth.getPrincipal() instanceof String userId && !userId.isEmpty()) {
+            if (auth.getPrincipal() instanceof String userId
+                    && !userId.isEmpty()
+                    && !"anonymousUser".equals(userId)) {
                 return userId;
             }
         }
