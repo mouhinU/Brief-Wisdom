@@ -27,10 +27,10 @@ let paginationConfig = {
     messageHistory: { defaultSize: 20, maxSize: 200 }
 };
 
-// 多端同步状态
-let lastSyncFingerprint = null;
-let syncTimer = null;
-const SYNC_INTERVAL = 5000; // 5秒轮询一次
+// 多端同步状态（SSE 实时推送）
+let syncEventSource = null;
+let syncReconnectTimer = null;
+const SYNC_RECONNECT_DELAY = 3000; // 断线后 3 秒重连
 
 // 加载分页配置（页面初始化时调用一次）
 async function loadPaginationConfig() {
@@ -104,13 +104,13 @@ function toggleChat() {
     if (chatPopup.classList.contains('show')) {
         // 初始化聊天：加载会话列表，若无会话则自动创建
         ensureChatInitialized();
-        startSyncPolling();
+        connectSyncSSE();
         setTimeout(() => {
             const input = getEl('chatInput');
             if (input) input.focus();
         }, 300);
     } else {
-        stopSyncPolling();
+        disconnectSyncSSE();
     }
 }
 
@@ -638,8 +638,6 @@ async function sendMessage() {
             addMessage(data.data, 'ai', true, currentModel);
             // 更新会话列表（可能标题变了）
             await loadSessions();
-            // 更新同步指纹，避免发送后立即触发冗余同步
-            lastSyncFingerprint = null;
         } else {
             addMessage('抱歉,出现了错误: ' + data.error, 'ai');
         }
@@ -804,61 +802,95 @@ document.addEventListener('scroll', function(e) {
     }
 }, true);
 
-// ========== 多端同步轮询 ==========
+// ========== 多端同步（SSE 实时推送） ==========
 
-// 启动同步轮询
-function startSyncPolling() {
-    stopSyncPolling();
-    // 立即执行一次
-    checkSyncStatus();
-    syncTimer = setInterval(checkSyncStatus, SYNC_INTERVAL);
-}
+// 连接 SSE
+function connectSyncSSE() {
+    disconnectSyncSSE();
 
-// 停止同步轮询
-function stopSyncPolling() {
-    if (syncTimer) {
-        clearInterval(syncTimer);
-        syncTimer = null;
-    }
-}
-
-// 检查同步状态
-async function checkSyncStatus() {
     try {
-        const response = await fetch('/api/ai/sync/status');
-        const data = await response.json();
-        if (!data.success || !data.data) return;
+        syncEventSource = new EventSource('/api/ai/sync/events');
 
-        const syncStatus = data.data;
-        const currentFingerprint = syncStatus.fingerprint;
+        // 连接成功
+        syncEventSource.addEventListener('connected', function(e) {
+            console.log('[SSE] 连接已建立');
+        });
 
-        if (lastSyncFingerprint === null) {
-            // 首次获取，记录指纹
-            lastSyncFingerprint = currentFingerprint;
-            return;
-        }
+        // 收到同步事件
+        syncEventSource.addEventListener('sync', function(e) {
+            try {
+                const event = JSON.parse(e.data);
+                console.log('[SSE] 收到同步事件:', event);
+                handleSyncEvent(event);
+            } catch (err) {
+                console.warn('[SSE] 解析事件失败:', err);
+            }
+        });
 
-        if (lastSyncFingerprint !== currentFingerprint) {
-            console.log('[Sync] 检测到数据变化，正在同步...');
-            lastSyncFingerprint = currentFingerprint;
-            await syncRefresh();
-        }
+        // 连接出错（自动重连由浏览器 EventSource 处理）
+        syncEventSource.onerror = function() {
+            console.warn('[SSE] 连接断开，将自动重连...');
+            // EventSource 会自动尝试重连，但如果.readyState === CLOSED 则需手动重连
+            if (syncEventSource && syncEventSource.readyState === EventSource.CLOSED) {
+                scheduleReconnect();
+            }
+        };
     } catch (error) {
-        console.warn('[Sync] 同步状态检查失败:', error);
+        console.warn('[SSE] 创建 EventSource 失败:', error);
+        scheduleReconnect();
     }
 }
 
-// 同步刷新：刷新会话列表，如果当前会话消息数变化则刷新消息
-async function syncRefresh() {
-    // 保存当前选中的会话ID
-    const prevSessionId = currentSessionId;
+// 断开 SSE
+function disconnectSyncSSE() {
+    if (syncReconnectTimer) {
+        clearTimeout(syncReconnectTimer);
+        syncReconnectTimer = null;
+    }
+    if (syncEventSource) {
+        syncEventSource.close();
+        syncEventSource = null;
+    }
+}
 
-    // 刷新会话列表
-    await loadSessions();
+// 延迟重连
+function scheduleReconnect() {
+    if (syncReconnectTimer) return;
+    syncReconnectTimer = setTimeout(() => {
+        syncReconnectTimer = null;
+        // 仅在聊天窗口仍然打开时重连
+        const chatPopup = getEl('chatPopup');
+        if (chatPopup && chatPopup.classList.contains('show')) {
+            connectSyncSSE();
+        }
+    }, SYNC_RECONNECT_DELAY);
+}
 
-    // 如果当前正在查看某个会话，检查其消息数是否变化，若变化则重新加载消息
-    if (prevSessionId && currentSessionId === prevSessionId) {
-        await loadSessionHistory(prevSessionId);
+// 处理同步事件
+async function handleSyncEvent(event) {
+    const type = event.type;
+    const sessionId = event.sessionId;
+
+    // 如果是当前设备自己触发的操作（发送消息后），服务端会推送事件，
+    // 但由于当前设备已经更新了 UI，这里只需刷新会话列表即可
+    if (type === 'session_created' || type === 'session_deleted') {
+        // 会话列表变化，刷新会话列表
+        await loadSessions();
+        // 如果删除的是当前会话，清空聊天窗口
+        if (type === 'session_deleted' && sessionId === currentSessionId) {
+            currentSessionId = null;
+            clearChatMessages();
+            // 自动选中第一个会话
+            if (allSessions.length > 0) {
+                await selectSession(allSessions[0].sessionId);
+            }
+        }
+    } else if (type === 'message_added') {
+        // 消息变化，刷新会话列表和当前会话消息
+        await loadSessions();
+        if (sessionId && sessionId === currentSessionId) {
+            await loadSessionHistory(sessionId);
+        }
     }
 }
 

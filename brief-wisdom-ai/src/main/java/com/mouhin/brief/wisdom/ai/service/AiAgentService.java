@@ -34,6 +34,7 @@ public class AiAgentService {
     private final ChatMessageMapper messageMapper;
     private final ChatUserMapper userMapper;
     private final AiModelMapper aiModelMapper;
+    private final ChatSyncService chatSyncService;
     
     // 默认用户ID（用于未登录场景）
     private static final String DEFAULT_USER_ID = "default-user";
@@ -42,12 +43,14 @@ public class AiAgentService {
                          ChatSessionMapper sessionMapper,
                          ChatMessageMapper messageMapper,
                          ChatUserMapper userMapper,
-                         AiModelMapper aiModelMapper) {
+                         AiModelMapper aiModelMapper,
+                         ChatSyncService chatSyncService) {
         this.chatClient = chatClient;
         this.sessionMapper = sessionMapper;
         this.messageMapper = messageMapper;
         this.userMapper = userMapper;
         this.aiModelMapper = aiModelMapper;
+        this.chatSyncService = chatSyncService;
         
         // 初始化默认用户
         initDefaultUser();
@@ -101,6 +104,10 @@ public class AiAgentService {
         
         sessionMapper.insert(session);
         log.info("为用户 {} 创建新会话: {}", userId, session.getSessionId());
+        
+        // SSE 通知其他设备：新会话已创建
+        chatSyncService.notifyUser(userId, "session_created", session.getSessionId());
+        
         return session.getSessionId();
     }
     
@@ -140,6 +147,10 @@ public class AiAgentService {
         qw.eq(ChatSession::getSessionId, sessionId);
         sessionMapper.delete(qw);
         log.info("删除会话: {}", sessionId);
+        
+        // SSE 通知其他设备：会话已删除
+        // 删除时无法确定 userId，广播给所有已连接用户
+        chatSyncService.broadcastToAll("session_deleted", sessionId);
     }
 
     /**
@@ -436,6 +447,10 @@ public class AiAgentService {
         sessionMapper.updateById(session);
         
         log.info("AI 回复: {}", response);
+        
+        // SSE 通知其他设备：新消息已添加
+        chatSyncService.notifyUser(userId, "message_added", sessionId);
+        
         return response;
     }
 

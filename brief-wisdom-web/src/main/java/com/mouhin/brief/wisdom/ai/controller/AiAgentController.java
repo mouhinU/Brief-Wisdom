@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
 import com.mouhin.brief.wisdom.ai.service.AiAgentService;
+import com.mouhin.brief.wisdom.ai.service.ChatSyncService;
 import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.PageResult;
@@ -12,6 +13,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ public class AiAgentController {
     private final AiAgentService aiAgentService;
     private final PaginationProperties paginationProperties;
     private final UserContextHelper userContextHelper;
+    private final ChatSyncService chatSyncService;
 
     /**
      * 简单聊天接口（无上下文）
@@ -197,6 +200,21 @@ public class AiAgentController {
         } catch (Exception e) {
             return ApiResponse.fail("获取同步状态失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * SSE 实时同步事件流
+     * <p>
+     * 前端通过 EventSource 连接此端点，当数据发生变更（创建/删除会话、发送消息）时，
+     * 服务端实时推送 sync 事件，前端收到后按需拉取最新数据。
+     * <p>
+     * 支持多端同时连接，同一用户的所有设备都会收到通知。
+     */
+    @GetMapping(value = "/sync/events", produces = "text/event-stream")
+    public SseEmitter syncEvents() {
+        String userId = userContextHelper.getCurrentUserId();
+        log.info("[SSE] 用户 {} 请求建立 SSE 连接", userId);
+        return chatSyncService.createConnection(userId);
     }
 
 
