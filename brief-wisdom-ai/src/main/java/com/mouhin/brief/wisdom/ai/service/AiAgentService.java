@@ -81,6 +81,18 @@ public class AiAgentService {
      */
     @Transactional
     public String createSession(String userId) {
+        return createSession(userId, null);
+    }
+
+    /**
+     * 为指定用户创建新会话（带页面上下文）
+     *
+     * @param userId      用户ID
+     * @param pageContext 页面上下文（如 /about.html）
+     * @return 会话ID
+     */
+    @Transactional
+    public String createSession(String userId, String pageContext) {
         // 确保用户存在（防止外键约束失败）
         ensureUserExists(userId);
 
@@ -88,10 +100,11 @@ public class AiAgentService {
         session.setSessionId(UUID.randomUUID().toString());
         session.setUserId(userId);
         session.setTitle("新会话");
+        session.setPageContext(pageContext);
         session.setMessageCount(0);
 
         sessionRepository.save(session);
-        log.info("为用户 {} 创建新会话: {}", userId, session.getSessionId());
+        log.info("为用户 {} 创建新会话: {}, pageContext: {}", userId, session.getSessionId(), pageContext);
 
         // SSE 通知其他设备：新会话已创建
         chatSyncService.notifyUser(userId, "session_created", session.getSessionId());
@@ -174,6 +187,7 @@ public class AiAgentService {
             meta.setUserId(session.getUserId());
             meta.setTitle(session.getTitle());
             meta.setDescription(session.getDescription());
+            meta.setPageContext(session.getPageContext());
             meta.setMessageCount(session.getMessageCount());
             meta.setCreateTime(session.getCreateTime());
 
@@ -214,6 +228,7 @@ public class AiAgentService {
             meta.setUserId(session.getUserId());
             meta.setTitle(session.getTitle());
             meta.setDescription(session.getDescription());
+            meta.setPageContext(session.getPageContext());
             meta.setMessageCount(session.getMessageCount());
             meta.setCreateTime(session.getCreateTime());
 
@@ -434,9 +449,12 @@ public class AiAgentService {
             context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
         }
 
+        // 根据会话的页面上下文构建增强的系统提示词
+        String systemPrompt = SystemPrompts.getSystemPromptWithContext(session.getPageContext());
+
         // 调用 AI，获取完整响应（包含 token 用量）
         ChatResponse chatResponse = chatClient.prompt()
-                .system(SystemPrompts.BASE_SYSTEM_PROMPT)
+                .system(systemPrompt)
                 .options(buildModelOptions(model))
                 .user(context.toString())
                 .call()

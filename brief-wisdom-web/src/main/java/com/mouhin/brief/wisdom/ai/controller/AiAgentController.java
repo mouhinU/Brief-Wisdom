@@ -3,6 +3,7 @@ package com.mouhin.brief.wisdom.ai.controller;
 import com.mouhin.brief.wisdom.ai.req.ChatRequest;
 import com.mouhin.brief.wisdom.ai.req.ChatWithPromptRequest;
 import com.mouhin.brief.wisdom.ai.req.QuestionRequest;
+import com.mouhin.brief.wisdom.ai.req.SessionCreateRequest;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService.ContentSecurityException;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService.RateLimitException;
@@ -79,12 +80,15 @@ public class AiAgentController {
 
     /**
      * 创建新会话
+     * <p>
+     * 支持传入 pageContext 记录会话来源页面
      */
     @PostMapping("/session")
-    public ApiResponse<String> createSession() {
+    public ApiResponse<String> createSession(@RequestBody(required = false) SessionCreateRequest request) {
         try {
             String userId = userContextHelper.getCurrentUserId();
-            String sessionId = aiAgentService.createSession(userId);
+            String pageContext = (request != null) ? request.getPageContext() : null;
+            String sessionId = aiAgentService.createSession(userId, pageContext);
             return ApiResponse.success(sessionId);
         } catch (Exception e) {
             return ApiResponse.fail("创建会话失败: " + e.getMessage());

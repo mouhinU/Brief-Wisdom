@@ -665,13 +665,21 @@ body {
     color: white;
 }
 
+.session-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 5px;
+}
+
 .session-title {
     font-size: 14px;
     font-weight: 500;
-    margin-bottom: 5px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
+    min-width: 0;
 }
 
 .session-time {
@@ -1154,6 +1162,13 @@ body {
     color: #999;
     font-size: 12px;
     gap: 10px;
+}
+
+/* ========== 会话列表页面上下文标识 ========== */
+.session-page-label {
+    font-size: 14px;
+    flex-shrink: 0;
+    cursor: default;
 }
 
 /* ========== 自定义确认弹窗（浏览器居中） ========== */

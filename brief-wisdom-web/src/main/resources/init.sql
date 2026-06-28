@@ -71,6 +71,7 @@ CREATE TABLE chat_session (
     user_id VARCHAR(36) NOT NULL COMMENT '用户ID',
     title VARCHAR(200) NOT NULL COMMENT '会话标题',
     description TEXT COMMENT '会话描述',
+    page_context VARCHAR(200) COMMENT '页面上下文（如 /about.html, /resume-manage.html）',
     message_count INT NOT NULL DEFAULT 0 COMMENT '消息数量',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

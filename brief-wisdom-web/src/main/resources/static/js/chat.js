@@ -1,6 +1,35 @@
 // DOM 元素引用（动态注入时可能延迟获取）
 function getEl(id) { return document.getElementById(id); }
 
+// 当前页面上下文（用于 AI 助手识别当前所在页面）
+function getCurrentPageContext() {
+    return window.location.pathname || '/';
+}
+
+// 页面上下文 -> 显示名称
+function getPageContextLabel(pageContext) {
+    const labels = {
+        '/': '首页',
+        '/about.html': '个人简历',
+        '/resume-manage.html': '简历维护',
+        '/system-settings.html': '系统设置',
+        '/ai-manage.html': 'AI管理'
+    };
+    return labels[pageContext] || '';
+}
+
+// 页面上下文 -> 图标
+function getPageContextIcon(pageContext) {
+    const icons = {
+        '/': '🏠',
+        '/about.html': '👤',
+        '/resume-manage.html': '📝',
+        '/system-settings.html': '⚙️',
+        '/ai-manage.html': '🤖'
+    };
+    return icons[pageContext] || '💬';
+}
+
 // 当前会话 ID
 let currentSessionId = null;
 
@@ -206,11 +235,7 @@ async function ensureChatInitialized() {
     }
     // 显示欢迎界面（不加载历史消息）
     clearChatMessages();
-    // 如果没有会话，自动创建一个（供后续发送消息使用）
-    if (!currentSessionId) {
-        console.log('没有可用会话，自动创建新会话...');
-        await createNewSession();
-    }
+    // 不自动创建会话，等待用户发送消息时再创建
 }
 
 // 加载会话列表（重置为第一页）
@@ -342,9 +367,16 @@ function appendSessionItems(sessions) {
         
         // 使用会话的更新时间（即最后一条消息的时间）
         const timeStr = formatTime(session.updateTime);
+
+        // 页面上下文图标
+        const pageLabel = getPageContextLabel(session.pageContext);
+        const pageLabelHtml = pageLabel ? `<span class="session-page-label" title="${escapeHtml(pageLabel)}">${getPageContextIcon(session.pageContext)}</span>` : '';
         
         sessionItem.innerHTML = `
-            <div class="session-title">${escapeHtml(session.title)}</div>
+            <div class="session-title-row">
+                ${pageLabelHtml}
+                <div class="session-title">${escapeHtml(session.title)}</div>
+            </div>
             <div class="session-time">${timeStr}</div>
             <button class="delete-session-btn" onclick="deleteSession(event, '${session.sessionId}')">×</button>
         `;
@@ -363,7 +395,13 @@ function appendSessionItems(sessions) {
 async function createNewSession() {
     try {
         const response = await fetch('/api/ai/session', {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                pageContext: getCurrentPageContext()
+            })
         });
         const data = await response.json();
         

@@ -14,6 +14,7 @@ public class SessionMetaDTO implements Serializable {
     private String userId;
     private String title;
     private String description;
+    private String pageContext;  // 页面上下文
     private Integer messageCount;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

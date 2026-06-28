@@ -27,6 +27,9 @@ public class ChatSession {
     @TableField(value = "description")
     private String description;  // 会话描述
 
+    @TableField(value = "page_context")
+    private String pageContext;  // 页面上下文（如 /about.html, /resume-manage.html）
+
     @TableField(value = "message_count")
     private Integer messageCount = 0;  // 消息数量
 
