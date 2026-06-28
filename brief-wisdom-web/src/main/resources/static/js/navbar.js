@@ -186,12 +186,6 @@ function injectAiAssistant() {
     <div class="chat-main">
       <div class="chat-header">
         <h1>🤖 AI 智能助手</h1>
-        <div class="model-selector">
-          <label>模型：</label>
-          <select id="modelSelector" onchange="onModelChange()">
-            <option value="">加载中...</option>
-          </select>
-        </div>
         <p>有任何问题都可以问我哦~</p>
         <button class="close-button" onclick="toggleChat()">×</button>
       </div>
@@ -205,6 +199,9 @@ function injectAiAssistant() {
       </div>
       <div class="chat-input-container">
         <div class="chat-input-wrapper">
+          <select id="modelSelector" class="model-selector-select" onchange="onModelChange()">
+            <option value="">加载中...</option>
+          </select>
           <input type="text" class="chat-input" id="chatInput"
                  placeholder="输入您的问题..." autocomplete="off">
           <button class="send-button" id="sendButton" onclick="sendMessage()">发送</button>

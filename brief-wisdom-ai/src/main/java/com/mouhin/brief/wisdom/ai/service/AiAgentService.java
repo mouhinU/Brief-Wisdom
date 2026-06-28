@@ -51,41 +51,17 @@ public class AiAgentService {
         this.userMapper = userMapper;
         this.aiModelMapper = aiModelMapper;
         this.chatSyncService = chatSyncService;
-        
-        // 初始化默认用户
-        initDefaultUser();
-    }
-    
-    /**
-     * 初始化默认用户
-     */
-    private void initDefaultUser() {
-        LambdaQueryWrapper<ChatUser> qw = new LambdaQueryWrapper<>();
-        qw.eq(ChatUser::getUserId, DEFAULT_USER_ID);
-        ChatUser existingUser = userMapper.selectOne(qw);
-        if (existingUser == null) {
-            ChatUser defaultUser = new ChatUser();
-            defaultUser.setUserId(DEFAULT_USER_ID);
-            defaultUser.setUsername("guest-" + DEFAULT_USER_ID);
-            defaultUser.setNickname("访客");
-            try {
-                userMapper.insert(defaultUser);
-                log.info("创建默认用户: {}", DEFAULT_USER_ID);
-            } catch (Exception e) {
-                log.warn("创建默认用户失败（可能已存在）: {}", e.getMessage());
-            }
-        }
     }
 
     /**
-     * 创建新会话
+     * 创建新会话（无参版本，使用默认用户ID）
      * @return 会话ID
      */
     @Transactional
     public String createSession() {
         return createSession(DEFAULT_USER_ID);
     }
-    
+
     /**
      * 为指定用户创建新会话
      * @param userId 用户ID
@@ -95,25 +71,28 @@ public class AiAgentService {
     public String createSession(String userId) {
         // 确保用户存在（防止外键约束失败）
         ensureUserExists(userId);
-        
+
         ChatSession session = new ChatSession();
         session.setSessionId(UUID.randomUUID().toString());
         session.setUserId(userId);
         session.setTitle("新会话");
         session.setMessageCount(0);
-        
+
         sessionMapper.insert(session);
         log.info("为用户 {} 创建新会话: {}", userId, session.getSessionId());
-        
+
         // SSE 通知其他设备：新会话已创建
         chatSyncService.notifyUser(userId, "session_created", session.getSessionId());
-        
+
         return session.getSessionId();
     }
-    
+
     /**
      * 确保用户存在于数据库中（防止外键约束失败）
-     * 如果用户不存在或已被逻辑删除，则创建/恢复
+     * 如果用户不存在或已被逻辑删除，则创建/恢复。
+     * <p>
+     * 未登录的访客用户（userId 以 "guest-" 开头）也会自动创建，
+     * 昵称显示为 "访客"。
      */
     private void ensureUserExists(String userId) {
         LambdaQueryWrapper<ChatUser> qw = new LambdaQueryWrapper<>();
@@ -126,7 +105,8 @@ public class AiAgentService {
         ChatUser user = new ChatUser();
         user.setUserId(userId);
         user.setUsername("guest-" + userId);
-        user.setNickname("访客");
+        // 访客用户显示“访客”，登录用户显示其昵称
+        user.setNickname(userId.startsWith("guest-") ? "访客" : userId);
         try {
             userMapper.insert(user);
             log.info("动态创建用户: {}", userId);

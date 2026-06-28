@@ -114,6 +114,71 @@ function toggleChat() {
     }
 }
 
+// ========== 弹窗拖动功能 ==========
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let popupStartLeft = 0;
+let popupStartTop = 0;
+
+function initPopupDrag() {
+    const chatPopup = getEl('chatPopup');
+    if (!chatPopup) return;
+    const header = chatPopup.querySelector('.chat-header');
+    if (!header) return;
+
+    header.addEventListener('mousedown', function(e) {
+        // 排除关闭按钮等交互元素
+        if (e.target.closest('.close-button')) return;
+
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+
+        // 将 right/bottom 定位转换为 left/top 定位
+        const rect = chatPopup.getBoundingClientRect();
+        popupStartLeft = rect.left;
+        popupStartTop = rect.top;
+
+        chatPopup.style.left = popupStartLeft + 'px';
+        chatPopup.style.top = popupStartTop + 'px';
+        chatPopup.style.right = 'auto';
+        chatPopup.style.bottom = 'auto';
+
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        const chatPopup = getEl('chatPopup');
+        if (!chatPopup) return;
+
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+
+        let newLeft = popupStartLeft + dx;
+        let newTop = popupStartTop + dy;
+
+        // 边界约束：不超出视口
+        const rect = chatPopup.getBoundingClientRect();
+        const maxLeft = window.innerWidth - rect.width;
+        const maxTop = window.innerHeight - rect.height;
+
+        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+
+        chatPopup.style.left = newLeft + 'px';
+        chatPopup.style.top = newTop + 'px';
+    });
+
+    document.addEventListener('mouseup', function() {
+        if (!isDragging) return;
+        isDragging = false;
+        document.body.style.userSelect = '';
+    });
+}
+
 // 确保聊天已初始化（有可用会话）
 async function ensureChatInitialized() {
     // 如果还没加载过会话列表，先加载
@@ -773,6 +838,8 @@ let chatAppInitialized = false;
 async function initChatApp() {
     if (chatAppInitialized) return;
     chatAppInitialized = true;
+    // 初始化弹窗拖动
+    initPopupDrag();
     const chatInput = getEl('chatInput');
     if (chatInput) chatInput.focus();
     // 初始化时加载配置
