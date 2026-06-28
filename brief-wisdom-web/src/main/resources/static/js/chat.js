@@ -27,6 +27,11 @@ let paginationConfig = {
     messageHistory: { defaultSize: 20, maxSize: 200 }
 };
 
+// 多端同步状态
+let lastSyncFingerprint = null;
+let syncTimer = null;
+const SYNC_INTERVAL = 5000; // 5秒轮询一次
+
 // 加载分页配置（页面初始化时调用一次）
 async function loadPaginationConfig() {
     try {
@@ -99,10 +104,13 @@ function toggleChat() {
     if (chatPopup.classList.contains('show')) {
         // 初始化聊天：加载会话列表，若无会话则自动创建
         ensureChatInitialized();
+        startSyncPolling();
         setTimeout(() => {
             const input = getEl('chatInput');
             if (input) input.focus();
         }, 300);
+    } else {
+        stopSyncPolling();
     }
 }
 
@@ -630,6 +638,8 @@ async function sendMessage() {
             addMessage(data.data, 'ai', true, currentModel);
             // 更新会话列表（可能标题变了）
             await loadSessions();
+            // 更新同步指纹，避免发送后立即触发冗余同步
+            lastSyncFingerprint = null;
         } else {
             addMessage('抱歉,出现了错误: ' + data.error, 'ai');
         }
@@ -793,6 +803,64 @@ document.addEventListener('scroll', function(e) {
         loadMoreSessions();
     }
 }, true);
+
+// ========== 多端同步轮询 ==========
+
+// 启动同步轮询
+function startSyncPolling() {
+    stopSyncPolling();
+    // 立即执行一次
+    checkSyncStatus();
+    syncTimer = setInterval(checkSyncStatus, SYNC_INTERVAL);
+}
+
+// 停止同步轮询
+function stopSyncPolling() {
+    if (syncTimer) {
+        clearInterval(syncTimer);
+        syncTimer = null;
+    }
+}
+
+// 检查同步状态
+async function checkSyncStatus() {
+    try {
+        const response = await fetch('/api/ai/sync/status');
+        const data = await response.json();
+        if (!data.success || !data.data) return;
+
+        const syncStatus = data.data;
+        const currentFingerprint = syncStatus.fingerprint;
+
+        if (lastSyncFingerprint === null) {
+            // 首次获取，记录指纹
+            lastSyncFingerprint = currentFingerprint;
+            return;
+        }
+
+        if (lastSyncFingerprint !== currentFingerprint) {
+            console.log('[Sync] 检测到数据变化，正在同步...');
+            lastSyncFingerprint = currentFingerprint;
+            await syncRefresh();
+        }
+    } catch (error) {
+        console.warn('[Sync] 同步状态检查失败:', error);
+    }
+}
+
+// 同步刷新：刷新会话列表，如果当前会话消息数变化则刷新消息
+async function syncRefresh() {
+    // 保存当前选中的会话ID
+    const prevSessionId = currentSessionId;
+
+    // 刷新会话列表
+    await loadSessions();
+
+    // 如果当前正在查看某个会话，检查其消息数是否变化，若变化则重新加载消息
+    if (prevSessionId && currentSessionId === prevSessionId) {
+        await loadSessionHistory(prevSessionId);
+    }
+}
 
 // 消息历史滚动监听 - 触顶自动加载更早消息
 document.addEventListener('scroll', function(e) {

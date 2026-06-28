@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
+import com.mouhin.brief.wisdom.common.ai.SyncStatusDTO;
 import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
 import com.mouhin.brief.wisdom.persistence.model.ChatSession;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ai.openai.OpenAiChatOptions;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 @Service
@@ -465,5 +467,46 @@ public class AiAgentService {
     public String askQuestion(String question) {
         String systemPrompt = "你是一个专业的AI助手,请简洁明了地回答问题。";
         return chatWithSystemPrompt(systemPrompt, question);
+    }
+
+    /**
+     * 获取当前用户的同步状态（轻量级，用于多端同步检测）
+     * @param userId 用户ID
+     * @return 同步状态 DTO
+     */
+    public SyncStatusDTO getSyncStatus(String userId) {
+        SyncStatusDTO syncStatus = new SyncStatusDTO();
+
+        // 1. 会话总数
+        long sessionCount = sessionMapper.countByUserId(userId);
+        syncStatus.setSessionCount((int) sessionCount);
+
+        // 2. 每个会话的消息数量
+        Map<String, Integer> messageCounts = new HashMap<>();
+        List<Map<String, Object>> countRows = messageMapper.selectMessageCountsByUserId(userId);
+        for (Map<String, Object> row : countRows) {
+            String sid = String.valueOf(row.get("session_id"));
+            int cnt = ((Number) row.get("cnt")).intValue();
+            messageCounts.put(sid, cnt);
+        }
+        syncStatus.setSessionMessageCounts(messageCounts);
+
+        // 3. 每个会话的最后消息时间（毫秒时间戳）
+        Map<String, Long> lastMessageTimes = new HashMap<>();
+        List<Map<String, Object>> timeRows = messageMapper.selectLastMessageTimesByUserId(userId);
+        for (Map<String, Object> row : timeRows) {
+            String sid = String.valueOf(row.get("session_id"));
+            Object lastTime = row.get("last_time");
+            if (lastTime instanceof LocalDateTime) {
+                lastMessageTimes.put(sid, ((LocalDateTime) lastTime).toInstant(ZoneOffset.UTC).toEpochMilli());
+            }
+        }
+        syncStatus.setSessionLastMessageTimes(lastMessageTimes);
+
+        // 4. 计算指纹（基于以上数据的哈希值）
+        String raw = sessionCount + ":" + messageCounts.toString() + ":" + lastMessageTimes.toString();
+        syncStatus.setFingerprint(Integer.toHexString(raw.hashCode()));
+
+        return syncStatus;
     }
 }

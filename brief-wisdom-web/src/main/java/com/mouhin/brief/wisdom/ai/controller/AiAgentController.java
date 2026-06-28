@@ -5,6 +5,7 @@ import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
+import com.mouhin.brief.wisdom.common.ai.SyncStatusDTO;
 import com.mouhin.brief.wisdom.config.PaginationProperties;
 import com.mouhin.brief.wisdom.web.service.UserContextHelper;
 import lombok.Data;
@@ -179,6 +180,22 @@ public class AiAgentController {
             return ApiResponse.success(response);
         } catch (Exception e) {
             return ApiResponse.fail("AI 服务异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取当前用户的同步状态（用于多端同步检测）
+     * <p>
+     * 返回轻量级同步指纹，前端定时轮询此接口，对比 fingerprint 判断是否需要刷新数据。
+     */
+    @GetMapping("/sync/status")
+    public ApiResponse<SyncStatusDTO> getSyncStatus() {
+        try {
+            String userId = userContextHelper.getCurrentUserId();
+            SyncStatusDTO syncStatus = aiAgentService.getSyncStatus(userId);
+            return ApiResponse.success(syncStatus);
+        } catch (Exception e) {
+            return ApiResponse.fail("获取同步状态失败: " + e.getMessage());
         }
     }
 
