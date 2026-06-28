@@ -11,37 +11,37 @@ import java.time.LocalDateTime;
 @Data
 @TableName("chat_message")
 public class ChatMessage {
-    
+
     @TableId(type = IdType.AUTO)
     private Long id;
-    
+
     @TableField(value = "session_id")
     private String sessionId;  // 会话ID
-    
+
     @TableField(value = "user_id")
     private String userId;  // 用户ID
-    
+
     @TableField(value = "role")
     private String role;  // user 或 assistant
-    
+
     @TableField(value = "content")
     private String content;  // 消息内容
-    
+
     @TableField(value = "model")
     private String model;  // AI模型名称
-    
+
     @TableField(value = "tokens")
     private Integer tokens;  // token数量
-    
+
     @TableField(value = "cost")
     private Double cost;  // 费用
-    
+
     @TableField(value = "timestamp", fill = FieldFill.INSERT)
     private LocalDateTime timestamp;
-    
+
     @TableField(value = "message_type")
     private String messageType;  // 消息类型: text, image, code等
-    
+
     @TableLogic
     @TableField(value = "is_deleted")
     private Integer isDeleted;  // 0-未删除, 1-已删除

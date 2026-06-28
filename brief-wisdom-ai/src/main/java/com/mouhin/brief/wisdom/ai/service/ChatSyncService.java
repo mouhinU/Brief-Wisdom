@@ -20,10 +20,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 public class ChatSyncService {
 
-    /** 每个用户对应的 SseEmitter 列表（支持同一用户多端连接） */
+    /**
+     * 每个用户对应的 SseEmitter 列表（支持同一用户多端连接）
+     */
     private final Map<String, List<SseEmitter>> userEmitters = new ConcurrentHashMap<>();
 
-    /** SSE 超时时间：30 分钟（长连接） */
+    /**
+     * SSE 超时时间：30 分钟（长连接）
+     */
     private static final long SSE_TIMEOUT = 30 * 60 * 1000L;
 
     /**

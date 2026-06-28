@@ -39,12 +39,17 @@ public class PaginationProperties {
      */
     @Data
     public static class PageConfig {
-        /** 默认每页条数 */
+        /**
+         * 默认每页条数
+         */
         private int defaultSize = 20;
-        /** 最大每页条数（防止一次性拉取过多数据） */
+        /**
+         * 最大每页条数（防止一次性拉取过多数据）
+         */
         private int maxSize = 100;
 
-        public PageConfig() {}
+        public PageConfig() {
+        }
 
         public PageConfig(int defaultSize, int maxSize) {
             this.defaultSize = defaultSize;

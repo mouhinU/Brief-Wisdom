@@ -1,0 +1,50 @@
+package com.mouhin.brief.wisdom.persistence.repository;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mouhin.brief.wisdom.persistence.mapper.SysMenuMapper;
+import com.mouhin.brief.wisdom.persistence.model.SysMenu;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+/**
+ * 系统菜单数据访问层
+ */
+@Repository
+@RequiredArgsConstructor
+public class SysMenuRepository {
+
+    private final SysMenuMapper sysMenuMapper;
+
+    public List<SysMenu> findVisibleOrderBySortOrderAsc() {
+        return sysMenuMapper.selectList(
+                new LambdaQueryWrapper<SysMenu>()
+                        .eq(SysMenu::getIsVisible, 1)
+                        .orderByAsc(SysMenu::getSortOrder)
+        );
+    }
+
+    public List<SysMenu> findAllOrderBySortOrderAsc() {
+        return sysMenuMapper.selectList(
+                new LambdaQueryWrapper<SysMenu>()
+                        .orderByAsc(SysMenu::getSortOrder)
+        );
+    }
+
+    public SysMenu findById(Long id) {
+        return sysMenuMapper.selectById(id);
+    }
+
+    public void save(SysMenu menu) {
+        sysMenuMapper.insert(menu);
+    }
+
+    public void update(SysMenu menu) {
+        sysMenuMapper.updateById(menu);
+    }
+
+    public void deleteById(Long id) {
+        sysMenuMapper.deleteById(id);
+    }
+}

@@ -1,8 +1,8 @@
-package com.mouhin.brief.wisdom.resume;
+package com.mouhin.brief.wisdom.resume.controller;
 
+import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.resume.dto.WorkExperienceVO;
 import com.mouhin.brief.wisdom.resume.service.ResumeService;
-import com.mouhin.brief.wisdom.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.CrossOrigin;

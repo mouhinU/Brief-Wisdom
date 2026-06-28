@@ -1,21 +1,22 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
+import com.mouhin.brief.wisdom.ai.req.ChatRequest;
+import com.mouhin.brief.wisdom.ai.req.ChatWithPromptRequest;
+import com.mouhin.brief.wisdom.ai.req.QuestionRequest;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService;
 import com.mouhin.brief.wisdom.ai.service.ChatSyncService;
 import com.mouhin.brief.wisdom.common.ApiResponse;
-import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.PageResult;
+import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
 import com.mouhin.brief.wisdom.common.ai.SyncStatusDTO;
 import com.mouhin.brief.wisdom.config.PaginationProperties;
 import com.mouhin.brief.wisdom.web.service.UserContextHelper;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -49,7 +50,7 @@ public class AiAgentController {
     @PostMapping("/chat/session/{sessionId}")
     public ApiResponse<String> chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
         String userId = userContextHelper.getCurrentUserId();
-        
+
         log.info("收到聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}", sessionId, userId, request.getMessage(), request.getModel());
         try {
             String response = aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel());
@@ -92,8 +93,8 @@ public class AiAgentController {
      * <p>
      * 默认每页条数和最大值由 application.yml 中 app.pagination.session-list 配置
      *
-     * @param page   当前页码，从 1 开始，默认 1
-     * @param size   每页大小，不传则使用配置的默认值，超过配置的最大值会被截断
+     * @param page 当前页码，从 1 开始，默认 1
+     * @param size 每页大小，不传则使用配置的默认值，超过配置的最大值会被截断
      */
     @GetMapping("/sessions")
     public ApiResponse<PageResult<SessionMetaDTO>> listSessions(
@@ -101,7 +102,7 @@ public class AiAgentController {
             @RequestParam(value = "size", required = false) Integer size) {
         try {
             String userId = userContextHelper.getCurrentUserId();
-            
+
             PaginationProperties.PageConfig config = paginationProperties.getSessionList();
             int resolvedSize = config.resolveSize(size);
             var result = aiAgentService.listSessionsPaged(userId, page, resolvedSize);
@@ -144,14 +145,14 @@ public class AiAgentController {
     public ApiResponse<Map<String, Object>> getPaginationConfig() {
         try {
             Map<String, Object> config = Map.of(
-                "sessionList", Map.of(
-                    "defaultSize", paginationProperties.getSessionList().getDefaultSize(),
-                    "maxSize", paginationProperties.getSessionList().getMaxSize()
-                ),
-                "messageHistory", Map.of(
-                    "defaultSize", paginationProperties.getMessageHistory().getDefaultSize(),
-                    "maxSize", paginationProperties.getMessageHistory().getMaxSize()
-                )
+                    "sessionList", Map.of(
+                            "defaultSize", paginationProperties.getSessionList().getDefaultSize(),
+                            "maxSize", paginationProperties.getSessionList().getMaxSize()
+                    ),
+                    "messageHistory", Map.of(
+                            "defaultSize", paginationProperties.getMessageHistory().getDefaultSize(),
+                            "maxSize", paginationProperties.getMessageHistory().getMaxSize()
+                    )
             );
             return ApiResponse.success(config);
         } catch (Exception e) {
@@ -166,7 +167,7 @@ public class AiAgentController {
     public ApiResponse<String> chatWithPrompt(@RequestBody ChatWithPromptRequest request) {
         try {
             String response = aiAgentService.chatWithSystemPrompt(
-                    request.getSystemPrompt(), 
+                    request.getSystemPrompt(),
                     request.getUserMessage()
             );
             return ApiResponse.success(response);
@@ -197,7 +198,7 @@ public class AiAgentController {
     public ApiResponse<SyncStatusDTO> getSyncStatus() {
         try {
             String userId = userContextHelper.getCurrentUserId();
-            
+
             SyncStatusDTO syncStatus = aiAgentService.getSyncStatus(userId);
             return ApiResponse.success(syncStatus);
         } catch (Exception e) {
@@ -216,29 +217,8 @@ public class AiAgentController {
     @GetMapping(value = "/sync/events", produces = "text/event-stream")
     public SseEmitter syncEvents() {
         String userId = userContextHelper.getCurrentUserId();
-        
+
         log.info("[SSE] 用户 {} 请求建立 SSE 连接", userId);
         return chatSyncService.createConnection(userId);
-    }
-
-
-
-    // 请求和响应 DTO
-
-    @Data
-    public static class ChatRequest {
-        private String message;
-        private String model;  // 可选：指定使用的模型
-    }
-
-    @Data
-    public static class ChatWithPromptRequest {
-        private String systemPrompt;
-        private String userMessage;
-    }
-
-    @Data
-    public static class QuestionRequest {
-        private String question;
     }
 }

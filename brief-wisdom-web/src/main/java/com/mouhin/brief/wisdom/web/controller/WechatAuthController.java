@@ -13,7 +13,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -31,9 +34,13 @@ public class WechatAuthController {
 
     private final WechatAuthService wechatAuthService;
 
-    /** Session 中存储用户的 Key */
+    /**
+     * Session 中存储用户的 Key
+     */
     public static final String SESSION_USER_KEY = "AUTH_USER";
-    /** Spring Security 上下文存储到 Session 的 Key */
+    /**
+     * Spring Security 上下文存储到 Session 的 Key
+     */
     private static final String SPRING_SECURITY_CONTEXT_KEY =
             HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
 

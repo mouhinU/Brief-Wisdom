@@ -20,21 +20,33 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "dingtalk")
 public class DingtalkProperties {
 
-    /** 钉钉应用 AppKey（即 client_id） */
+    /**
+     * 钉钉应用 AppKey（即 client_id）
+     */
     private String appKey;
 
-    /** 钉钉应用 AppSecret（即 client_secret） */
+    /**
+     * 钉钉应用 AppSecret（即 client_secret）
+     */
     private String appSecret;
 
-    /** 授权回调地址 */
+    /**
+     * 授权回调地址
+     */
     private String redirectUri;
 
-    /** 钉钉授权页地址 */
+    /**
+     * 钉钉授权页地址
+     */
     private String authorizeUrl = "https://login.dingtalk.com/oauth2/auth";
 
-    /** 钉钉获取 token 接口 */
+    /**
+     * 钉钉获取 token 接口
+     */
     private String tokenUrl = "https://api.dingtalk.com/v1.0/oauth2/userAccessToken";
 
-    /** 钉钉获取用户信息接口 */
+    /**
+     * 钉钉获取用户信息接口
+     */
     private String userinfoUrl = "https://api.dingtalk.com/v1.0/contact/users/me";
 }

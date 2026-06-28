@@ -13,15 +13,23 @@ import java.util.Map;
 @Data
 public class SyncStatusDTO implements Serializable {
 
-    /** 当前用户的会话总数 */
+    /**
+     * 当前用户的会话总数
+     */
     private int sessionCount;
 
-    /** 每个会话的消息数量 */
+    /**
+     * 每个会话的消息数量
+     */
     private Map<String, Integer> sessionMessageCounts;
 
-    /** 每个会话的最后一条消息时间戳（毫秒） */
+    /**
+     * 每个会话的最后一条消息时间戳（毫秒）
+     */
     private Map<String, Long> sessionLastMessageTimes;
 
-    /** 同步指纹（基于以上数据计算的哈希值，前端直接对比即可） */
+    /**
+     * 同步指纹（基于以上数据计算的哈希值，前端直接对比即可）
+     */
     private String fingerprint;
 }

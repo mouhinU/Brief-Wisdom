@@ -21,21 +21,33 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "wechat.open")
 public class WechatProperties {
 
-    /** 微信开放平台 AppID */
+    /**
+     * 微信开放平台 AppID
+     */
     private String appId;
 
-    /** 微信开放平台 AppSecret */
+    /**
+     * 微信开放平台 AppSecret
+     */
     private String appSecret;
 
-    /** 授权回调地址 */
+    /**
+     * 授权回调地址
+     */
     private String redirectUri;
 
-    /** 微信授权页地址 */
+    /**
+     * 微信授权页地址
+     */
     private String authorizeUrl = "https://open.weixin.qq.com/connect/qrconnect";
 
-    /** 微信 token 接口 */
+    /**
+     * 微信 token 接口
+     */
     private String tokenUrl = "https://api.weixin.qq.com/sns/oauth2/access_token";
 
-    /** 微信用户信息接口 */
+    /**
+     * 微信用户信息接口
+     */
     private String userinfoUrl = "https://api.weixin.qq.com/sns/userinfo";
 }

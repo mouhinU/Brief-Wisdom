@@ -3,10 +3,11 @@ package com.mouhin.brief.wisdom.web.controller;
 import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
+import com.mouhin.brief.wisdom.web.req.LoginRequest;
+import com.mouhin.brief.wisdom.web.req.RegisterRequest;
 import com.mouhin.brief.wisdom.web.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,7 +15,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collections;
 
@@ -106,18 +110,4 @@ public class AuthController {
         return user;
     }
 
-    // ========== 请求体 ==========
-
-    @Data
-    public static class RegisterRequest {
-        private String username;
-        private String password;
-        private String nickname;
-    }
-
-    @Data
-    public static class LoginRequest {
-        private String username;
-        private String password;
-    }
 }

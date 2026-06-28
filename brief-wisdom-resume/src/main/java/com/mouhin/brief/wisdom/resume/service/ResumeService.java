@@ -1,14 +1,21 @@
 package com.mouhin.brief.wisdom.resume.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.mouhin.brief.wisdom.persistence.mapper.*;
-import com.mouhin.brief.wisdom.persistence.model.*;
+import com.mouhin.brief.wisdom.persistence.model.Project;
+import com.mouhin.brief.wisdom.persistence.model.ProjectAchievement;
+import com.mouhin.brief.wisdom.persistence.model.WorkExperience;
+import com.mouhin.brief.wisdom.persistence.model.WorkExperienceStack;
+import com.mouhin.brief.wisdom.persistence.repository.ProjectAchievementRepository;
+import com.mouhin.brief.wisdom.persistence.repository.ProjectRepository;
+import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceRepository;
+import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceStackRepository;
 import com.mouhin.brief.wisdom.resume.dto.ProjectVO;
 import com.mouhin.brief.wisdom.resume.dto.WorkExperienceVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -20,10 +27,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ResumeService {
 
-    private final WorkExperienceMapper workExperienceMapper;
-    private final ProjectMapper projectMapper;
-    private final ProjectAchievementMapper projectAchievementMapper;
-    private final WorkExperienceStackMapper workExperienceStackMapper;
+    private final WorkExperienceRepository workExperienceRepository;
+    private final ProjectRepository projectRepository;
+    private final ProjectAchievementRepository projectAchievementRepository;
+    private final WorkExperienceStackRepository workExperienceStackRepository;
 
     /**
      * 获取所有工作经历（含项目、成果、技术栈）
@@ -32,11 +39,7 @@ public class ResumeService {
      */
     public List<WorkExperienceVO> listAllExperiences() {
         // 1. 查询所有可见的工作经历
-        List<WorkExperience> experiences = workExperienceMapper.selectList(
-                new LambdaQueryWrapper<WorkExperience>()
-                        .eq(WorkExperience::getIsVisible, 1)
-                        .orderByAsc(WorkExperience::getSortOrder)
-        );
+        List<WorkExperience> experiences = workExperienceRepository.findVisibleOrderBySortOrderAsc();
 
         if (experiences.isEmpty()) {
             return Collections.emptyList();
@@ -47,18 +50,10 @@ public class ResumeService {
                 .collect(Collectors.toList());
 
         // 2. 批量查询所有关联的项目
-        List<Project> allProjects = projectMapper.selectList(
-                new LambdaQueryWrapper<Project>()
-                        .in(Project::getExperienceId, expIds)
-                        .orderByAsc(Project::getSortOrder)
-        );
+        List<Project> allProjects = projectRepository.findByExperienceIdInOrderBySortOrderAsc(expIds);
 
         // 3. 批量查询所有技术栈
-        List<WorkExperienceStack> allStacks = workExperienceStackMapper.selectList(
-                new LambdaQueryWrapper<WorkExperienceStack>()
-                        .in(WorkExperienceStack::getExperienceId, expIds)
-                        .orderByAsc(WorkExperienceStack::getSortOrder)
-        );
+        List<WorkExperienceStack> allStacks = workExperienceStackRepository.findByExperienceIdInOrderBySortOrderAsc(expIds);
 
         // 4. 批量查询所有项目成果
         List<Long> projectIds = allProjects.stream()
@@ -67,11 +62,7 @@ public class ResumeService {
 
         List<ProjectAchievement> allAchievements = projectIds.isEmpty()
                 ? Collections.emptyList()
-                : projectAchievementMapper.selectList(
-                        new LambdaQueryWrapper<ProjectAchievement>()
-                                .in(ProjectAchievement::getProjectId, projectIds)
-                                .orderByAsc(ProjectAchievement::getSortOrder)
-                );
+                : projectAchievementRepository.findByProjectIdInOrderBySortOrderAsc(projectIds);
 
         // 5. 按 ID 分组
         Map<Long, List<Project>> projectsByExpId = allProjects.stream()

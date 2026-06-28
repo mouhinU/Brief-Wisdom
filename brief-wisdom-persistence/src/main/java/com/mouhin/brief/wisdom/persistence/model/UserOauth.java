@@ -21,27 +21,39 @@ public class UserOauth implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 关联 chat_user.user_id */
+    /**
+     * 关联 chat_user.user_id
+     */
     @TableField(value = "user_id")
     private String userId;
 
-    /** 平台标识：wechat / dingtalk / qq / alipay */
+    /**
+     * 平台标识：wechat / dingtalk / qq / alipay
+     */
     @TableField(value = "provider")
     private String provider;
 
-    /** 平台 OpenID（平台内唯一标识） */
+    /**
+     * 平台 OpenID（平台内唯一标识）
+     */
     @TableField(value = "openid")
     private String openid;
 
-    /** 平台 UnionID（微信/钉钉跨应用唯一标识，部分平台无此字段） */
+    /**
+     * 平台 UnionID（微信/钉钉跨应用唯一标识，部分平台无此字段）
+     */
     @TableField(value = "unionid")
     private String unionid;
 
-    /** 该平台显示昵称 */
+    /**
+     * 该平台显示昵称
+     */
     @TableField(value = "nickname")
     private String nickname;
 
-    /** 该平台头像URL */
+    /**
+     * 该平台头像URL
+     */
     @TableField(value = "avatar")
     private String avatar;
 

@@ -12,21 +12,21 @@ import java.time.LocalDateTime;
 @Data
 @TableName("chat_user")
 public class ChatUser implements Serializable {
-    
+
     private static final long serialVersionUID = 1L;
-    
+
     @TableId(type = IdType.AUTO)
     private Long id;  // 自增主键
-    
+
     @TableField(value = "user_id")
     private String userId;  // 用户ID (UUID)
-    
+
     @TableField(value = "username")
     private String username;
-    
+
     @TableField(value = "nickname")
     private String nickname;
-    
+
     @TableField(value = "avatar")
     private String avatar;
 
@@ -35,13 +35,13 @@ public class ChatUser implements Serializable {
 
     @TableField(value = "user_level")
     private String userLevel;  // 用户级别: admin/vip/normal
-    
+
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
-    
+
     @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
-    
+
     @TableLogic
     @TableField(value = "is_deleted")
     private Integer isDeleted;  // 0-未删除, 1-已删除

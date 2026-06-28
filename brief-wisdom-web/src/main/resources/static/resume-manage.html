@@ -1,140 +1,140 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>简历数据管理</title>
-  <link rel="stylesheet" href="css/navbar.css?v=5">
-  <link rel="stylesheet" href="css/resume-manage.css">
-  <link rel="stylesheet" href="css/resume-editor.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简历数据管理</title>
+    <link rel="stylesheet" href="css/navbar.css?v=5">
+    <link rel="stylesheet" href="css/resume-manage.css">
+    <link rel="stylesheet" href="css/resume-editor.css">
 </head>
 <body>
-  <div class="container">
+<div class="container">
     <header>
-      <h1>简历数据管理</h1>
-      <a href="/" class="back-link">← 返回主页</a>
+        <h1>简历数据管理</h1>
+        <a href="/" class="back-link">← 返回主页</a>
     </header>
 
     <!-- Tab 导航 -->
     <nav class="tabs">
-      <button class="tab-btn" data-tab="editor" onclick="switchToEditor()">在线编辑</button>
-      <button class="tab-btn active" data-tab="experiences" onclick="switchToManage()">工作经历</button>
-      <button class="tab-btn" data-tab="projects">项目</button>
-      <button class="tab-btn" data-tab="achievements">项目成果</button>
-      <button class="tab-btn" data-tab="stacks">技术栈</button>
+        <button class="tab-btn" data-tab="editor" onclick="switchToEditor()">在线编辑</button>
+        <button class="tab-btn active" data-tab="experiences" onclick="switchToManage()">工作经历</button>
+        <button class="tab-btn" data-tab="projects">项目</button>
+        <button class="tab-btn" data-tab="achievements">项目成果</button>
+        <button class="tab-btn" data-tab="stacks">技术栈</button>
     </nav>
 
     <!-- 在线编辑 Tab -->
     <section id="editor-tab" class="tab-content">
-      <div class="editor-container">
-        <!-- 步骤导航 -->
-        <div class="editor-steps">
-          <button class="step-btn active" data-step="1" onclick="goToStep(1)">
-            <span class="step-num">1</span> 工作经历 & 技术栈
-          </button>
-          <button class="step-btn" data-step="2" onclick="goToStep(2)">
-            <span class="step-num">2</span> 项目 & 成果
-          </button>
-          <button class="step-btn preview-step-btn" onclick="previewResume()">
-            <span class="step-num">👁</span> 预览简历
-          </button>
+        <div class="editor-container">
+            <!-- 步骤导航 -->
+            <div class="editor-steps">
+                <button class="step-btn active" data-step="1" onclick="goToStep(1)">
+                    <span class="step-num">1</span> 工作经历 & 技术栈
+                </button>
+                <button class="step-btn" data-step="2" onclick="goToStep(2)">
+                    <span class="step-num">2</span> 项目 & 成果
+                </button>
+                <button class="step-btn preview-step-btn" onclick="previewResume()">
+                    <span class="step-num">👁</span> 预览简历
+                </button>
+            </div>
+            <!-- 编辑器主体 -->
+            <div class="editor-body">
+                <div class="editor-list-panel" id="editor-list-panel"></div>
+                <div class="editor-form-panel" id="editor-form-panel">
+                    <div class="editor-empty">请从左侧选择或新增项目进行编辑</div>
+                </div>
+            </div>
         </div>
-        <!-- 编辑器主体 -->
-        <div class="editor-body">
-          <div class="editor-list-panel" id="editor-list-panel"></div>
-          <div class="editor-form-panel" id="editor-form-panel">
-            <div class="editor-empty">请从左侧选择或新增项目进行编辑</div>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- 工作经历 Tab -->
     <section id="experiences-tab" class="tab-content active">
-      <div class="section-header">
-        <h2>工作经历管理</h2>
-        <button class="btn btn-primary" onclick="showExperienceForm()">+ 新增工作经历</button>
-      </div>
-      <div id="experiences-list" class="data-list"></div>
+        <div class="section-header">
+            <h2>工作经历管理</h2>
+            <button class="btn btn-primary" onclick="showExperienceForm()">+ 新增工作经历</button>
+        </div>
+        <div id="experiences-list" class="data-list"></div>
     </section>
 
     <!-- 项目 Tab -->
     <section id="projects-tab" class="tab-content">
-      <div class="section-header">
-        <h2>项目管理</h2>
-        <button class="btn btn-primary" onclick="showProjectForm()">+ 新增项目</button>
-      </div>
-      <div class="filter-bar">
-        <label>筛选工作经历：</label>
-        <select id="project-experience-filter" onchange="loadProjects()">
-          <option value="">全部</option>
-        </select>
-      </div>
-      <div id="projects-list" class="data-list"></div>
+        <div class="section-header">
+            <h2>项目管理</h2>
+            <button class="btn btn-primary" onclick="showProjectForm()">+ 新增项目</button>
+        </div>
+        <div class="filter-bar">
+            <label>筛选工作经历：</label>
+            <select id="project-experience-filter" onchange="loadProjects()">
+                <option value="">全部</option>
+            </select>
+        </div>
+        <div id="projects-list" class="data-list"></div>
     </section>
 
     <!-- 项目成果 Tab -->
     <section id="achievements-tab" class="tab-content">
-      <div class="section-header">
-        <h2>项目成果管理</h2>
-        <button class="btn btn-primary" onclick="showAchievementForm()">+ 新增项目成果</button>
-      </div>
-      <div class="filter-bar">
-        <label>筛选项目：</label>
-        <select id="achievement-project-filter" onchange="loadAchievements()">
-          <option value="">全部</option>
-        </select>
-      </div>
-      <div id="achievements-list" class="data-list"></div>
+        <div class="section-header">
+            <h2>项目成果管理</h2>
+            <button class="btn btn-primary" onclick="showAchievementForm()">+ 新增项目成果</button>
+        </div>
+        <div class="filter-bar">
+            <label>筛选项目：</label>
+            <select id="achievement-project-filter" onchange="loadAchievements()">
+                <option value="">全部</option>
+            </select>
+        </div>
+        <div id="achievements-list" class="data-list"></div>
     </section>
 
     <!-- 技术栈 Tab -->
     <section id="stacks-tab" class="tab-content">
-      <div class="section-header">
-        <h2>技术栈管理</h2>
-        <button class="btn btn-primary" onclick="showStackForm()">+ 新增技术栈</button>
-      </div>
-      <div class="filter-bar">
-        <label>筛选工作经历：</label>
-        <select id="stack-experience-filter" onchange="loadStacks()">
-          <option value="">全部</option>
-        </select>
-      </div>
-      <div id="stacks-list" class="data-list"></div>
+        <div class="section-header">
+            <h2>技术栈管理</h2>
+            <button class="btn btn-primary" onclick="showStackForm()">+ 新增技术栈</button>
+        </div>
+        <div class="filter-bar">
+            <label>筛选工作经历：</label>
+            <select id="stack-experience-filter" onchange="loadStacks()">
+                <option value="">全部</option>
+            </select>
+        </div>
+        <div id="stacks-list" class="data-list"></div>
     </section>
 
     <!-- 简历预览弹窗 -->
     <div id="resume-preview-modal" class="resume-preview-overlay" style="display:none;">
-      <div class="resume-preview-container">
-        <div class="resume-preview-toolbar">
-          <h3>简历预览</h3>
-          <div class="resume-preview-actions">
-            <button class="editor-btn editor-btn-secondary" onclick="refreshPreview()">🔄 刷新</button>
-            <button class="editor-btn editor-btn-primary" onclick="openFullResume()">🔗 完整页面</button>
-            <button class="editor-btn editor-btn-danger" onclick="closePreview()">✕ 关闭</button>
-          </div>
+        <div class="resume-preview-container">
+            <div class="resume-preview-toolbar">
+                <h3>简历预览</h3>
+                <div class="resume-preview-actions">
+                    <button class="editor-btn editor-btn-secondary" onclick="refreshPreview()">🔄 刷新</button>
+                    <button class="editor-btn editor-btn-primary" onclick="openFullResume()">🔗 完整页面</button>
+                    <button class="editor-btn editor-btn-danger" onclick="closePreview()">✕ 关闭</button>
+                </div>
+            </div>
+            <div class="resume-preview-body" id="resume-preview-body">
+                <div class="editor-empty">点击"刷新"加载简历预览...</div>
+            </div>
         </div>
-        <div class="resume-preview-body" id="resume-preview-body">
-          <div class="editor-empty">点击"刷新"加载简历预览...</div>
-        </div>
-      </div>
     </div>
 
     <!-- 弹窗 -->
     <div id="modal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 id="modal-title">新增</h3>
-          <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">新增</h3>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <form id="modal-form" class="modal-form"></form>
         </div>
-        <form id="modal-form" class="modal-form"></form>
-      </div>
     </div>
-  </div>
+</div>
 
-  <!-- 公共导航栏 -->
-  <script src="js/navbar.js?v=5"></script>
-  <script src="js/resume-manage.js"></script>
-  <script src="js/resume-editor.js"></script>
+<!-- 公共导航栏 -->
+<script src="js/navbar.js?v=5"></script>
+<script src="js/resume-manage.js"></script>
+<script src="js/resume-editor.js"></script>
 </body>
 </html>

@@ -1,27 +1,25 @@
 package com.mouhin.brief.wisdom.ai.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.PageResult;
+import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
 import com.mouhin.brief.wisdom.common.ai.SyncStatusDTO;
+import com.mouhin.brief.wisdom.persistence.model.AiModel;
 import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
 import com.mouhin.brief.wisdom.persistence.model.ChatSession;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatMessageMapper;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatSessionMapper;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
-import com.mouhin.brief.wisdom.persistence.mapper.AiModelMapper;
-import com.mouhin.brief.wisdom.persistence.model.AiModel;
+import com.mouhin.brief.wisdom.persistence.repository.AiModelRepository;
+import com.mouhin.brief.wisdom.persistence.repository.ChatMessageRepository;
+import com.mouhin.brief.wisdom.persistence.repository.ChatSessionRepository;
+import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import org.springframework.ai.openai.OpenAiChatOptions;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -32,31 +30,32 @@ import java.util.*;
 public class AiAgentService {
 
     private final ChatClient chatClient;
-    private final ChatSessionMapper sessionMapper;
-    private final ChatMessageMapper messageMapper;
-    private final ChatUserMapper userMapper;
-    private final AiModelMapper aiModelMapper;
+    private final ChatSessionRepository sessionRepository;
+    private final ChatMessageRepository messageRepository;
+    private final ChatUserRepository userRepository;
+    private final AiModelRepository aiModelRepository;
     private final ChatSyncService chatSyncService;
-    
+
     // 默认用户ID（用于未登录场景）
     private static final String DEFAULT_USER_ID = "default-user";
 
-    public AiAgentService(ChatClient chatClient, 
-                         ChatSessionMapper sessionMapper,
-                         ChatMessageMapper messageMapper,
-                         ChatUserMapper userMapper,
-                         AiModelMapper aiModelMapper,
-                         ChatSyncService chatSyncService) {
+    public AiAgentService(ChatClient chatClient,
+                          ChatSessionRepository sessionRepository,
+                          ChatMessageRepository messageRepository,
+                          ChatUserRepository userRepository,
+                          AiModelRepository aiModelRepository,
+                          ChatSyncService chatSyncService) {
         this.chatClient = chatClient;
-        this.sessionMapper = sessionMapper;
-        this.messageMapper = messageMapper;
-        this.userMapper = userMapper;
-        this.aiModelMapper = aiModelMapper;
+        this.sessionRepository = sessionRepository;
+        this.messageRepository = messageRepository;
+        this.userRepository = userRepository;
+        this.aiModelRepository = aiModelRepository;
         this.chatSyncService = chatSyncService;
     }
 
     /**
      * 创建新会话（无参版本，使用默认用户ID）
+     *
      * @return 会话ID
      */
     @Transactional
@@ -66,6 +65,7 @@ public class AiAgentService {
 
     /**
      * 为指定用户创建新会话
+     *
      * @param userId 用户ID
      * @return 会话ID
      */
@@ -80,7 +80,7 @@ public class AiAgentService {
         session.setTitle("新会话");
         session.setMessageCount(0);
 
-        sessionMapper.insert(session);
+        sessionRepository.save(session);
         log.info("为用户 {} 创建新会话: {}", userId, session.getSessionId());
 
         // SSE 通知其他设备：新会话已创建
@@ -98,29 +98,27 @@ public class AiAgentService {
      */
     public void ensureUserExists(String userId) {
         // 1. 先用 @TableLogic 感知的查询找未删除的用户
-        LambdaQueryWrapper<ChatUser> qw = new LambdaQueryWrapper<>();
-        qw.eq(ChatUser::getUserId, userId);
-        ChatUser existingUser = userMapper.selectOne(qw);
+        ChatUser existingUser = userRepository.findByUserId(userId);
         if (existingUser != null) {
             return; // 用户存在且未删除，直接返回
         }
-    
+
         // 2. 查找是否存在已逻辑删除的记录（绕过 @TableLogic）
-        ChatUser deletedUser = userMapper.selectByUserIdIncludeDeleted(userId);
+        ChatUser deletedUser = userRepository.findByUserIdIncludeDeleted(userId);
         if (deletedUser != null) {
             // 已删除的 guest 用户不自动恢复，硬删除旧记录（级联清除残留的 session/message 等）
-            userMapper.hardDeleteByUserId(userId);
+            userRepository.hardDeleteByUserId(userId);
             log.info("硬删除已删除的 guest 用户旧记录: {}", userId);
             // 继续往下走，创建全新用户
         }
-    
+
         // 3. 创建新用户
         ChatUser user = new ChatUser();
         user.setUserId(userId);
         user.setUsername(userId);  // userId 本身已含 guest- 前缀
         user.setNickname(userId.startsWith("guest-") ? "访客" : userId);
         try {
-            userMapper.insert(user);
+            userRepository.save(user);
             log.info("动态创建用户: {}", userId);
         } catch (Exception e) {
             // 唯一键冲突时忽略（并发场景）
@@ -130,16 +128,14 @@ public class AiAgentService {
 
     /**
      * 删除会话（逻辑删除）
+     *
      * @param sessionId 会话ID
      */
     @Transactional
     public void deleteSession(String sessionId) {
-        // 通过 sessionId 业务键进行逻辑删除
-        LambdaQueryWrapper<ChatSession> qw = new LambdaQueryWrapper<>();
-        qw.eq(ChatSession::getSessionId, sessionId);
-        sessionMapper.delete(qw);
+        sessionRepository.deleteBySessionId(sessionId);
         log.info("删除会话: {}", sessionId);
-        
+
         // SSE 通知其他设备：会话已删除
         // 删除时无法确定 userId，广播给所有已连接用户
         chatSyncService.broadcastToAll("session_deleted", sessionId);
@@ -147,19 +143,21 @@ public class AiAgentService {
 
     /**
      * 获取所有会话列表
+     *
      * @return 会话元数据列表
      */
     public List<SessionMetaDTO> listSessions() {
         return listSessions(DEFAULT_USER_ID);
     }
-    
+
     /**
      * 获取指定用户的会话列表
+     *
      * @param userId 用户ID
      * @return 会话元数据列表
      */
     public List<SessionMetaDTO> listSessions(String userId) {
-        List<ChatSession> sessions = sessionMapper.selectByUserIdOrderByUpdateTimeDesc(userId);
+        List<ChatSession> sessions = sessionRepository.findByUserIdOrderByUpdateTimeDesc(userId);
         return sessions.stream().map(session -> {
             SessionMetaDTO meta = new SessionMetaDTO();
             meta.setSessionId(session.getSessionId());
@@ -168,17 +166,18 @@ public class AiAgentService {
             meta.setDescription(session.getDescription());
             meta.setMessageCount(session.getMessageCount());
             meta.setCreateTime(session.getCreateTime());
-            
+
             // 使用最后一条消息的时间作为更新时间
-            LocalDateTime lastMessageTime = messageMapper.selectLastMessageTime(session.getSessionId());
+            LocalDateTime lastMessageTime = messageRepository.findLastMessageTime(session.getSessionId());
             meta.setUpdateTime(lastMessageTime != null ? lastMessageTime : session.getUpdateTime());
-            
+
             return meta;
         }).toList();
     }
 
     /**
      * 分页获取会话列表
+     *
      * @param page 当前页码（从1开始）
      * @param size 每页大小
      * @return 分页结果
@@ -189,19 +188,14 @@ public class AiAgentService {
 
     /**
      * 分页获取指定用户的会话列表
+     *
      * @param userId 用户ID
-     * @param page 当前页码（从1开始）
-     * @param size 每页大小
+     * @param page   当前页码（从1开始）
+     * @param size   每页大小
      * @return 分页结果
      */
     public PageResult<SessionMetaDTO> listSessionsPaged(String userId, int page, int size) {
-        // 使用 MyBatis-Plus 分页查询
-        Page<ChatSession> pageParam = new Page<>(page, size);
-        LambdaQueryWrapper<ChatSession> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ChatSession::getUserId, userId)
-                .orderByDesc(ChatSession::getUpdateTime);
-
-        Page<ChatSession> pageResult = sessionMapper.selectPage(pageParam, queryWrapper);
+        Page<ChatSession> pageResult = sessionRepository.findByUserIdOrderByUpdateTimeDesc(userId, page, size);
 
         // 转换为 SessionMeta
         List<SessionMetaDTO> sessionMetas = pageResult.getRecords().stream().map(session -> {
@@ -213,7 +207,7 @@ public class AiAgentService {
             meta.setMessageCount(session.getMessageCount());
             meta.setCreateTime(session.getCreateTime());
 
-            LocalDateTime lastMessageTime = messageMapper.selectLastMessageTime(session.getSessionId());
+            LocalDateTime lastMessageTime = messageRepository.findLastMessageTime(session.getSessionId());
             meta.setUpdateTime(lastMessageTime != null ? lastMessageTime : session.getUpdateTime());
 
             return meta;
@@ -233,11 +227,12 @@ public class AiAgentService {
 
     /**
      * 获取会话历史消息（全量，用于向后兼容）
+     *
      * @param sessionId 会话ID
      * @return 消息列表
      */
     public List<ChatMessageDTO> getSessionHistory(String sessionId) {
-        List<ChatMessage> messages = messageMapper.selectBySessionIdOrderByTimestampAsc(sessionId);
+        List<ChatMessage> messages = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
         return messages.stream().map(this::toChatMessageDTO).toList();
     }
 
@@ -253,13 +248,7 @@ public class AiAgentService {
      * @return 分页结果
      */
     public PageResult<ChatMessageDTO> getSessionHistoryPaged(String sessionId, int page, int size) {
-        // 按时间倒序分页查询（最新的在前面）
-        Page<ChatMessage> pageParam = new Page<>(page, size);
-        LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ChatMessage::getSessionId, sessionId)
-                .orderByDesc(ChatMessage::getTimestamp);
-
-        Page<ChatMessage> pageResult = messageMapper.selectPage(pageParam, queryWrapper);
+        Page<ChatMessage> pageResult = messageRepository.findBySessionIdOrderByTimestampDesc(sessionId, page, size);
 
         // 转换为 DTO
         List<ChatMessageDTO> dtos = pageResult.getRecords().stream()
@@ -305,9 +294,7 @@ public class AiAgentService {
      */
     private Double calculateCost(String modelName, Integer promptTokens, Integer completionTokens) {
         try {
-            LambdaQueryWrapper<AiModel> qw = new LambdaQueryWrapper<>();
-            qw.eq(AiModel::getModelName, modelName);
-            AiModel aiModel = aiModelMapper.selectOne(qw);
+            AiModel aiModel = aiModelRepository.findByModelName(modelName);
             if (aiModel != null && aiModel.getInputPricePerMillion() != null && aiModel.getOutputPricePerMillion() != null) {
                 double inputCost = promptTokens / 1_000_000.0 * aiModel.getInputPricePerMillion();
                 double outputCost = completionTokens / 1_000_000.0 * aiModel.getOutputPricePerMillion();
@@ -324,11 +311,7 @@ public class AiAgentService {
      */
     public String getActiveModelName() {
         try {
-            AiModel model = aiModelMapper.selectOne(
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiModel>()
-                            .eq(AiModel::getIsActive, 1)
-                            .eq(AiModel::getIsEnabled, 1)
-            );
+            AiModel model = aiModelRepository.findActiveModel();
             return model != null ? model.getModelName() : "qwen-plus";
         } catch (Exception e) {
             log.warn("获取激活模型失败，使用默认模型: ", e);
@@ -347,6 +330,7 @@ public class AiAgentService {
 
     /**
      * 简单聊天对话（无上下文）
+     *
      * @param message 用户消息
      * @return AI 回复
      */
@@ -360,28 +344,29 @@ public class AiAgentService {
     public String chat(String message, String modelName) {
         log.info("收到用户消息: {}, 模型: {}", message, modelName);
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
-        
+
         String response = chatClient.prompt()
                 .options(buildModelOptions(model))
                 .user(message)
                 .call()
                 .content();
-        
+
         log.info("AI 回复(模型: {}): {}", model, response);
         return response;
     }
 
     /**
      * 带上下文的聊天对话
+     *
      * @param sessionId 会话ID
-     * @param message 用户消息
+     * @param message   用户消息
      * @return AI 回复
      */
     @Transactional
     public String chatWithSession(String sessionId, String message) {
         return chatWithSession(sessionId, DEFAULT_USER_ID, message, null);
     }
-    
+
     /**
      * 带上下文的聊天对话（指定用户和模型）
      */
@@ -389,25 +374,23 @@ public class AiAgentService {
     public String chatWithSession(String sessionId, String userId, String message, String modelName) {
         log.info("========== 开始处理聊天请求 ==========");
         log.info("sessionId: {}, userId: {}, model: {}", sessionId, userId, modelName);
-        
+
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
-        
+
         // 验证会话是否存在且属于该用户
-        LambdaQueryWrapper<ChatSession> qw = new LambdaQueryWrapper<>();
-        qw.eq(ChatSession::getSessionId, sessionId);
-        ChatSession session = sessionMapper.selectOne(qw);
+        ChatSession session = sessionRepository.findBySessionId(sessionId);
         log.info("查询到的 session: {}", session);
-        
+
         if (session == null) {
             log.error("会话不存在: {}", sessionId);
             throw new RuntimeException("会话不存在: " + sessionId);
         }
-        
+
         if (!session.getUserId().equals(userId)) {
             log.error("无权访问此会话，session.userId: {}, userId: {}", session.getUserId(), userId);
             throw new RuntimeException("无权访问此会话");
         }
-        
+
         // 保存用户消息
         ChatMessage userMsg = new ChatMessage();
         userMsg.setSessionId(sessionId);
@@ -415,28 +398,28 @@ public class AiAgentService {
         userMsg.setRole("user");
         userMsg.setContent(message);
         userMsg.setMessageType("text");
-        messageMapper.insert(userMsg);
-        
+        messageRepository.save(userMsg);
+
         // 获取最近10条消息作为上下文
-        List<ChatMessage> recentMessages = messageMapper.selectRecentMessages(sessionId, 10);
+        List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, 10);
         Collections.reverse(recentMessages);  // 反转为正序
-        
+
         // 构建上下文
         StringBuilder context = new StringBuilder();
         for (ChatMessage msg : recentMessages) {
             context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
         }
-        
+
         // 调用 AI，获取完整响应（包含 token 用量）
         ChatResponse chatResponse = chatClient.prompt()
                 .options(buildModelOptions(model))
                 .user(context.toString())
                 .call()
                 .chatResponse();
-        
+
         // 提取回复内容
         String response = chatResponse.getResult().getOutput().getText();
-        
+
         // 提取 token 用量
         Integer promptTokens = 0;
         Integer completionTokens = 0;
@@ -448,10 +431,10 @@ public class AiAgentService {
             totalTokens = usage.getTotalTokens() != null ? usage.getTotalTokens() : 0;
         }
         log.info("Token 用量 - 输入: {}, 输出: {}, 总计: {}", promptTokens, completionTokens, totalTokens);
-        
+
         // 计算费用
         Double cost = calculateCost(model, promptTokens, completionTokens);
-        
+
         // 保存 AI 回复（含 token 和费用信息）
         ChatMessage aiMsg = new ChatMessage();
         aiMsg.setSessionId(sessionId);
@@ -462,51 +445,53 @@ public class AiAgentService {
         aiMsg.setTokens(totalTokens);
         aiMsg.setCost(cost);
         aiMsg.setMessageType("text");
-        messageMapper.insert(aiMsg);
-        
+        messageRepository.save(aiMsg);
+
         // 更新会话统计信息
-        long messageCount = messageMapper.countBySessionId(sessionId);
+        long messageCount = messageRepository.countBySessionId(sessionId);
         session.setMessageCount((int) messageCount);
-        
+
         // 如果是第一条消息，用用户消息作为标题
         if (messageCount == 2) {
             session.setTitle(message.length() > 30 ? message.substring(0, 30) + "..." : message);
         }
-        
+
         // 手动设置更新时间为当前时间（即最后一条消息的时间）
         session.setUpdateTime(LocalDateTime.now());
-        sessionMapper.updateById(session);
-        
+        sessionRepository.update(session);
+
         log.info("AI 回复(模型: {}, tokens: {}, cost: {}): {}", model, totalTokens, cost, response);
-        
+
         // SSE 通知其他设备：新消息已添加
         chatSyncService.notifyUser(userId, "message_added", sessionId);
-        
+
         return response;
     }
 
     /**
      * 带系统提示的对话
+     *
      * @param systemPrompt 系统提示词
-     * @param userMessage 用户消息
+     * @param userMessage  用户消息
      * @return AI 回复
      */
     public String chatWithSystemPrompt(String systemPrompt, String userMessage) {
         log.info("系统提示: {}", systemPrompt);
         log.info("用户消息: {}", userMessage);
-        
+
         String response = chatClient.prompt()
                 .system(systemPrompt)
                 .user(userMessage)
                 .call()
                 .content();
-        
+
         log.info("AI 回复: {}", response);
         return response;
     }
 
     /**
      * 智能问答
+     *
      * @param question 问题
      * @return 答案
      */
@@ -517,6 +502,7 @@ public class AiAgentService {
 
     /**
      * 获取当前用户的同步状态（轻量级，用于多端同步检测）
+     *
      * @param userId 用户ID
      * @return 同步状态 DTO
      */
@@ -524,12 +510,12 @@ public class AiAgentService {
         SyncStatusDTO syncStatus = new SyncStatusDTO();
 
         // 1. 会话总数
-        long sessionCount = sessionMapper.countByUserId(userId);
+        long sessionCount = sessionRepository.countByUserId(userId);
         syncStatus.setSessionCount((int) sessionCount);
 
         // 2. 每个会话的消息数量
         Map<String, Integer> messageCounts = new HashMap<>();
-        List<Map<String, Object>> countRows = messageMapper.selectMessageCountsByUserId(userId);
+        List<Map<String, Object>> countRows = messageRepository.findMessageCountsByUserId(userId);
         for (Map<String, Object> row : countRows) {
             String sid = String.valueOf(row.get("session_id"));
             int cnt = ((Number) row.get("cnt")).intValue();
@@ -539,7 +525,7 @@ public class AiAgentService {
 
         // 3. 每个会话的最后消息时间（毫秒时间戳）
         Map<String, Long> lastMessageTimes = new HashMap<>();
-        List<Map<String, Object>> timeRows = messageMapper.selectLastMessageTimesByUserId(userId);
+        List<Map<String, Object>> timeRows = messageRepository.findLastMessageTimesByUserId(userId);
         for (Map<String, Object> row : timeRows) {
             String sid = String.valueOf(row.get("session_id"));
             Object lastTime = row.get("last_time");

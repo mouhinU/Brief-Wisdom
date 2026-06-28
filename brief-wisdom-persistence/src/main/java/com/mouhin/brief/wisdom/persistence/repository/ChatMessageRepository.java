@@ -1,0 +1,62 @@
+package com.mouhin.brief.wisdom.persistence.repository;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mouhin.brief.wisdom.persistence.mapper.ChatMessageMapper;
+import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 聊天消息数据访问层
+ */
+@Repository
+@RequiredArgsConstructor
+public class ChatMessageRepository {
+
+    private final ChatMessageMapper chatMessageMapper;
+
+    public List<ChatMessage> findBySessionIdOrderByTimestampAsc(String sessionId) {
+        return chatMessageMapper.selectBySessionIdOrderByTimestampAsc(sessionId);
+    }
+
+    public Page<ChatMessage> findBySessionIdOrderByTimestampDesc(String sessionId, int page, int size) {
+        Page<ChatMessage> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ChatMessage::getSessionId, sessionId)
+                .orderByDesc(ChatMessage::getTimestamp);
+        return chatMessageMapper.selectPage(pageParam, queryWrapper);
+    }
+
+    public long countByUserId(String userId) {
+        return chatMessageMapper.countByUserId(userId);
+    }
+
+    public long countBySessionId(String sessionId) {
+        return chatMessageMapper.countBySessionId(sessionId);
+    }
+
+    public List<ChatMessage> findRecentMessages(String sessionId, int limit) {
+        return chatMessageMapper.selectRecentMessages(sessionId, limit);
+    }
+
+    public LocalDateTime findLastMessageTime(String sessionId) {
+        return chatMessageMapper.selectLastMessageTime(sessionId);
+    }
+
+    public List<Map<String, Object>> findMessageCountsByUserId(String userId) {
+        return chatMessageMapper.selectMessageCountsByUserId(userId);
+    }
+
+    public List<Map<String, Object>> findLastMessageTimesByUserId(String userId) {
+        return chatMessageMapper.selectLastMessageTimesByUserId(userId);
+    }
+
+    public void save(ChatMessage message) {
+        chatMessageMapper.insert(message);
+    }
+}

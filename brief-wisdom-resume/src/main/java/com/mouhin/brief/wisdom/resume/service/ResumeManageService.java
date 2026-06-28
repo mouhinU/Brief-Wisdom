@@ -1,12 +1,17 @@
 package com.mouhin.brief.wisdom.resume.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mouhin.brief.wisdom.common.resume.ProjectAchievementDTO;
 import com.mouhin.brief.wisdom.common.resume.ProjectDTO;
 import com.mouhin.brief.wisdom.common.resume.WorkExperienceDTO;
 import com.mouhin.brief.wisdom.common.resume.WorkExperienceStackDTO;
-import com.mouhin.brief.wisdom.persistence.mapper.*;
-import com.mouhin.brief.wisdom.persistence.model.*;
+import com.mouhin.brief.wisdom.persistence.model.Project;
+import com.mouhin.brief.wisdom.persistence.model.ProjectAchievement;
+import com.mouhin.brief.wisdom.persistence.model.WorkExperience;
+import com.mouhin.brief.wisdom.persistence.model.WorkExperienceStack;
+import com.mouhin.brief.wisdom.persistence.repository.ProjectAchievementRepository;
+import com.mouhin.brief.wisdom.persistence.repository.ProjectRepository;
+import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceRepository;
+import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceStackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,157 +25,133 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ResumeManageService {
 
-    private final WorkExperienceMapper workExperienceMapper;
-    private final ProjectMapper projectMapper;
-    private final ProjectAchievementMapper projectAchievementMapper;
-    private final WorkExperienceStackMapper workExperienceStackMapper;
+    private final WorkExperienceRepository workExperienceRepository;
+    private final ProjectRepository projectRepository;
+    private final ProjectAchievementRepository projectAchievementRepository;
+    private final WorkExperienceStackRepository workExperienceStackRepository;
 
     // ========== 工作经历 ==========
 
     public List<WorkExperienceDTO> listExperiences() {
-        return workExperienceMapper.selectList(
-                new LambdaQueryWrapper<WorkExperience>()
-                        .orderByAsc(WorkExperience::getSortOrder)
-        ).stream().map(this::toExpDTO).toList();
+        return workExperienceRepository.findAllOrderBySortOrderAsc().stream().map(this::toExpDTO).toList();
     }
 
     public WorkExperienceDTO getExperience(Long id) {
-        WorkExperience e = workExperienceMapper.selectById(id);
+        WorkExperience e = workExperienceRepository.findById(id);
         return e != null ? toExpDTO(e) : null;
     }
 
     @Transactional
     public WorkExperienceDTO createExperience(WorkExperience experience) {
-        workExperienceMapper.insert(experience);
+        workExperienceRepository.save(experience);
         return toExpDTO(experience);
     }
 
     @Transactional
     public WorkExperienceDTO updateExperience(WorkExperience experience) {
-        workExperienceMapper.updateById(experience);
-        return toExpDTO(workExperienceMapper.selectById(experience.getId()));
+        workExperienceRepository.update(experience);
+        return toExpDTO(workExperienceRepository.findById(experience.getId()));
     }
 
     @Transactional
     public void deleteExperience(Long id) {
-        workExperienceMapper.deleteById(id);
+        workExperienceRepository.deleteById(id);
     }
 
     // ========== 项目 ==========
 
     public List<ProjectDTO> listProjects() {
-        return projectMapper.selectList(
-                new LambdaQueryWrapper<Project>()
-                        .orderByAsc(Project::getSortOrder)
-        ).stream().map(this::toProjDTO).toList();
+        return projectRepository.findAllOrderBySortOrderAsc().stream().map(this::toProjDTO).toList();
     }
 
     public List<ProjectDTO> listProjectsByExperienceId(Long experienceId) {
-        return projectMapper.selectList(
-                new LambdaQueryWrapper<Project>()
-                        .eq(Project::getExperienceId, experienceId)
-                        .orderByAsc(Project::getSortOrder)
-        ).stream().map(this::toProjDTO).toList();
+        return projectRepository.findByExperienceIdOrderBySortOrderAsc(experienceId).stream().map(this::toProjDTO).toList();
     }
 
     public ProjectDTO getProject(Long id) {
-        Project p = projectMapper.selectById(id);
+        Project p = projectRepository.findById(id);
         return p != null ? toProjDTO(p) : null;
     }
 
     @Transactional
     public ProjectDTO createProject(Project project) {
-        projectMapper.insert(project);
+        projectRepository.save(project);
         return toProjDTO(project);
     }
 
     @Transactional
     public ProjectDTO updateProject(Project project) {
-        projectMapper.updateById(project);
-        return toProjDTO(projectMapper.selectById(project.getId()));
+        projectRepository.update(project);
+        return toProjDTO(projectRepository.findById(project.getId()));
     }
 
     @Transactional
     public void deleteProject(Long id) {
-        projectMapper.deleteById(id);
+        projectRepository.deleteById(id);
     }
 
     // ========== 项目成果 ==========
 
     public List<ProjectAchievementDTO> listAchievements() {
-        return projectAchievementMapper.selectList(
-                new LambdaQueryWrapper<ProjectAchievement>()
-                        .orderByAsc(ProjectAchievement::getSortOrder)
-        ).stream().map(this::toAchDTO).toList();
+        return projectAchievementRepository.findAllOrderBySortOrderAsc().stream().map(this::toAchDTO).toList();
     }
 
     public List<ProjectAchievementDTO> listAchievementsByProjectId(Long projectId) {
-        return projectAchievementMapper.selectList(
-                new LambdaQueryWrapper<ProjectAchievement>()
-                        .eq(ProjectAchievement::getProjectId, projectId)
-                        .orderByAsc(ProjectAchievement::getSortOrder)
-        ).stream().map(this::toAchDTO).toList();
+        return projectAchievementRepository.findByProjectIdOrderBySortOrderAsc(projectId).stream().map(this::toAchDTO).toList();
     }
 
     public ProjectAchievementDTO getAchievement(Long id) {
-        ProjectAchievement a = projectAchievementMapper.selectById(id);
+        ProjectAchievement a = projectAchievementRepository.findById(id);
         return a != null ? toAchDTO(a) : null;
     }
 
     @Transactional
     public ProjectAchievementDTO createAchievement(ProjectAchievement achievement) {
-        projectAchievementMapper.insert(achievement);
+        projectAchievementRepository.save(achievement);
         return toAchDTO(achievement);
     }
 
     @Transactional
     public ProjectAchievementDTO updateAchievement(ProjectAchievement achievement) {
-        projectAchievementMapper.updateById(achievement);
-        return toAchDTO(projectAchievementMapper.selectById(achievement.getId()));
+        projectAchievementRepository.update(achievement);
+        return toAchDTO(projectAchievementRepository.findById(achievement.getId()));
     }
 
     @Transactional
     public void deleteAchievement(Long id) {
-        projectAchievementMapper.deleteById(id);
+        projectAchievementRepository.deleteById(id);
     }
 
     // ========== 技术栈 ==========
 
     public List<WorkExperienceStackDTO> listStacks() {
-        return workExperienceStackMapper.selectList(
-                new LambdaQueryWrapper<WorkExperienceStack>()
-                        .orderByAsc(WorkExperienceStack::getSortOrder)
-        ).stream().map(this::toStackDTO).toList();
+        return workExperienceStackRepository.findAllOrderBySortOrderAsc().stream().map(this::toStackDTO).toList();
     }
 
     public List<WorkExperienceStackDTO> listStacksByExperienceId(Long experienceId) {
-        return workExperienceStackMapper.selectList(
-                new LambdaQueryWrapper<WorkExperienceStack>()
-                        .in(WorkExperienceStack::getExperienceId, experienceId)
-                        .orderByAsc(WorkExperienceStack::getSortOrder)
-        ).stream().map(this::toStackDTO).toList();
+        return workExperienceStackRepository.findByExperienceIdOrderBySortOrderAsc(experienceId).stream().map(this::toStackDTO).toList();
     }
 
     public WorkExperienceStackDTO getStack(Long id) {
-        WorkExperienceStack s = workExperienceStackMapper.selectById(id);
+        WorkExperienceStack s = workExperienceStackRepository.findById(id);
         return s != null ? toStackDTO(s) : null;
     }
 
     @Transactional
     public WorkExperienceStackDTO createStack(WorkExperienceStack stack) {
-        workExperienceStackMapper.insert(stack);
+        workExperienceStackRepository.save(stack);
         return toStackDTO(stack);
     }
 
     @Transactional
     public WorkExperienceStackDTO updateStack(WorkExperienceStack stack) {
-        workExperienceStackMapper.updateById(stack);
-        return toStackDTO(workExperienceStackMapper.selectById(stack.getId()));
+        workExperienceStackRepository.update(stack);
+        return toStackDTO(workExperienceStackRepository.findById(stack.getId()));
     }
 
     @Transactional
     public void deleteStack(Long id) {
-        workExperienceStackMapper.deleteById(id);
+        workExperienceStackRepository.deleteById(id);
     }
 
     // ========== 转换方法 ==========

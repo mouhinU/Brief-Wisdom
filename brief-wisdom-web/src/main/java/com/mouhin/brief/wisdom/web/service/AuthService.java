@@ -1,8 +1,8 @@
 package com.mouhin.brief.wisdom.web.service;
 
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
+import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,7 +19,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final ChatUserMapper chatUserMapper;
+    private final ChatUserRepository chatUserRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -33,7 +33,7 @@ public class AuthService {
     @Transactional
     public UserDTO register(String username, String password, String nickname) {
         // 检查用户名是否已存在
-        ChatUser existing = chatUserMapper.selectByUsername(username);
+        ChatUser existing = chatUserRepository.findByUsername(username);
         if (existing != null) {
             throw new RuntimeException("用户名已存在");
         }
@@ -46,7 +46,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(password));
         user.setNickname(nickname != null && !nickname.isBlank() ? nickname : username);
         user.setUserLevel("normal");
-        chatUserMapper.insert(user);
+        chatUserRepository.save(user);
 
         log.info("[注册] 新用户注册成功: userId={}, username={}", userId, username);
         return toDTO(user);
@@ -60,7 +60,7 @@ public class AuthService {
      * @return 登录成功的用户信息
      */
     public UserDTO login(String username, String password) {
-        ChatUser user = chatUserMapper.selectByUsername(username);
+        ChatUser user = chatUserRepository.findByUsername(username);
         if (user == null) {
             throw new RuntimeException("用户名或密码错误");
         }

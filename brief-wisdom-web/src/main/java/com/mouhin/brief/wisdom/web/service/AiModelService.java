@@ -1,9 +1,8 @@
 package com.mouhin.brief.wisdom.web.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mouhin.brief.wisdom.common.ai.AiModelDTO;
-import com.mouhin.brief.wisdom.persistence.mapper.AiModelMapper;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
+import com.mouhin.brief.wisdom.persistence.repository.AiModelRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,38 +16,27 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AiModelService {
 
-    private final AiModelMapper aiModelMapper;
+    private final AiModelRepository aiModelRepository;
 
     /**
      * 获取所有模型列表
      */
     public List<AiModelDTO> listModels() {
-        return aiModelMapper.selectList(
-                new LambdaQueryWrapper<AiModel>()
-                        .orderByAsc(AiModel::getSortOrder)
-        ).stream().map(this::toDTO).toList();
+        return aiModelRepository.findAllOrderBySortOrderAsc().stream().map(this::toDTO).toList();
     }
 
     /**
      * 获取所有启用的模型
      */
     public List<AiModelDTO> listEnabledModels() {
-        return aiModelMapper.selectList(
-                new LambdaQueryWrapper<AiModel>()
-                        .eq(AiModel::getIsEnabled, 1)
-                        .orderByAsc(AiModel::getSortOrder)
-        ).stream().map(this::toDTO).toList();
+        return aiModelRepository.findByEnabledOrderBySortOrderAsc().stream().map(this::toDTO).toList();
     }
 
     /**
      * 获取当前激活的模型
      */
     public AiModelDTO getActiveModel() {
-        AiModel model = aiModelMapper.selectOne(
-                new LambdaQueryWrapper<AiModel>()
-                        .eq(AiModel::getIsActive, 1)
-                        .eq(AiModel::getIsEnabled, 1)
-        );
+        AiModel model = aiModelRepository.findActiveModel();
         return model != null ? toDTO(model) : null;
     }
 
@@ -66,12 +54,12 @@ public class AiModelService {
     @Transactional
     public void activateModel(Long modelId) {
         // 先取消所有模型的激活状态
-        aiModelMapper.deactivateAll();
+        aiModelRepository.deactivateAll();
         // 激活指定模型
-        AiModel model = aiModelMapper.selectById(modelId);
+        AiModel model = aiModelRepository.findById(modelId);
         if (model != null) {
             model.setIsActive(1);
-            aiModelMapper.updateById(model);
+            aiModelRepository.update(model);
         }
     }
 
@@ -79,35 +67,35 @@ public class AiModelService {
      * 新增模型
      */
     public void createModel(AiModel model) {
-        aiModelMapper.insert(model);
+        aiModelRepository.save(model);
     }
 
     /**
      * 更新模型
      */
     public void updateModel(AiModel model) {
-        aiModelMapper.updateById(model);
+        aiModelRepository.update(model);
     }
 
     /**
      * 删除模型（逻辑删除）
      */
     public void deleteModel(Long id) {
-        aiModelMapper.deleteById(id);
+        aiModelRepository.deleteById(id);
     }
 
     /**
      * 启用/禁用模型
      */
     public void toggleModelEnabled(Long id, boolean enabled) {
-        AiModel model = aiModelMapper.selectById(id);
+        AiModel model = aiModelRepository.findById(id);
         if (model != null) {
             model.setIsEnabled(enabled ? 1 : 0);
             // 如果禁用的是当前激活模型，同时取消激活
             if (!enabled && model.getIsActive() == 1) {
                 model.setIsActive(0);
             }
-            aiModelMapper.updateById(model);
+            aiModelRepository.update(model);
         }
     }
 

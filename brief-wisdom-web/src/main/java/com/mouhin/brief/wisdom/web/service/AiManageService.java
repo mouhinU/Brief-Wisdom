@@ -1,15 +1,14 @@
 package com.mouhin.brief.wisdom.web.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mouhin.brief.wisdom.common.manage.MessageDTO;
 import com.mouhin.brief.wisdom.common.manage.SessionDTO;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatMessageMapper;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatSessionMapper;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
 import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
 import com.mouhin.brief.wisdom.persistence.model.ChatSession;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
+import com.mouhin.brief.wisdom.persistence.repository.ChatMessageRepository;
+import com.mouhin.brief.wisdom.persistence.repository.ChatSessionRepository;
+import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,18 +23,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AiManageService {
 
-    private final ChatUserMapper chatUserMapper;
-    private final ChatSessionMapper chatSessionMapper;
-    private final ChatMessageMapper chatMessageMapper;
+    private final ChatUserRepository chatUserRepository;
+    private final ChatSessionRepository chatSessionRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     /**
      * 获取所有用户（含级别信息）
      */
     public List<UserDTO> listUsers() {
-        List<ChatUser> users = chatUserMapper.selectList(
-                new LambdaQueryWrapper<ChatUser>()
-                        .orderByDesc(ChatUser::getCreateTime)
-        );
+        List<ChatUser> users = chatUserRepository.findAllOrderByCreateTimeDesc();
         return users.stream().map(this::toUserDTO).collect(Collectors.toList());
     }
 
@@ -43,12 +39,7 @@ public class AiManageService {
      * 按用户级别查询用户列表
      */
     public List<UserDTO> listUsersByLevel(String userLevel) {
-        LambdaQueryWrapper<ChatUser> query = new LambdaQueryWrapper<ChatUser>()
-                .orderByDesc(ChatUser::getCreateTime);
-        if (userLevel != null && !userLevel.isEmpty()) {
-            query.eq(ChatUser::getUserLevel, userLevel);
-        }
-        List<ChatUser> users = chatUserMapper.selectList(query);
+        List<ChatUser> users = chatUserRepository.findByUserLevelOrderByCreateTimeDesc(userLevel);
         return users.stream().map(this::toUserDTO).collect(Collectors.toList());
     }
 
@@ -63,7 +54,7 @@ public class AiManageService {
      * 查询指定用户的会话列表
      */
     public List<SessionDTO> listSessionsByUserId(String userId) {
-        List<ChatSession> sessions = chatSessionMapper.selectByUserIdOrderByUpdateTimeDesc(userId);
+        List<ChatSession> sessions = chatSessionRepository.findByUserIdOrderByUpdateTimeDesc(userId);
         return sessions.stream().map(this::toSessionDTO).collect(Collectors.toList());
     }
 
@@ -72,21 +63,14 @@ public class AiManageService {
      */
     public List<SessionDTO> listSessionsByUserLevel(String userLevel) {
         // 先查出该级别的所有用户
-        List<ChatUser> users = chatUserMapper.selectList(
-                new LambdaQueryWrapper<ChatUser>()
-                        .eq(ChatUser::getUserLevel, userLevel)
-        );
+        List<ChatUser> users = chatUserRepository.findByUserLevel(userLevel);
         if (users.isEmpty()) {
             return List.of();
         }
         List<String> userIds = users.stream().map(ChatUser::getUserId).collect(Collectors.toList());
 
         // 查询这些用户的所有会话
-        List<ChatSession> sessions = chatSessionMapper.selectList(
-                new LambdaQueryWrapper<ChatSession>()
-                        .in(ChatSession::getUserId, userIds)
-                        .orderByDesc(ChatSession::getUpdateTime)
-        );
+        List<ChatSession> sessions = chatSessionRepository.findByUserIdsOrderByUpdateTimeDesc(userIds);
         return sessions.stream().map(this::toSessionDTO).collect(Collectors.toList());
     }
 
@@ -94,7 +78,7 @@ public class AiManageService {
      * 获取会话的消息历史
      */
     public List<MessageDTO> getSessionMessages(String sessionId) {
-        List<ChatMessage> messages = chatMessageMapper.selectBySessionIdOrderByTimestampAsc(sessionId);
+        List<ChatMessage> messages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
         return messages.stream().map(this::toMessageDTO).collect(Collectors.toList());
     }
 
@@ -110,7 +94,7 @@ public class AiManageService {
         dto.setUserLevel(user.getUserLevel());
         dto.setCreateTime(user.getCreateTime());
         // 统计会话数
-        dto.setSessionCount(Math.toIntExact(chatSessionMapper.countByUserId(user.getUserId())));
+        dto.setSessionCount(Math.toIntExact(chatSessionRepository.countByUserId(user.getUserId())));
         return dto;
     }
 
@@ -122,7 +106,7 @@ public class AiManageService {
         dto.setDescription(session.getDescription());
         dto.setMessageCount(session.getMessageCount());
         dto.setCreateTime(session.getCreateTime());
-        LocalDateTime lastMsgTime = chatMessageMapper.selectLastMessageTime(session.getSessionId());
+        LocalDateTime lastMsgTime = chatMessageRepository.findLastMessageTime(session.getSessionId());
         dto.setUpdateTime(lastMsgTime != null ? lastMsgTime : session.getUpdateTime());
         return dto;
     }

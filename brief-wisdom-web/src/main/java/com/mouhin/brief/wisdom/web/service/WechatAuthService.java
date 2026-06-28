@@ -2,11 +2,11 @@ package com.mouhin.brief.wisdom.web.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
-import com.mouhin.brief.wisdom.persistence.mapper.UserOauthMapper;
+import com.mouhin.brief.wisdom.config.WechatProperties;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.UserOauth;
-import com.mouhin.brief.wisdom.config.WechatProperties;
+import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
+import com.mouhin.brief.wisdom.persistence.repository.UserOauthRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,8 +38,8 @@ public class WechatAuthService {
 
     private final WechatProperties wechatProperties;
     private final RestTemplate restTemplate;
-    private final ChatUserMapper chatUserMapper;
-    private final UserOauthMapper userOauthMapper;
+    private final ChatUserRepository chatUserRepository;
+    private final UserOauthRepository userOauthRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -82,11 +82,11 @@ public class WechatAuthService {
         log.info("[微信登录] 获取到用户信息: nickname={}", wxNickname);
 
         // 3. 通过 user_oauth 表查找绑定关系
-        UserOauth oauth = userOauthMapper.selectByProviderAndOpenid(PROVIDER_WECHAT, openid);
+        UserOauth oauth = userOauthRepository.findByProviderAndOpenid(PROVIDER_WECHAT, openid);
 
         if (oauth != null) {
             // 已绑定：直接登录，更新 OAuth 记录
-            ChatUser user = chatUserMapper.selectById(oauth.getUserId());
+            ChatUser user = chatUserRepository.findByUserId(oauth.getUserId());
             if (user == null) {
                 throw new RuntimeException("[微信登录] 用户不存在，请联系管理员");
             }
@@ -94,14 +94,14 @@ public class WechatAuthService {
             oauth.setNickname(wxNickname);
             oauth.setAvatar(wxAvatar);
             oauth.setUnionid(unionid);
-            userOauthMapper.updateById(oauth);
+            userOauthRepository.update(oauth);
             // 若 chat_user 没有昵称/头像，用 OAuth 信息补全
             if (user.getNickname() == null || user.getNickname().isEmpty()) {
                 user.setNickname(wxNickname);
             }
             if (user.getAvatar() == null || user.getAvatar().isEmpty()) {
                 user.setAvatar(wxAvatar);
-                chatUserMapper.updateById(user);
+                chatUserRepository.update(user);
             }
             log.info("[微信登录] 老用户登录成功: userId={}, nickname={}", user.getUserId(), user.getNickname());
             return user;
@@ -114,7 +114,7 @@ public class WechatAuthService {
             user.setUsername("wx_" + openid);
             user.setNickname(wxNickname);
             user.setAvatar(wxAvatar);
-            chatUserMapper.insert(user);
+            chatUserRepository.save(user);
 
             UserOauth newOauth = new UserOauth();
             newOauth.setUserId(userId);
@@ -123,7 +123,7 @@ public class WechatAuthService {
             newOauth.setUnionid(unionid);
             newOauth.setNickname(wxNickname);
             newOauth.setAvatar(wxAvatar);
-            userOauthMapper.insert(newOauth);
+            userOauthRepository.save(newOauth);
 
             log.info("[微信登录] 新用户注册并绑定成功: userId={}, openid={}", userId, openid);
             return user;

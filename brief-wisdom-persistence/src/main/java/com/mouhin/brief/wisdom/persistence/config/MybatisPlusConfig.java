@@ -15,22 +15,22 @@ import java.time.LocalDateTime;
  */
 @Configuration
 public class MybatisPlusConfig implements MetaObjectHandler {
-    
+
     /**
      * 配置分页插件和逻辑删除
      */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        
+
         // 添加分页插件
         PaginationInnerInterceptor paginationInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
         paginationInterceptor.setMaxLimit(1000L);  // 最大单页限制数量
         interceptor.addInnerInterceptor(paginationInterceptor);
-        
+
         return interceptor;
     }
-    
+
     /**
      * 插入时自动填充
      */
@@ -42,7 +42,7 @@ public class MybatisPlusConfig implements MetaObjectHandler {
         // 设置默认的逻辑删除字段为 0（未删除）
         this.strictInsertFill(metaObject, "isDeleted", Integer.class, 0);
     }
-    
+
     /**
      * 更新时自动填充
      */

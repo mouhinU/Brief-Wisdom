@@ -2,11 +2,11 @@ package com.mouhin.brief.wisdom.web.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
-import com.mouhin.brief.wisdom.persistence.mapper.UserOauthMapper;
+import com.mouhin.brief.wisdom.config.AlipayProperties;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.UserOauth;
-import com.mouhin.brief.wisdom.config.AlipayProperties;
+import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
+import com.mouhin.brief.wisdom.persistence.repository.UserOauthRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -51,8 +51,8 @@ public class AlipayAuthService {
 
     private final AlipayProperties alipayProperties;
     private final RestTemplate restTemplate;
-    private final ChatUserMapper chatUserMapper;
-    private final UserOauthMapper userOauthMapper;
+    private final ChatUserRepository chatUserRepository;
+    private final UserOauthRepository userOauthRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -93,22 +93,22 @@ public class AlipayAuthService {
         log.info("[支付宝登录] 获取到用户信息: nickname={}", nickname);
 
         // 3. 通过 user_oauth 表查找绑定关系
-        UserOauth oauth = userOauthMapper.selectByProviderAndOpenid(PROVIDER_ALIPAY, openid);
+        UserOauth oauth = userOauthRepository.findByProviderAndOpenid(PROVIDER_ALIPAY, openid);
 
         if (oauth != null) {
-            ChatUser user = chatUserMapper.selectById(oauth.getUserId());
+            ChatUser user = chatUserRepository.findByUserId(oauth.getUserId());
             if (user == null) {
                 throw new RuntimeException("[支付宝登录] 用户不存在，请联系管理员");
             }
             oauth.setNickname(nickname);
             oauth.setAvatar(avatar);
-            userOauthMapper.updateById(oauth);
+            userOauthRepository.update(oauth);
             if (user.getNickname() == null || user.getNickname().isEmpty()) {
                 user.setNickname(nickname);
             }
             if (user.getAvatar() == null || user.getAvatar().isEmpty()) {
                 user.setAvatar(avatar);
-                chatUserMapper.updateById(user);
+                chatUserRepository.update(user);
             }
             log.info("[支付宝登录] 老用户登录成功: userId={}, nickname={}", user.getUserId(), user.getNickname());
             return user;
@@ -120,7 +120,7 @@ public class AlipayAuthService {
             user.setUsername("ap_" + openid.substring(0, Math.min(16, openid.length())));
             user.setNickname(nickname);
             user.setAvatar(avatar);
-            chatUserMapper.insert(user);
+            chatUserRepository.save(user);
 
             UserOauth newOauth = new UserOauth();
             newOauth.setUserId(newUserId);
@@ -128,7 +128,7 @@ public class AlipayAuthService {
             newOauth.setOpenid(openid);
             newOauth.setNickname(nickname);
             newOauth.setAvatar(avatar);
-            userOauthMapper.insert(newOauth);
+            userOauthRepository.save(newOauth);
 
             log.info("[支付宝登录] 新用户注册并绑定成功: userId={}, openid={}", newUserId, openid);
             return user;

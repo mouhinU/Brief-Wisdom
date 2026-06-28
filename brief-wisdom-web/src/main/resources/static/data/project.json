@@ -53,7 +53,16 @@
         ]
       }
     ],
-    "stacks": ["Java", "Spring Boot", "RPC(HSF/Dubbo)", "RocketMQ", "Redis", "MongoDB", "MySQL", "EDAS、DRDS、OSS"]
+    "stacks": [
+      "Java",
+      "Spring Boot",
+      "RPC(HSF/Dubbo)",
+      "RocketMQ",
+      "Redis",
+      "MongoDB",
+      "MySQL",
+      "EDAS、DRDS、OSS"
+    ]
   },
   {
     "title": "智慧园区 | 技术专家 | 阿里巴巴集团 | 武汉佰钧成技术有限责任公司",
@@ -96,7 +105,17 @@
         ]
       }
     ],
-    "stacks": ["Java", "Spring/SpringMVC", "RPC(HSF/Dubbo)", "Golang", "RocketMQ", "MySQL", "Redis", "EDAS、DRDS、OSS", "DDD"]
+    "stacks": [
+      "Java",
+      "Spring/SpringMVC",
+      "RPC(HSF/Dubbo)",
+      "Golang",
+      "RocketMQ",
+      "MySQL",
+      "Redis",
+      "EDAS、DRDS、OSS",
+      "DDD"
+    ]
   },
   {
     "title": "早期项目经历| JAVA高级软件工程师  | 方正国际软件(武汉)有限公司",
@@ -114,6 +133,12 @@
         ]
       }
     ],
-    "stacks": ["Java", "C#", "C", "Oracle", "MySQL"]
+    "stacks": [
+      "Java",
+      "C#",
+      "C",
+      "Oracle",
+      "MySQL"
+    ]
   }
 ]

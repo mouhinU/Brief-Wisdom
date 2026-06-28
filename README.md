@@ -64,28 +64,28 @@ brief-wisdom-web (Web入口)
 
 ### 各模块职责
 
-| 模块 | 职责 | 关键类 |
-|------|------|--------|
-| persistence | 数据存储和访问层 | `ChatUser`, `ChatSession`, `ChatMessage`, `UserOauth`, 各 Mapper |
-| ai | AI 服务和业务逻辑 | `AiAgentService` |
-| web | Web 入口和前端资源 | `WebApplication`, `AiAgentController`, `WechatAuthController`, `SecurityConfig` |
-| api | API 接口定义和 DTO | 通用响应封装 |
-| service | 通用服务层 | 业务服务类 |
-| resume | 个人简历展示页面 | 简历页面 |
+| 模块          | 职责            | 关键类                                                                             |
+|-------------|---------------|---------------------------------------------------------------------------------|
+| persistence | 数据存储和访问层      | `ChatUser`, `ChatSession`, `ChatMessage`, `UserOauth`, 各 Mapper                 |
+| ai          | AI 服务和业务逻辑    | `AiAgentService`                                                                |
+| web         | Web 入口和前端资源   | `WebApplication`, `AiAgentController`, `WechatAuthController`, `SecurityConfig` |
+| api         | API 接口定义和 DTO | 通用响应封装                                                                          |
+| service     | 通用服务层         | 业务服务类                                                                           |
+| resume      | 个人简历展示页面      | 简历页面                                                                            |
 
 ---
 
 ## 技术栈
 
-| 组件 | 版本/说明 |
-|------|-----------|
-| Java | 17 |
-| Spring Boot | 3.5.7 |
-| Spring AI | Spring AI Alibaba |
-| ORM | MyBatis-Plus 3.5.5 |
-| 数据库 | MySQL 8.0+ |
-| 安全 | Spring Security 6 |
-| 前端 | 原生 HTML/CSS/JS |
+| 组件          | 版本/说明              |
+|-------------|--------------------|
+| Java        | 17                 |
+| Spring Boot | 3.5.7              |
+| Spring AI   | Spring AI Alibaba  |
+| ORM         | MyBatis-Plus 3.5.5 |
+| 数据库         | MySQL 8.0+         |
+| 安全          | Spring Security 6  |
+| 前端          | 原生 HTML/CSS/JS     |
 
 ---
 
@@ -144,6 +144,7 @@ MyBatis-Plus 启动后会自动创建表结构（需提前创建数据库）。
 ### 初始化数据
 
 初始化脚本会自动：
+
 1. 创建数据库 `brief_wisdom`（如果不存在）
 2. 创建所有必要的表
 3. 插入默认用户：`default-user/guest`（访客）和 `admin/mouhin`
@@ -173,61 +174,61 @@ chat_user (用户)
 
 ### chat_user（用户表）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 自增主键 |
-| user_id | VARCHAR(36) | 用户ID (UUID, UNIQUE) |
-| username | VARCHAR(100) | 用户名 (UNIQUE) |
-| nickname | VARCHAR(200) | 昵称 |
-| avatar | VARCHAR(500) | 头像URL |
-| create_time | DATETIME | 创建时间 |
-| update_time | DATETIME | 更新时间 |
-| is_deleted | TINYINT | 逻辑删除: 0-未删除, 1-已删除 |
+| 字段          | 类型           | 说明                  |
+|-------------|--------------|---------------------|
+| id          | BIGINT       | 自增主键                |
+| user_id     | VARCHAR(36)  | 用户ID (UUID, UNIQUE) |
+| username    | VARCHAR(100) | 用户名 (UNIQUE)        |
+| nickname    | VARCHAR(200) | 昵称                  |
+| avatar      | VARCHAR(500) | 头像URL               |
+| create_time | DATETIME     | 创建时间                |
+| update_time | DATETIME     | 更新时间                |
+| is_deleted  | TINYINT      | 逻辑删除: 0-未删除, 1-已删除  |
 
 ### chat_session（会话表）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 自增主键 |
-| session_id | VARCHAR(36) | 会话ID (UUID, UNIQUE) |
-| user_id | VARCHAR(36) | 用户ID (外键) |
-| title | VARCHAR(200) | 会话标题 |
-| description | TEXT | 会话描述 |
-| message_count | INT | 消息数量 |
-| create_time | DATETIME | 创建时间 |
-| update_time | DATETIME | 更新时间 |
-| is_deleted | TINYINT | 逻辑删除 |
+| 字段            | 类型           | 说明                  |
+|---------------|--------------|---------------------|
+| id            | BIGINT       | 自增主键                |
+| session_id    | VARCHAR(36)  | 会话ID (UUID, UNIQUE) |
+| user_id       | VARCHAR(36)  | 用户ID (外键)           |
+| title         | VARCHAR(200) | 会话标题                |
+| description   | TEXT         | 会话描述                |
+| message_count | INT          | 消息数量                |
+| create_time   | DATETIME     | 创建时间                |
+| update_time   | DATETIME     | 更新时间                |
+| is_deleted    | TINYINT      | 逻辑删除                |
 
 ### chat_message（消息表）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 自增主键 |
-| session_id | VARCHAR(36) | 会话ID (外键) |
-| user_id | VARCHAR(36) | 用户ID (外键) |
-| role | VARCHAR(20) | 角色 (user/assistant) |
-| content | LONGTEXT | 消息内容 |
-| model | VARCHAR(500) | AI模型名称 |
-| tokens | INT | Token数量 |
-| cost | DOUBLE | 费用 |
-| timestamp | DATETIME | 消息时间 |
-| message_type | VARCHAR(50) | 消息类型 (text/image/code) |
-| is_deleted | TINYINT | 逻辑删除 |
+| 字段           | 类型           | 说明                     |
+|--------------|--------------|------------------------|
+| id           | BIGINT       | 自增主键                   |
+| session_id   | VARCHAR(36)  | 会话ID (外键)              |
+| user_id      | VARCHAR(36)  | 用户ID (外键)              |
+| role         | VARCHAR(20)  | 角色 (user/assistant)    |
+| content      | LONGTEXT     | 消息内容                   |
+| model        | VARCHAR(500) | AI模型名称                 |
+| tokens       | INT          | Token数量                |
+| cost         | DOUBLE       | 费用                     |
+| timestamp    | DATETIME     | 消息时间                   |
+| message_type | VARCHAR(50)  | 消息类型 (text/image/code) |
+| is_deleted   | TINYINT      | 逻辑删除                   |
 
 ### user_oauth（第三方登录绑定表）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 自增主键 |
-| user_id | VARCHAR(36) | 关联 chat_user.user_id |
-| provider | VARCHAR(32) | 平台标识: wechat/dingtalk/qq/alipay |
-| openid | VARCHAR(128) | 平台 OpenID |
-| unionid | VARCHAR(128) | 平台 UnionID |
-| nickname | VARCHAR(200) | 该平台显示昵称 |
-| avatar | VARCHAR(500) | 该平台头像URL |
-| create_time | DATETIME | 绑定时间 |
-| update_time | DATETIME | 更新时间 |
-| is_deleted | TINYINT | 逻辑删除 |
+| 字段          | 类型           | 说明                              |
+|-------------|--------------|---------------------------------|
+| id          | BIGINT       | 自增主键                            |
+| user_id     | VARCHAR(36)  | 关联 chat_user.user_id            |
+| provider    | VARCHAR(32)  | 平台标识: wechat/dingtalk/qq/alipay |
+| openid      | VARCHAR(128) | 平台 OpenID                       |
+| unionid     | VARCHAR(128) | 平台 UnionID                      |
+| nickname    | VARCHAR(200) | 该平台显示昵称                         |
+| avatar      | VARCHAR(500) | 该平台头像URL                        |
+| create_time | DATETIME     | 绑定时间                            |
+| update_time | DATETIME     | 更新时间                            |
+| is_deleted  | TINYINT      | 逻辑删除                            |
 
 **唯一约束**：`UNIQUE KEY uk_provider_openid (provider, openid)`
 
@@ -263,12 +264,12 @@ mybatis-plus:
 
 所有表均使用 `@TableId(type = IdType.AUTO)` 自增主键，`user_id` / `session_id` 为业务唯一键（UNIQUE）。
 
-| 表 | 主键 | 业务键 |
-|----|------|--------|
-| chat_user | `id` BIGINT AUTO_INCREMENT | `user_id` VARCHAR(36) UNIQUE |
+| 表            | 主键                         | 业务键                             |
+|--------------|----------------------------|---------------------------------|
+| chat_user    | `id` BIGINT AUTO_INCREMENT | `user_id` VARCHAR(36) UNIQUE    |
 | chat_session | `id` BIGINT AUTO_INCREMENT | `session_id` VARCHAR(36) UNIQUE |
-| chat_message | `id` BIGINT AUTO_INCREMENT | - |
-| user_oauth | `id` BIGINT AUTO_INCREMENT | - |
+| chat_message | `id` BIGINT AUTO_INCREMENT | -                               |
+| user_oauth   | `id` BIGINT AUTO_INCREMENT | -                               |
 
 > 按业务键查询时需使用 `LambdaQueryWrapper`，而非 `selectById()`。
 
@@ -306,6 +307,7 @@ app:
 ### 实体类配置
 
 ```java
+
 @TableLogic
 @TableField(value = "is_deleted")
 private Integer isDeleted;  // 0-未删除, 1-已删除
@@ -313,10 +315,10 @@ private Integer isDeleted;  // 0-未删除, 1-已删除
 
 ### 工作原理
 
-| 操作 | 实际 SQL |
-|------|---------|
+| 操作 | 实际 SQL                                         |
+|----|------------------------------------------------|
 | 删除 | `UPDATE table SET is_deleted = 1 WHERE id = ?` |
-| 查询 | `SELECT * FROM table WHERE is_deleted = 0` |
+| 查询 | `SELECT * FROM table WHERE is_deleted = 0`     |
 
 ### 注意事项
 
@@ -333,9 +335,10 @@ private Integer isDeleted;  // 0-未删除, 1-已删除
 ### 配置（MybatisPlusConfig.java）
 
 ```java
+
 @Configuration
 public class MybatisPlusConfig implements MetaObjectHandler {
-    
+
     @Override
     public void insertFill(MetaObject metaObject) {
         this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
@@ -343,7 +346,7 @@ public class MybatisPlusConfig implements MetaObjectHandler {
         this.strictInsertFill(metaObject, "timestamp", LocalDateTime.class, LocalDateTime.now());
         this.strictInsertFill(metaObject, "isDeleted", Integer.class, 0);
     }
-    
+
     @Override
     public void updateFill(MetaObject metaObject) {
         this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
@@ -353,12 +356,12 @@ public class MybatisPlusConfig implements MetaObjectHandler {
 
 ### 字段映射
 
-| Java 字段 | 数据库字段 | 填充时机 |
-|-----------|-----------|---------|
-| createTime | create_time | INSERT |
+| Java 字段    | 数据库字段       | 填充时机            |
+|------------|-------------|-----------------|
+| createTime | create_time | INSERT          |
 | updateTime | update_time | INSERT + UPDATE |
-| timestamp | timestamp | INSERT（消息表） |
-| isDeleted | is_deleted | INSERT（默认 0） |
+| timestamp  | timestamp   | INSERT（消息表）     |
+| isDeleted  | is_deleted  | INSERT（默认 0）    |
 
 > `strictInsertFill` 只在字段值为 null 时填充，不会覆盖手动设置的值。
 
@@ -410,11 +413,11 @@ spring:
 
 ### API 接口
 
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/ai/chat` | POST | 简单聊天 |
-| `/api/ai/chat-with-prompt` | POST | 带系统提示的聊天 |
-| `/api/ai/ask` | POST | 智能问答 |
+| 接口                                 | 方法   | 说明        |
+|------------------------------------|------|-----------|
+| `/api/ai/chat`                     | POST | 简单聊天      |
+| `/api/ai/chat-with-prompt`         | POST | 带系统提示的聊天  |
+| `/api/ai/ask`                      | POST | 智能问答      |
 | `/api/ai/chat/session/{sessionId}` | POST | 带上下文的会话聊天 |
 
 ### 测试示例
@@ -469,15 +472,15 @@ curl -X POST http://localhost:8090/api/ai/chat/session/YOUR_SESSION_ID \
 
 ### 前端关键函数
 
-| 函数 | 说明 |
-|------|------|
-| `loadPaginationConfig()` | 加载分页配置 |
-| `loadSessions()` | 加载会话列表（第一页） |
-| `loadMoreSessions()` | 加载更多会话（下一页，无限滚动） |
-| `createNewSession()` | 创建新会话 |
-| `selectSession(sessionId)` | 切换会话 |
-| `sendMessage()` | 发送消息 |
-| `loadSessionHistory(sessionId)` | 加载历史消息 |
+| 函数                              | 说明               |
+|---------------------------------|------------------|
+| `loadPaginationConfig()`        | 加载分页配置           |
+| `loadSessions()`                | 加载会话列表（第一页）      |
+| `loadMoreSessions()`            | 加载更多会话（下一页，无限滚动） |
+| `createNewSession()`            | 创建新会话            |
+| `selectSession(sessionId)`      | 切换会话             |
+| `sendMessage()`                 | 发送消息             |
+| `loadSessionHistory(sessionId)` | 加载历史消息           |
 
 ---
 
@@ -485,23 +488,23 @@ curl -X POST http://localhost:8090/api/ai/chat/session/YOUR_SESSION_ID \
 
 ### 会话管理
 
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/ai/session` | POST | 创建新会话 |
-| `/api/ai/session/{sessionId}` | DELETE | 删除会话（逻辑删除） |
-| `/api/ai/sessions?page=1&size=20` | GET | 分页获取会话列表（返回 `records/total/hasMore` 等） |
-| `/api/ai/session/{sessionId}/history` | GET | 获取会话历史消息 |
-| `/api/ai/config/pagination` | GET | 获取分页配置（sessionList/messageHistory） |
+| 接口                                    | 方法     | 说明                                     |
+|---------------------------------------|--------|----------------------------------------|
+| `/api/ai/session`                     | POST   | 创建新会话                                  |
+| `/api/ai/session/{sessionId}`         | DELETE | 删除会话（逻辑删除）                             |
+| `/api/ai/sessions?page=1&size=20`     | GET    | 分页获取会话列表（返回 `records/total/hasMore` 等） |
+| `/api/ai/session/{sessionId}/history` | GET    | 获取会话历史消息                               |
+| `/api/ai/config/pagination`           | GET    | 获取分页配置（sessionList/messageHistory）     |
 
 ### 认证
 
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/auth/wechat/login` | GET | 获取微信扫码登录 URL |
-| `/auth/wechat/callback` | GET | 微信授权回调 |
-| `/api/auth/status` | GET | 检查登录状态 |
-| `/api/auth/user` | GET | 获取当前用户信息（需登录） |
-| `/auth/logout` | POST | 退出登录 |
+| 接口                      | 方法   | 说明            |
+|-------------------------|------|---------------|
+| `/auth/wechat/login`    | GET  | 获取微信扫码登录 URL  |
+| `/auth/wechat/callback` | GET  | 微信授权回调        |
+| `/api/auth/status`      | GET  | 检查登录状态        |
+| `/api/auth/user`        | GET  | 获取当前用户信息（需登录） |
+| `/auth/logout`          | POST | 退出登录          |
 
 ---
 
@@ -511,12 +514,12 @@ curl -X POST http://localhost:8090/api/ai/chat/session/YOUR_SESSION_ID \
 
 采用 `user_oauth` 关联表存储第三方登录信息，支持多平台扩展：
 
-| provider | 说明 |
-|----------|------|
-| wechat | 微信 |
-| dingtalk | 钉钉（预留） |
-| qq | QQ（预留） |
-| alipay | 支付宝（预留） |
+| provider | 说明      |
+|----------|---------|
+| wechat   | 微信      |
+| dingtalk | 钉钉（预留）  |
+| qq       | QQ（预留）  |
+| alipay   | 支付宝（预留） |
 
 ### 登录流程
 
@@ -549,6 +552,7 @@ wechat:
 ### 安全配置
 
 `SecurityConfig` 配置了 Spring Security 路由权限：
+
 - 静态资源、AI API、认证 API 全部公开访问
 - `/api/auth/user` 需要登录才能获取用户信息
 - 禁用 CSRF、formLogin、httpBasic
@@ -586,6 +590,7 @@ wechat:
 **原因**：会话被逻辑删除（`is_deleted = 1`）
 
 **解决**：
+
 ```sql
 -- 查看会话状态
 SELECT * FROM chat_session WHERE session_id = 'xxx';
@@ -599,9 +604,13 @@ UPDATE chat_session SET is_deleted = 0 WHERE session_id = 'xxx';
 **原因**：`chat_user`/`chat_session` 改为 `id` 自增主键后，`selectById()` 查询的是 `id` 字段而非业务键
 
 **解决**：按业务键查询需改用 `LambdaQueryWrapper`：
+
 ```java
 LambdaQueryWrapper<ChatSession> qw = new LambdaQueryWrapper<>();
-qw.eq(ChatSession::getSessionId, sessionId);
+qw.
+
+eq(ChatSession::getSessionId, sessionId);
+
 ChatSession session = sessionMapper.selectOne(qw);
 ```
 
@@ -641,23 +650,23 @@ ChatSession session = sessionMapper.selectOne(qw);
 
 ## 前端页面
 
-| 页面 | 路径 | 说明 |
-|------|------|------|
-| 主页 | `/` / `index.html` | AI 聊天助手入口，右下角悬浮按钮打开聊天窗口 |
-| 个人简历 | `/about.html` | 个人简历展示页，支持深色/浅色主题切换、PDF 导出 |
-| 测试页 | `/test-session.html` | 会话 API 独立测试页面 |
+| 页面   | 路径                   | 说明                         |
+|------|----------------------|----------------------------|
+| 主页   | `/` / `index.html`   | AI 聊天助手入口，右下角悬浮按钮打开聊天窗口    |
+| 个人简历 | `/about.html`        | 个人简历展示页，支持深色/浅色主题切换、PDF 导出 |
+| 测试页  | `/test-session.html` | 会话 API 独立测试页面              |
 
 ---
 
 ## 扩展方向
 
-| 方向 | 说明 |
-|------|------|
-| 会话标签/分类 | 为会话添加标签，便于管理 |
-| 消息搜索 | 全文搜索历史消息 |
-| 用户注册登录 | 完整的用户认证体系 |
-| 多端同步 | WebSocket 实时推送 |
-| AI 模型切换 | 支持多模型对比 |
-| 费用统计 | Token 用量和费用报表 |
-| 第三方登录扩展 | 钉钉/QQ/支付宝登录 |
+| 方向      | 说明             |
+|---------|----------------|
+| 会话标签/分类 | 为会话添加标签，便于管理   |
+| 消息搜索    | 全文搜索历史消息       |
+| 用户注册登录  | 完整的用户认证体系      |
+| 多端同步    | WebSocket 实时推送 |
+| AI 模型切换 | 支持多模型对比        |
+| 费用统计    | Token 用量和费用报表  |
+| 第三方登录扩展 | 钉钉/QQ/支付宝登录    |
 

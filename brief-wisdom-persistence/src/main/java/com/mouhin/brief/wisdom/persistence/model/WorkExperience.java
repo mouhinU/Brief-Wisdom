@@ -30,7 +30,9 @@ public class WorkExperience implements Serializable {
     @TableField(value = "sort_order")
     private Integer sortOrder;
 
-    /** 是否在简历页面显示: 1-显示, 0-隐藏 */
+    /**
+     * 是否在简历页面显示: 1-显示, 0-隐藏
+     */
     @TableField(value = "is_visible")
     private Integer isVisible;
 

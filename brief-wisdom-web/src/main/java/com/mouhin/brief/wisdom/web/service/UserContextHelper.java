@@ -27,7 +27,9 @@ import java.security.NoSuchAlgorithmException;
 @Component
 public class UserContextHelper {
 
-    /** 访客用户ID前缀 */
+    /**
+     * 访客用户ID前缀
+     */
     private static final String GUEST_PREFIX = "guest-";
 
     private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;

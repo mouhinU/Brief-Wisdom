@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
-import com.mouhin.brief.wisdom.persistence.mapper.ChatUserMapper;
-import lombok.Data;
+import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
+import com.mouhin.brief.wisdom.web.req.UpdateLevelRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final ChatUserMapper chatUserMapper;
+    private final ChatUserRepository chatUserRepository;
 
     /**
      * 分页获取用户列表
@@ -34,7 +34,6 @@ public class UserController {
             @RequestParam(value = "level", required = false) String level,
             @RequestParam(value = "keyword", required = false) String keyword) {
         try {
-            Page<ChatUser> pageParam = new Page<>(page, size);
             LambdaQueryWrapper<ChatUser> query = new LambdaQueryWrapper<>();
 
             if (level != null && !level.isEmpty()) {
@@ -48,7 +47,7 @@ public class UserController {
             }
             query.orderByDesc(ChatUser::getCreateTime);
 
-            Page<ChatUser> result = chatUserMapper.selectPage(pageParam, query);
+            Page<ChatUser> result = chatUserRepository.findPage(page, size, query);
 
             // 清除密码字段
             result.getRecords().forEach(u -> u.setPassword(null));
@@ -82,12 +81,12 @@ public class UserController {
     @PutMapping("/{id}/level")
     public ApiResponse<Void> updateLevel(@PathVariable Long id, @RequestBody UpdateLevelRequest request) {
         try {
-            ChatUser user = chatUserMapper.selectById(id);
+            ChatUser user = chatUserRepository.findById(id);
             if (user == null) {
                 return ApiResponse.fail("用户不存在");
             }
             user.setUserLevel(request.getLevel());
-            chatUserMapper.updateById(user);
+            chatUserRepository.update(user);
             log.info("修改用户级别: userId={}, level={}", user.getUserId(), request.getLevel());
             return ApiResponse.success(null);
         } catch (Exception e) {
@@ -102,11 +101,11 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteUser(@PathVariable Long id) {
         try {
-            ChatUser user = chatUserMapper.selectById(id);
+            ChatUser user = chatUserRepository.findById(id);
             if (user == null) {
                 return ApiResponse.fail("用户不存在");
             }
-            chatUserMapper.deleteById(id);
+            chatUserRepository.deleteById(id);
             log.info("删除用户: userId={}, username={}", user.getUserId(), user.getUsername());
             return ApiResponse.success(null);
         } catch (Exception e) {
@@ -121,22 +120,17 @@ public class UserController {
     @PutMapping("/{id}/reset-password")
     public ApiResponse<Void> resetPassword(@PathVariable Long id) {
         try {
-            ChatUser user = chatUserMapper.selectById(id);
+            ChatUser user = chatUserRepository.findById(id);
             if (user == null) {
                 return ApiResponse.fail("用户不存在");
             }
             user.setPassword(null);
-            chatUserMapper.updateById(user);
+            chatUserRepository.update(user);
             log.info("重置用户密码: userId={}, username={}", user.getUserId(), user.getUsername());
             return ApiResponse.success(null);
         } catch (Exception e) {
             log.error("重置用户密码失败: ", e);
             return ApiResponse.fail("重置用户密码失败: " + e.getMessage());
         }
-    }
-
-    @Data
-    public static class UpdateLevelRequest {
-        private String level;
     }
 }
