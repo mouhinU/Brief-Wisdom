@@ -228,10 +228,13 @@ CREATE TABLE sys_role_menu (
 -- ============================================
 -- 14. 初始化数据 - 用户
 -- ============================================
-INSERT INTO chat_user (user_id, username, nickname, avatar) VALUES
-('default-user', 'guest', '访客', NULL)
-ON DUPLICATE KEY UPDATE username=username;
-INSERT INTO chat_user (user_id, username, nickname, avatar, password) VALUES('admin', 'mougin', 'mouhin', NULL, '$2a$10$2c7VsEAAypWM0wVRM4T0m.kIA733kMdi3UpiTUdIzVLYId5YdNPrK');
+INSERT INTO chat_user (user_id, username, nickname, avatar, password, user_level) VALUES
+('default-user', 'guest', '访客', NULL, '$2a$10$KGl2v23ucsd5RMPe1Mj5aeWsbx3FwVThiqeR9yGNBSZXKEyDcTLhC', 'normal'),
+('466a44f8-3d21-4e87-b156-513c4559823f', 'mouhin', 'mouhin', NULL, '$2a$10$IbMmd/CBe0pl3H0xkDleRe9PdqEPR5xSCMuQxcF446eM2iJoPwmqK', 'admin'),
+('admin', 'admin', 'admin', NULL, '$2a$10$1rDTtM3/3mXU46sgjm2UJelNUKQZBPwkUfPcMjnWczVF/s7b2quSu', 'admin'),
+('guest-b07987f9a5673dec', 'guest-b07987f9a5673dec', '访客', NULL, '$2a$10$rLsfz8UgZZTFO90YIiGXa.WhKfkuDXB1hRiaA5RBa3CjvlJ39X8dO', 'normal'),
+('f91d61fd-4b78-4984-8dcc-d415910c7a27', 'jack', 'jack', NULL, '$2a$10$.bfn/4NyIqYW3Gj4hTsEGOaE9fG431TqtjGdd70ysiear76ux6XWa', 'vip'),
+('ab3669e7-43b0-474a-b698-2f42dc3051e9', 'sunny', 'sunny', NULL, '$2a$10$9WF2bcir0PCnvMqoEmEzKemYM7Lrm8fXS.lq3Y4lpzlvRne7IRWZq', 'vip');
 
 -- ============================================
 -- 15. 初始化数据 - 角色
@@ -246,39 +249,67 @@ INSERT INTO sys_role (role_name, role_key, description, status) VALUES
 -- ============================================
 
 -- 顶级菜单
-INSERT INTO sys_menu (parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
-(0, '首页', '/', '🏠', '_self', 1, NULL, 1, 1, 0),
-(0, '简历', '/about.html', '👤', '_self', 1, NULL, 2, 1, 0),
-(0, 'AI助手', '/#chat', '🤖', '_self', 1, NULL, 3, 1, 0),
-(0, '系统设置', NULL, '⚙️', '_self', 0, 'system:settings', 4, 1, 1);
-
--- 获取系统设置菜单ID
-SET @system_menu_id = (SELECT id FROM sys_menu WHERE name = '系统设置' AND parent_id = 0 LIMIT 1);
+INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
+(1, 0, '首页', '/', '🏠', '_self', 1, NULL, 1, 1, 0),
+(2, 0, '简历', '/about.html', '👤', '_self', 1, NULL, 2, 1, 0),
+(3, 0, 'AI助手管理', 'ai-manage.html', '🤖', '_self', 3, NULL, 4, 1, 1),
+(4, 0, '系统设置', 'system-settings.html', '⚙️', '_self', 1, 'system:settings', 5, 1, 1),
+(8, 0, '简历数据管理', 'resume-manage.html', '👤', '_self', 1, NULL, 3, 1, 1);
 
 -- 系统设置子菜单
-INSERT INTO sys_menu (parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
-(@system_menu_id, '用户管理', '/system-settings.html?tab=user', '👥', '_self', 1, 'user:list', 1, 1, 1),
-(@system_menu_id, '角色管理', '/system-settings.html?tab=role', '🔐', '_self', 1, 'role:list', 2, 1, 1),
-(@system_menu_id, '菜单管理', '/system-settings.html?tab=menu', '📋', '_self', 1, 'menu:list', 3, 1, 1);
+INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
+(5, 4, '用户管理', '/system-settings.html?tab=user', '👥', '_self', 1, 'user:list', 1, 1, 1),
+(6, 4, '角色管理', '/system-settings.html?tab=role', '🔐', '_self', 1, 'role:list', 2, 1, 1),
+(7, 4, '菜单管理', '/system-settings.html?tab=menu', '📋', '_self', 1, 'menu:list', 3, 1, 1),
+(9, 4, '用户管理', '', '👥', '_self', 1, 'user:manage', 6, 0, 1),
+(10, 4, '角色管理', '', '🛡️', '_self', 1, 'role:manage', 8, 0, 1),
+(11, 4, '菜单管理', '', '📋', '_self', 1, 'menu:manage', 7, 0, 1);
+
+-- 按钮级权限菜单
+INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
+(12, 0, '简历数据管理', NULL, '', '_self', 2, 'resume:manage', 4, 0, 1),
+(13, 0, 'AI助手管理', NULL, '', '_self', 2, 'ai:manage', 5, 0, 1);
+
+-- AI助手管理子菜单
+INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
+(14, 3, '模型管理', '', '🧠', '_self', 1, NULL, 9, 0, 0),
+(15, 3, '会话历史', '', '💬', '_self', 1, NULL, 10, 0, 0);
+
+-- 简历数据管理子菜单
+INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
+(16, 8, '在线编辑', '', '✏️', '_self', 1, NULL, 16, 0, 0),
+(17, 8, '工作经历', '', '💼', '_self', 1, NULL, 12, 0, 0),
+(18, 8, '项目经历', '', '📁', '_self', 1, NULL, 13, 0, 0),
+(19, 8, '项目成果', '', '🏆', '_self', 1, NULL, 14, 0, 0),
+(20, 8, '技术栈', '', '🔧', '_self', 1, NULL, 15, 0, 0);
 
 -- ============================================
--- 17. 初始化数据 - 角色菜单权限
+-- 17. 初始化数据 - 角色菜单权限 & 用户角色
 -- ============================================
 
--- 超级管理员：所有菜单
-INSERT INTO sys_role_menu (role_id, menu_id)
-SELECT 1, id FROM sys_menu;
+-- 超级管理员 (role_id=1)：所有菜单
+INSERT INTO sys_role_menu (role_id, menu_id) VALUES
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7),
+(1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13),
+(1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20);
 
--- 管理员：除角色管理外的菜单
-INSERT INTO sys_role_menu (role_id, menu_id)
-SELECT 2, id FROM sys_menu WHERE permission != 'role:list';
+-- 管理员 (role_id=2)：除角色管理外的菜单
+INSERT INTO sys_role_menu (role_id, menu_id) VALUES
+(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 8),
+(2, 9), (2, 14), (2, 16), (2, 17), (2, 18), (2, 19), (2, 20);
 
--- 普通用户：基本菜单（首页、简历、AI助手）
-INSERT INTO sys_role_menu (role_id, menu_id)
-SELECT 3, id FROM sys_menu WHERE parent_id = 0 AND name IN ('首页', '简历', 'AI助手');
+-- 普通用户 (role_id=3)：基本菜单（首页、简历）
+INSERT INTO sys_role_menu (role_id, menu_id) VALUES
+(3, 1), (3, 2);
 
--- 为 admin 用户分配超级管理员角色
-INSERT INTO sys_user_role (user_id, role_id) VALUES ('admin', 1);
+-- 用户角色分配
+INSERT INTO sys_user_role (user_id, role_id) VALUES
+('admin', 1),
+('466a44f8-3d21-4e87-b156-513c4559823f', 1),
+('default-user', 2),
+('guest-b07987f9a5673dec', 2),
+('f91d61fd-4b78-4984-8dcc-d415910c7a27', 3),
+('ab3669e7-43b0-474a-b698-2f42dc3051e9', 3);
 
 -- ============================================
 -- 18. 初始化数据 - AI 模型
