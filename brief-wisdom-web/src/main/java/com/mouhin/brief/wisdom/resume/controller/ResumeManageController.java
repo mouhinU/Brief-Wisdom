@@ -1,6 +1,5 @@
 package com.mouhin.brief.wisdom.resume.controller;
 
-import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.common.resume.ProjectAchievementDTO;
 import com.mouhin.brief.wisdom.common.resume.ProjectDTO;
 import com.mouhin.brief.wisdom.common.resume.WorkExperienceDTO;
@@ -31,229 +30,122 @@ public class ResumeManageController {
     // ========== 工作经历 ==========
 
     @GetMapping("/experiences")
-    public ApiResponse<List<WorkExperienceDTO>> listExperiences() {
-        try {
-            return ApiResponse.success(resumeManageService.listExperiences());
-        } catch (Exception e) {
-            log.error("获取工作经历列表失败: ", e);
-            return ApiResponse.fail("获取工作经历列表失败: " + e.getMessage());
-        }
+    public List<WorkExperienceDTO> listExperiences() {
+        return resumeManageService.listExperiences();
     }
 
     @GetMapping("/experiences/{id}")
-    public ApiResponse<WorkExperienceDTO> getExperience(@PathVariable Long id) {
-        try {
-            WorkExperienceDTO data = resumeManageService.getExperience(id);
-            return data != null ? ApiResponse.success(data) : ApiResponse.fail("工作经历不存在");
-        } catch (Exception e) {
-            log.error("获取工作经历失败: ", e);
-            return ApiResponse.fail("获取工作经历失败: " + e.getMessage());
-        }
+    public WorkExperienceDTO getExperience(@PathVariable Long id) {
+        return resumeManageService.getExperience(id);
     }
 
     @PostMapping("/experiences")
-    public ApiResponse<WorkExperienceDTO> createExperience(@RequestBody WorkExperience experience) {
-        try {
-            return ApiResponse.success(resumeManageService.createExperience(experience));
-        } catch (Exception e) {
-            log.error("创建工作经历失败: ", e);
-            return ApiResponse.fail("创建工作经历失败: " + e.getMessage());
-        }
+    public WorkExperienceDTO createExperience(@RequestBody WorkExperience experience) {
+        return resumeManageService.createExperience(experience);
     }
 
     @PutMapping("/experiences/{id}")
-    public ApiResponse<WorkExperienceDTO> updateExperience(@PathVariable Long id, @RequestBody WorkExperience experience) {
-        try {
-            experience.setId(id);
-            return ApiResponse.success(resumeManageService.updateExperience(experience));
-        } catch (Exception e) {
-            log.error("更新工作经历失败: ", e);
-            return ApiResponse.fail("更新工作经历失败: " + e.getMessage());
-        }
+    public WorkExperienceDTO updateExperience(@PathVariable Long id, @RequestBody WorkExperience experience) {
+        experience.setId(id);
+        return resumeManageService.updateExperience(experience);
     }
 
     @DeleteMapping("/experiences/{id}")
-    public ApiResponse<Void> deleteExperience(@PathVariable Long id) {
-        try {
-            resumeManageService.deleteExperience(id);
-            return ApiResponse.success(null);
-        } catch (Exception e) {
-            log.error("删除工作经历失败: ", e);
-            return ApiResponse.fail("删除工作经历失败: " + e.getMessage());
-        }
+    public Boolean deleteExperience(@PathVariable Long id) {
+        resumeManageService.deleteExperience(id);
+        return true;
     }
 
     // ========== 项目 ==========
 
     @GetMapping("/projects")
-    public ApiResponse<List<ProjectDTO>> listProjects(@RequestParam(required = false) Long experienceId) {
-        try {
-            List<ProjectDTO> data = experienceId != null
-                    ? resumeManageService.listProjectsByExperienceId(experienceId)
-                    : resumeManageService.listProjects();
-            return ApiResponse.success(data);
-        } catch (Exception e) {
-            log.error("获取项目列表失败: ", e);
-            return ApiResponse.fail("获取项目列表失败: " + e.getMessage());
-        }
+    public List<ProjectDTO> listProjects(@RequestParam(required = false) Long experienceId) {
+        return experienceId != null
+                ? resumeManageService.listProjectsByExperienceId(experienceId)
+                : resumeManageService.listProjects();
     }
 
     @GetMapping("/projects/{id}")
-    public ApiResponse<ProjectDTO> getProject(@PathVariable Long id) {
-        try {
-            ProjectDTO data = resumeManageService.getProject(id);
-            return data != null ? ApiResponse.success(data) : ApiResponse.fail("项目不存在");
-        } catch (Exception e) {
-            log.error("获取项目失败: ", e);
-            return ApiResponse.fail("获取项目失败: " + e.getMessage());
-        }
+    public ProjectDTO getProject(@PathVariable Long id) {
+        return resumeManageService.getProject(id);
     }
 
     @PostMapping("/projects")
-    public ApiResponse<ProjectDTO> createProject(@RequestBody Project project) {
-        try {
-            return ApiResponse.success(resumeManageService.createProject(project));
-        } catch (Exception e) {
-            log.error("创建项目失败: ", e);
-            return ApiResponse.fail("创建项目失败: " + e.getMessage());
-        }
+    public ProjectDTO createProject(@RequestBody Project project) {
+        return resumeManageService.createProject(project);
     }
 
     @PutMapping("/projects/{id}")
-    public ApiResponse<ProjectDTO> updateProject(@PathVariable Long id, @RequestBody Project project) {
-        try {
-            project.setId(id);
-            return ApiResponse.success(resumeManageService.updateProject(project));
-        } catch (Exception e) {
-            log.error("更新项目失败: ", e);
-            return ApiResponse.fail("更新项目失败: " + e.getMessage());
-        }
+    public ProjectDTO updateProject(@PathVariable Long id, @RequestBody Project project) {
+        project.setId(id);
+        return resumeManageService.updateProject(project);
     }
 
     @DeleteMapping("/projects/{id}")
-    public ApiResponse<Void> deleteProject(@PathVariable Long id) {
-        try {
-            resumeManageService.deleteProject(id);
-            return ApiResponse.success(null);
-        } catch (Exception e) {
-            log.error("删除项目失败: ", e);
-            return ApiResponse.fail("删除项目失败: " + e.getMessage());
-        }
+    public Boolean deleteProject(@PathVariable Long id) {
+        resumeManageService.deleteProject(id);
+        return true;
     }
 
     // ========== 项目成果 ==========
 
     @GetMapping("/achievements")
-    public ApiResponse<List<ProjectAchievementDTO>> listAchievements(@RequestParam(required = false) Long projectId) {
-        try {
-            List<ProjectAchievementDTO> data = projectId != null
-                    ? resumeManageService.listAchievementsByProjectId(projectId)
-                    : resumeManageService.listAchievements();
-            return ApiResponse.success(data);
-        } catch (Exception e) {
-            log.error("获取项目成果列表失败: ", e);
-            return ApiResponse.fail("获取项目成果列表失败: " + e.getMessage());
-        }
+    public List<ProjectAchievementDTO> listAchievements(@RequestParam(required = false) Long projectId) {
+        return projectId != null
+                ? resumeManageService.listAchievementsByProjectId(projectId)
+                : resumeManageService.listAchievements();
     }
 
     @GetMapping("/achievements/{id}")
-    public ApiResponse<ProjectAchievementDTO> getAchievement(@PathVariable Long id) {
-        try {
-            ProjectAchievementDTO data = resumeManageService.getAchievement(id);
-            return data != null ? ApiResponse.success(data) : ApiResponse.fail("项目成果不存在");
-        } catch (Exception e) {
-            log.error("获取项目成果失败: ", e);
-            return ApiResponse.fail("获取项目成果失败: " + e.getMessage());
-        }
+    public ProjectAchievementDTO getAchievement(@PathVariable Long id) {
+        return resumeManageService.getAchievement(id);
     }
 
     @PostMapping("/achievements")
-    public ApiResponse<ProjectAchievementDTO> createAchievement(@RequestBody ProjectAchievement achievement) {
-        try {
-            return ApiResponse.success(resumeManageService.createAchievement(achievement));
-        } catch (Exception e) {
-            log.error("创建项目成果失败: ", e);
-            return ApiResponse.fail("创建项目成果失败: " + e.getMessage());
-        }
+    public ProjectAchievementDTO createAchievement(@RequestBody ProjectAchievement achievement) {
+        return resumeManageService.createAchievement(achievement);
     }
 
     @PutMapping("/achievements/{id}")
-    public ApiResponse<ProjectAchievementDTO> updateAchievement(@PathVariable Long id, @RequestBody ProjectAchievement achievement) {
-        try {
-            achievement.setId(id);
-            return ApiResponse.success(resumeManageService.updateAchievement(achievement));
-        } catch (Exception e) {
-            log.error("更新项目成果失败: ", e);
-            return ApiResponse.fail("更新项目成果失败: " + e.getMessage());
-        }
+    public ProjectAchievementDTO updateAchievement(@PathVariable Long id, @RequestBody ProjectAchievement achievement) {
+        achievement.setId(id);
+        return resumeManageService.updateAchievement(achievement);
     }
 
     @DeleteMapping("/achievements/{id}")
-    public ApiResponse<Void> deleteAchievement(@PathVariable Long id) {
-        try {
-            resumeManageService.deleteAchievement(id);
-            return ApiResponse.success(null);
-        } catch (Exception e) {
-            log.error("删除项目成果失败: ", e);
-            return ApiResponse.fail("删除项目成果失败: " + e.getMessage());
-        }
+    public Boolean deleteAchievement(@PathVariable Long id) {
+        resumeManageService.deleteAchievement(id);
+        return true;
     }
 
     // ========== 技术栈 ==========
 
     @GetMapping("/stacks")
-    public ApiResponse<List<WorkExperienceStackDTO>> listStacks(@RequestParam(required = false) Long experienceId) {
-        try {
-            List<WorkExperienceStackDTO> data = experienceId != null
-                    ? resumeManageService.listStacksByExperienceId(experienceId)
-                    : resumeManageService.listStacks();
-            return ApiResponse.success(data);
-        } catch (Exception e) {
-            log.error("获取技术栈列表失败: ", e);
-            return ApiResponse.fail("获取技术栈列表失败: " + e.getMessage());
-        }
+    public List<WorkExperienceStackDTO> listStacks(@RequestParam(required = false) Long experienceId) {
+        return experienceId != null
+                ? resumeManageService.listStacksByExperienceId(experienceId)
+                : resumeManageService.listStacks();
     }
 
     @GetMapping("/stacks/{id}")
-    public ApiResponse<WorkExperienceStackDTO> getStack(@PathVariable Long id) {
-        try {
-            WorkExperienceStackDTO data = resumeManageService.getStack(id);
-            return data != null ? ApiResponse.success(data) : ApiResponse.fail("技术栈不存在");
-        } catch (Exception e) {
-            log.error("获取技术栈失败: ", e);
-            return ApiResponse.fail("获取技术栈失败: " + e.getMessage());
-        }
+    public WorkExperienceStackDTO getStack(@PathVariable Long id) {
+        return resumeManageService.getStack(id);
     }
 
     @PostMapping("/stacks")
-    public ApiResponse<WorkExperienceStackDTO> createStack(@RequestBody WorkExperienceStack stack) {
-        try {
-            return ApiResponse.success(resumeManageService.createStack(stack));
-        } catch (Exception e) {
-            log.error("创建技术栈失败: ", e);
-            return ApiResponse.fail("创建技术栈失败: " + e.getMessage());
-        }
+    public WorkExperienceStackDTO createStack(@RequestBody WorkExperienceStack stack) {
+        return resumeManageService.createStack(stack);
     }
 
     @PutMapping("/stacks/{id}")
-    public ApiResponse<WorkExperienceStackDTO> updateStack(@PathVariable Long id, @RequestBody WorkExperienceStack stack) {
-        try {
-            stack.setId(id);
-            return ApiResponse.success(resumeManageService.updateStack(stack));
-        } catch (Exception e) {
-            log.error("更新技术栈失败: ", e);
-            return ApiResponse.fail("更新技术栈失败: " + e.getMessage());
-        }
+    public WorkExperienceStackDTO updateStack(@PathVariable Long id, @RequestBody WorkExperienceStack stack) {
+        stack.setId(id);
+        return resumeManageService.updateStack(stack);
     }
 
     @DeleteMapping("/stacks/{id}")
-    public ApiResponse<Void> deleteStack(@PathVariable Long id) {
-        try {
-            resumeManageService.deleteStack(id);
-            return ApiResponse.success(null);
-        } catch (Exception e) {
-            log.error("删除技术栈失败: ", e);
-            return ApiResponse.fail("删除技术栈失败: " + e.getMessage());
-        }
+    public Boolean deleteStack(@PathVariable Long id) {
+        resumeManageService.deleteStack(id);
+        return true;
     }
 }

@@ -1,0 +1,71 @@
+package com.mouhin.brief.wisdom.config;
+
+import com.mouhin.brief.wisdom.ai.service.AiAgentService.ContentSecurityException;
+import com.mouhin.brief.wisdom.ai.service.AiAgentService.RateLimitException;
+import com.mouhin.brief.wisdom.common.Result;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+/**
+ * 全局异常处理器
+ * <p>
+ * 统一捕获 Controller 层抛出的异常，转换为标准 Result 格式返回，
+ * Controller 无需再写 try-catch 块。
+ */
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    /**
+     * 内容安全拦截异常 —— 返回 400
+     */
+    @ExceptionHandler(ContentSecurityException.class)
+    public ResponseEntity<Result<?>> handleContentSecurityException(ContentSecurityException e) {
+        log.warn("[内容安全] 请求被拦截: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.fail(e.getMessage()));
+    }
+
+    /**
+     * 限流异常 —— 返回 429
+     */
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<Result<?>> handleRateLimitException(RateLimitException e) {
+        log.warn("[限流] 请求被限流: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Result.fail(e.getMessage()));
+    }
+
+    /**
+     * 参数校验异常（Spring Validation）—— 返回 400
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Result<?>> handleValidationException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .reduce((a, b) -> a + "; " + b)
+                .orElse("参数校验失败");
+        log.warn("[参数校验] {}", message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.fail(message));
+    }
+
+    /**
+     * 非法参数异常 —— 返回 400
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Result<?>> handleIllegalArgumentException(IllegalArgumentException e) {
+        log.warn("[参数错误] {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.fail(e.getMessage()));
+    }
+
+    /**
+     * 其他未知异常 —— 返回 200 + 错误信息（兼容现有前端处理逻辑）
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Result<?>> handleException(Exception e) {
+        log.error("未知异常: ", e);
+        return ResponseEntity.ok(Result.fail("服务异常: " + e.getMessage()));
+    }
+}

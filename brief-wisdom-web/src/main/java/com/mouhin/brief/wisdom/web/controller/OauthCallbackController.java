@@ -36,8 +36,7 @@ import java.util.UUID;
 public class OauthCallbackController {
 
     private static final String SESSION_USER_KEY = "AUTH_USER";
-    private static final String SPRING_SECURITY_CONTEXT_KEY =
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
     private final DingtalkAuthService dingtalkAuthService;
     private final AlipayAuthService alipayAuthService;
 

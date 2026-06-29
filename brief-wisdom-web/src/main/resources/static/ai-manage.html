@@ -2,10 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI助手管理</title>
-    <link href="css/navbar.css?v=8" rel="stylesheet">
-    <link href="css/ai-manage.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/navbar.css?v=8">
+    <link rel="stylesheet" href="css/ai-manage.css">
 </head>
 <body>
 <div class="container">
@@ -21,7 +21,7 @@
     </nav>
 
     <!-- Tab 1: 会话历史 -->
-    <div class="manage-tab-content active" id="sessions-tab-content">
+    <div id="sessions-tab-content" class="manage-tab-content active">
         <!-- 筛选栏 -->
         <div class="filter-bar">
             <div class="filter-group">
@@ -48,18 +48,18 @@
             <div class="panel panel-users">
                 <div class="panel-header">
                     <h2>用户列表</h2>
-                    <span class="count-badge" id="user-count">0</span>
+                    <span id="user-count" class="count-badge">0</span>
                 </div>
-                <div class="panel-body" id="user-list"></div>
+                <div id="user-list" class="panel-body"></div>
             </div>
 
             <!-- 中栏：会话列表 -->
             <div class="panel panel-sessions">
                 <div class="panel-header">
                     <h2 id="session-title">会话列表</h2>
-                    <span class="count-badge" id="session-count">0</span>
+                    <span id="session-count" class="count-badge">0</span>
                 </div>
-                <div class="panel-body" id="session-list">
+                <div id="session-list" class="panel-body">
                     <div class="empty-hint">请选择用户查看会话</div>
                 </div>
             </div>
@@ -68,9 +68,9 @@
             <div class="panel panel-messages">
                 <div class="panel-header">
                     <h2 id="message-title">消息详情</h2>
-                    <span class="count-badge" id="message-count">0</span>
+                    <span id="message-count" class="count-badge">0</span>
                 </div>
-                <div class="panel-body" id="message-list">
+                <div id="message-list" class="panel-body">
                     <div class="empty-hint">请选择会话查看消息</div>
                 </div>
             </div>
@@ -78,7 +78,7 @@
     </div><!-- /sessions-tab-content -->
 
     <!-- Tab 2: 模型管理 -->
-    <div class="manage-tab-content" id="models-tab-content">
+    <div id="models-tab-content" class="manage-tab-content">
         <div class="model-section">
             <div class="section-header">
                 <h2>模型配置</h2>
@@ -104,37 +104,37 @@
         </div>
 
         <!-- 模型编辑弹窗 -->
-        <div class="modal" id="model-modal" style="display:none;">
+        <div id="model-modal" class="modal" style="display:none;">
             <div class="modal-content">
                 <div class="modal-header">
                     <h3 id="model-modal-title">新增模型</h3>
                     <button class="modal-close" onclick="closeModelModal()">×</button>
                 </div>
-                <form class="modal-form" id="model-form" onsubmit="saveModel(event)">
-                    <input id="model-id" type="hidden">
+                <form id="model-form" class="modal-form" onsubmit="saveModel(event)">
+                    <input type="hidden" id="model-id">
                     <div class="form-group">
                         <label>模型标识 *</label>
-                        <input id="model-name-input" placeholder="例如: qwen-max" required type="text">
+                        <input type="text" id="model-name-input" required placeholder="例如: qwen-max">
                     </div>
                     <div class="form-group">
                         <label>显示名称 *</label>
-                        <input id="model-display-name" placeholder="例如: 通义千问 Max" required type="text">
+                        <input type="text" id="model-display-name" required placeholder="例如: 通义千问 Max">
                     </div>
                     <div class="form-group">
                         <label>服务商</label>
-                        <input id="model-provider" placeholder="dashscope" type="text" value="dashscope">
+                        <input type="text" id="model-provider" value="dashscope" placeholder="dashscope">
                     </div>
                     <div class="form-group">
                         <label>描述</label>
-                        <input id="model-description" placeholder="模型描述" type="text">
+                        <input type="text" id="model-description" placeholder="模型描述">
                     </div>
                     <div class="form-group">
                         <label>排序</label>
-                        <input id="model-sort-order" min="0" type="number" value="0">
+                        <input type="number" id="model-sort-order" value="0" min="0">
                     </div>
                     <div class="form-actions">
-                        <button class="btn btn-secondary" onclick="closeModelModal()" type="button">取消</button>
-                        <button class="btn btn-primary" type="submit">保存</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModelModal()">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
                     </div>
                 </form>
             </div>
@@ -143,13 +143,13 @@
 </div>
 
 <!-- 详情弹窗 -->
-<div class="modal" id="detail-modal" style="display:none;">
+<div id="detail-modal" class="modal" style="display:none;">
     <div class="modal-content detail-modal-content">
         <div class="modal-header">
             <h3 id="detail-modal-title">详情</h3>
             <button class="modal-close" onclick="closeDetailModal()">&times;</button>
         </div>
-        <div class="detail-modal-body" id="detail-modal-body"></div>
+        <div id="detail-modal-body" class="detail-modal-body"></div>
     </div>
 </div>
 

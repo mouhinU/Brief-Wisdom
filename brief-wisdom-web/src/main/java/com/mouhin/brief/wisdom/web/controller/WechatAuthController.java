@@ -39,8 +39,7 @@ public class WechatAuthController {
     /**
      * Spring Security 上下文存储到 Session 的 Key
      */
-    private static final String SPRING_SECURITY_CONTEXT_KEY =
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
     private final WechatAuthService wechatAuthService;
 
     /**

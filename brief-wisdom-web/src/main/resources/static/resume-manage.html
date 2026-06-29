@@ -2,17 +2,17 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>简历数据管理</title>
-    <link href="css/navbar.css?v=8" rel="stylesheet">
-    <link href="css/resume-manage.css" rel="stylesheet">
-    <link href="css/resume-editor.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/navbar.css?v=8">
+    <link rel="stylesheet" href="css/resume-manage.css">
+    <link rel="stylesheet" href="css/resume-editor.css">
 </head>
 <body>
 <div class="container">
     <header>
         <h1>简历数据管理</h1>
-        <a class="back-link" href="/">← 返回主页</a>
+        <a href="/" class="back-link">← 返回主页</a>
     </header>
 
     <!-- Tab 导航 -->
@@ -25,7 +25,7 @@
     </nav>
 
     <!-- 在线编辑 Tab -->
-    <section class="tab-content" id="editor-tab">
+    <section id="editor-tab" class="tab-content">
         <div class="editor-container">
             <!-- 步骤导航 -->
             <div class="editor-steps">
@@ -50,16 +50,16 @@
     </section>
 
     <!-- 工作经历 Tab -->
-    <section class="tab-content active" id="experiences-tab">
+    <section id="experiences-tab" class="tab-content active">
         <div class="section-header">
             <h2>工作经历管理</h2>
             <button class="btn btn-primary" onclick="showExperienceForm()">+ 新增工作经历</button>
         </div>
-        <div class="data-list" id="experiences-list"></div>
+        <div id="experiences-list" class="data-list"></div>
     </section>
 
     <!-- 项目 Tab -->
-    <section class="tab-content" id="projects-tab">
+    <section id="projects-tab" class="tab-content">
         <div class="section-header">
             <h2>项目管理</h2>
             <button class="btn btn-primary" onclick="showProjectForm()">+ 新增项目</button>
@@ -70,11 +70,11 @@
                 <option value="">全部</option>
             </select>
         </div>
-        <div class="data-list" id="projects-list"></div>
+        <div id="projects-list" class="data-list"></div>
     </section>
 
     <!-- 项目成果 Tab -->
-    <section class="tab-content" id="achievements-tab">
+    <section id="achievements-tab" class="tab-content">
         <div class="section-header">
             <h2>项目成果管理</h2>
             <button class="btn btn-primary" onclick="showAchievementForm()">+ 新增项目成果</button>
@@ -85,11 +85,11 @@
                 <option value="">全部</option>
             </select>
         </div>
-        <div class="data-list" id="achievements-list"></div>
+        <div id="achievements-list" class="data-list"></div>
     </section>
 
     <!-- 技术栈 Tab -->
-    <section class="tab-content" id="stacks-tab">
+    <section id="stacks-tab" class="tab-content">
         <div class="section-header">
             <h2>技术栈管理</h2>
             <button class="btn btn-primary" onclick="showStackForm()">+ 新增技术栈</button>
@@ -100,11 +100,11 @@
                 <option value="">全部</option>
             </select>
         </div>
-        <div class="data-list" id="stacks-list"></div>
+        <div id="stacks-list" class="data-list"></div>
     </section>
 
     <!-- 简历预览弹窗 -->
-    <div class="resume-preview-overlay" id="resume-preview-modal" style="display:none;">
+    <div id="resume-preview-modal" class="resume-preview-overlay" style="display:none;">
         <div class="resume-preview-container">
             <div class="resume-preview-toolbar">
                 <h3>简历预览</h3>
@@ -121,13 +121,13 @@
     </div>
 
     <!-- 弹窗 -->
-    <div class="modal" id="modal" style="display:none;">
+    <div id="modal" class="modal" style="display:none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modal-title">新增</h3>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
-            <form class="modal-form" id="modal-form"></form>
+            <form id="modal-form" class="modal-form"></form>
         </div>
     </div>
 </div>

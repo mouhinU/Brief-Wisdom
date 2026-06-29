@@ -1,6 +1,5 @@
 package com.mouhin.brief.wisdom.web.controller;
 
-import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.web.req.LoginRequest;
@@ -31,70 +30,56 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private static final String SPRING_SECURITY_CONTEXT_KEY =
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
     private final AuthService authService;
 
     /**
      * 用户注册
      */
     @PostMapping("/register")
-    public ApiResponse<UserDTO> register(@RequestBody RegisterRequest request) {
-        try {
-            if (request.getUsername() == null || request.getUsername().isBlank()) {
-                return ApiResponse.fail("用户名不能为空");
-            }
-            if (request.getPassword() == null || request.getPassword().isBlank()) {
-                return ApiResponse.fail("密码不能为空");
-            }
-            if (request.getPassword().length() < 6) {
-                return ApiResponse.fail("密码长度不能少于6位");
-            }
-            UserDTO user = authService.register(request.getUsername(), request.getPassword(), request.getNickname());
-            return ApiResponse.success(user);
-        } catch (Exception e) {
-            log.error("[注册] 注册失败: ", e);
-            return ApiResponse.fail(e.getMessage());
+    public UserDTO register(@RequestBody RegisterRequest request) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new IllegalArgumentException("用户名不能为空");
         }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("密码不能为空");
+        }
+        if (request.getPassword().length() < 6) {
+            throw new IllegalArgumentException("密码长度不能少于6位");
+        }
+        return authService.register(request.getUsername(), request.getPassword(), request.getNickname());
     }
 
     /**
      * 用户登录（用户名 + 密码）
      */
     @PostMapping("/login")
-    public ApiResponse<UserDTO> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        try {
-            if (request.getUsername() == null || request.getUsername().isBlank()) {
-                return ApiResponse.fail("用户名不能为空");
-            }
-            if (request.getPassword() == null || request.getPassword().isBlank()) {
-                return ApiResponse.fail("密码不能为空");
-            }
-
-            UserDTO user = authService.login(request.getUsername(), request.getPassword());
-
-            // 写入 Session（与微信登录保持一致的认证方式）
-            HttpSession session = httpRequest.getSession(true);
-            session.setAttribute(WechatAuthController.SESSION_USER_KEY, buildChatUserStub(user));
-
-            // 设置 Spring Security 认证上下文
-            SecurityContext context = SecurityContextHolder.createEmptyContext();
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(
-                            user.getUserId(),
-                            null,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-                    );
-            context.setAuthentication(authToken);
-            SecurityContextHolder.setContext(context);
-            session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
-
-            log.info("[登录] 用户登录成功, 写入 Session: userId={}, username={}", user.getUserId(), user.getUsername());
-            return ApiResponse.success(user);
-        } catch (Exception e) {
-            log.error("[登录] 登录失败: ", e);
-            return ApiResponse.fail(e.getMessage());
+    public UserDTO login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new IllegalArgumentException("用户名不能为空");
         }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("密码不能为空");
+        }
+        UserDTO user = authService.login(request.getUsername(), request.getPassword());
+        // 写入 Session（与微信登录保持一致的认证方式）
+        HttpSession session = httpRequest.getSession(true);
+        session.setAttribute(WechatAuthController.SESSION_USER_KEY, buildChatUserStub(user));
+
+        // 设置 Spring Security 认证上下文
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(
+                        user.getUserId(),
+                        null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                );
+        context.setAuthentication(authToken);
+        SecurityContextHolder.setContext(context);
+        session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
+
+        log.info("[登录] 用户登录成功, 写入 Session: userId={}, username={}", user.getUserId(), user.getUsername());
+        return user;
     }
 
     /**

@@ -5,10 +5,7 @@ import com.mouhin.brief.wisdom.ai.req.ChatWithPromptRequest;
 import com.mouhin.brief.wisdom.ai.req.QuestionRequest;
 import com.mouhin.brief.wisdom.ai.req.SessionCreateRequest;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService;
-import com.mouhin.brief.wisdom.ai.service.AiAgentService.ContentSecurityException;
-import com.mouhin.brief.wisdom.ai.service.AiAgentService.RateLimitException;
 import com.mouhin.brief.wisdom.ai.service.ChatSyncService;
-import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
@@ -17,7 +14,6 @@ import com.mouhin.brief.wisdom.config.PaginationProperties;
 import com.mouhin.brief.wisdom.web.service.UserContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -40,42 +36,20 @@ public class AiAgentController {
      * 简单聊天接口（无上下文）
      */
     @PostMapping("/chat")
-    public ResponseEntity<ApiResponse<String>> chat(@RequestBody ChatRequest request) {
-        try {
-            String response = aiAgentService.chat(request.getMessage());
-            return ResponseEntity.ok(ApiResponse.success(response));
-        } catch (ContentSecurityException e) {
-            log.warn("[内容安全] 聊天请求被拦截: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
-        } catch (RateLimitException e) {
-            log.warn("[限流] 聊天请求被限流");
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(ApiResponse.fail(e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.fail("AI 服务异常: " + e.getMessage()));
-        }
+    public ResponseEntity<String> chat(@RequestBody ChatRequest request) {
+        String response = aiAgentService.chat(request.getMessage());
+        return ResponseEntity.ok(response);
     }
 
     /**
      * 带上下文的聊天接口
      */
     @PostMapping("/chat/session/{sessionId}")
-    public ResponseEntity<ApiResponse<String>> chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
+    public ResponseEntity<String> chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
         String userId = userContextHelper.getCurrentUserId();
-
         log.info("收到聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}", sessionId, userId, request.getMessage(), request.getModel());
-        try {
-            String response = aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel());
-            return ResponseEntity.ok(ApiResponse.success(response));
-        } catch (ContentSecurityException e) {
-            log.warn("[内容安全] 聊天请求被拦截 - userId: {}, reason: {}", userId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
-        } catch (RateLimitException e) {
-            log.warn("[限流] 聊天请求被限流 - userId: {}", userId);
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(ApiResponse.fail(e.getMessage()));
-        } catch (Exception e) {
-            log.error("聊天失败: ", e);
-            return ResponseEntity.ok(ApiResponse.fail("AI 服务异常: " + e.getMessage()));
-        }
+        String response = aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel());
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -84,28 +58,20 @@ public class AiAgentController {
      * 支持传入 pageContext 记录会话来源页面
      */
     @PostMapping("/session")
-    public ApiResponse<String> createSession(@RequestBody(required = false) SessionCreateRequest request) {
-        try {
-            String userId = userContextHelper.getCurrentUserId();
-            String pageContext = (request != null) ? request.getPageContext() : null;
-            String sessionId = aiAgentService.createSession(userId, pageContext);
-            return ApiResponse.success(sessionId);
-        } catch (Exception e) {
-            return ApiResponse.fail("创建会话失败: " + e.getMessage());
-        }
+    public String createSession(@RequestBody(required = false) SessionCreateRequest request) {
+        String userId = userContextHelper.getCurrentUserId();
+        String pageContext = (request != null) ? request.getPageContext() : null;
+        String sessionId = aiAgentService.createSession(userId, pageContext);
+        return sessionId;
     }
 
     /**
      * 删除会话
      */
     @DeleteMapping("/session/{sessionId}")
-    public ApiResponse<Void> deleteSession(@PathVariable String sessionId) {
-        try {
-            aiAgentService.deleteSession(sessionId);
-            return ApiResponse.success(null);
-        } catch (Exception e) {
-            return ApiResponse.fail("删除会话失败: " + e.getMessage());
-        }
+    public Boolean deleteSession(@PathVariable String sessionId) {
+        aiAgentService.deleteSession(sessionId);
+        return true;
     }
 
     /**
@@ -117,19 +83,14 @@ public class AiAgentController {
      * @param size 每页大小，不传则使用配置的默认值，超过配置的最大值会被截断
      */
     @GetMapping("/sessions")
-    public ApiResponse<PageResult<SessionMetaDTO>> listSessions(
+    public PageResult<SessionMetaDTO> listSessions(
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", required = false) Integer size) {
-        try {
-            String userId = userContextHelper.getCurrentUserId();
-
-            PaginationProperties.PageConfig config = paginationProperties.getSessionList();
-            int resolvedSize = config.resolveSize(size);
-            var result = aiAgentService.listSessionsPaged(userId, page, resolvedSize);
-            return ApiResponse.success(result);
-        } catch (Exception e) {
-            return ApiResponse.fail("获取会话列表失败: " + e.getMessage());
-        }
+        String userId = userContextHelper.getCurrentUserId();
+        PaginationProperties.PageConfig config = paginationProperties.getSessionList();
+        int resolvedSize = config.resolveSize(size);
+        var result = aiAgentService.listSessionsPaged(userId, page, resolvedSize);
+        return result;
     }
 
     /**
@@ -142,18 +103,14 @@ public class AiAgentController {
      * @param size      每页大小，不传则使用配置的默认值，超过配置的最大值会被截断
      */
     @GetMapping("/session/{sessionId}/history")
-    public ApiResponse<PageResult<ChatMessageDTO>> getSessionHistory(
+    public PageResult<ChatMessageDTO> getSessionHistory(
             @PathVariable String sessionId,
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", required = false) Integer size) {
-        try {
-            PaginationProperties.PageConfig config = paginationProperties.getMessageHistory();
-            int resolvedSize = config.resolveSize(size);
-            var result = aiAgentService.getSessionHistoryPaged(sessionId, page, resolvedSize);
-            return ApiResponse.success(result);
-        } catch (Exception e) {
-            return ApiResponse.fail("获取历史记录失败: " + e.getMessage());
-        }
+        PaginationProperties.PageConfig config = paginationProperties.getMessageHistory();
+        int resolvedSize = config.resolveSize(size);
+        var result = aiAgentService.getSessionHistoryPaged(sessionId, page, resolvedSize);
+        return result;
     }
 
     /**
@@ -162,57 +119,39 @@ public class AiAgentController {
      * 前端可调用此接口获取各业务的默认分页大小，避免硬编码
      */
     @GetMapping("/config/pagination")
-    public ApiResponse<Map<String, Object>> getPaginationConfig() {
-        try {
-            Map<String, Object> config = Map.of(
-                    "sessionList", Map.of(
-                            "defaultSize", paginationProperties.getSessionList().getDefaultSize(),
-                            "maxSize", paginationProperties.getSessionList().getMaxSize()
-                    ),
-                    "messageHistory", Map.of(
-                            "defaultSize", paginationProperties.getMessageHistory().getDefaultSize(),
-                            "maxSize", paginationProperties.getMessageHistory().getMaxSize()
-                    )
-            );
-            return ApiResponse.success(config);
-        } catch (Exception e) {
-            return ApiResponse.fail("获取分页配置失败: " + e.getMessage());
-        }
+    public Map<String, Object> getPaginationConfig() {
+        Map<String, Object> config = Map.of(
+                "sessionList", Map.of(
+                        "defaultSize", paginationProperties.getSessionList().getDefaultSize(),
+                        "maxSize", paginationProperties.getSessionList().getMaxSize()
+                ),
+                "messageHistory", Map.of(
+                        "defaultSize", paginationProperties.getMessageHistory().getDefaultSize(),
+                        "maxSize", paginationProperties.getMessageHistory().getMaxSize()
+                )
+        );
+        return config;
     }
 
     /**
      * 带系统提示的聊天接口
      */
     @PostMapping("/chat-with-prompt")
-    public ApiResponse<String> chatWithPrompt(@RequestBody ChatWithPromptRequest request) {
-        try {
-            String response = aiAgentService.chatWithSystemPrompt(
-                    request.getSystemPrompt(),
-                    request.getUserMessage()
-            );
-            return ApiResponse.success(response);
-        } catch (Exception e) {
-            return ApiResponse.fail("AI 服务异常: " + e.getMessage());
-        }
+    public String chatWithPrompt(@RequestBody ChatWithPromptRequest request) {
+        String response = aiAgentService.chatWithSystemPrompt(
+                request.getSystemPrompt(),
+                request.getUserMessage()
+        );
+        return response;
     }
 
     /**
      * 智能问答接口
      */
     @PostMapping("/ask")
-    public ResponseEntity<ApiResponse<String>> ask(@RequestBody QuestionRequest request) {
-        try {
-            String response = aiAgentService.askQuestion(request.getQuestion());
-            return ResponseEntity.ok(ApiResponse.success(response));
-        } catch (ContentSecurityException e) {
-            log.warn("[内容安全] 问答请求被拦截: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
-        } catch (RateLimitException e) {
-            log.warn("[限流] 问答请求被限流");
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(ApiResponse.fail(e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.fail("AI 服务异常: " + e.getMessage()));
-        }
+    public ResponseEntity<String> ask(@RequestBody QuestionRequest request) {
+        String response = aiAgentService.askQuestion(request.getQuestion());
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -221,15 +160,10 @@ public class AiAgentController {
      * 返回轻量级同步指纹，前端定时轮询此接口，对比 fingerprint 判断是否需要刷新数据。
      */
     @GetMapping("/sync/status")
-    public ApiResponse<SyncStatusDTO> getSyncStatus() {
-        try {
-            String userId = userContextHelper.getCurrentUserId();
-
-            SyncStatusDTO syncStatus = aiAgentService.getSyncStatus(userId);
-            return ApiResponse.success(syncStatus);
-        } catch (Exception e) {
-            return ApiResponse.fail("获取同步状态失败: " + e.getMessage());
-        }
+    public SyncStatusDTO getSyncStatus() {
+        String userId = userContextHelper.getCurrentUserId();
+        SyncStatusDTO syncStatus = aiAgentService.getSyncStatus(userId);
+        return syncStatus;
     }
 
     /**
@@ -254,10 +188,10 @@ public class AiAgentController {
      * 前端关闭聊天窗口时调用，主动清理服务端的 SSE 连接资源。
      */
     @DeleteMapping("/sync/events")
-    public ApiResponse<Boolean> disconnectSync() {
+    public Boolean disconnectSync() {
         String userId = userContextHelper.getCurrentUserId();
         chatSyncService.disconnectUser(userId);
         log.info("[SSE] 用户 {} 主动断开 SSE 连接", userId);
-        return ApiResponse.success(true);
+        return true;
     }
 }

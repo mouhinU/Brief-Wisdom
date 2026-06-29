@@ -1,6 +1,6 @@
+
 package com.mouhin.brief.wisdom.resume.controller;
 
-import com.mouhin.brief.wisdom.common.ApiResponse;
 import com.mouhin.brief.wisdom.resume.dto.WorkExperienceVO;
 import com.mouhin.brief.wisdom.resume.service.ResumeService;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +30,7 @@ public class ResumeController {
      * 返回结构与原 project.json 一致，前端无需修改渲染逻辑。
      */
     @GetMapping("/experiences")
-    public ApiResponse<List<WorkExperienceVO>> listExperiences() {
-        try {
-            List<WorkExperienceVO> data = resumeService.listAllExperiences();
-            return ApiResponse.success(data);
-        } catch (Exception e) {
-            log.error("获取简历数据失败: ", e);
-            return ApiResponse.fail("获取简历数据失败: " + e.getMessage());
-        }
+    public List<WorkExperienceVO> listExperiences() {
+        return resumeService.listAllExperiences();
     }
 }
