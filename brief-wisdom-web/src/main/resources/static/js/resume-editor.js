@@ -198,7 +198,7 @@ async function saveExperience(id) {
 }
 
 async function deleteExperience(id) {
-  if (!confirm('确定删除该工作经历？关联的技术栈也将被删除。')) return;
+  if (!await showConfirmDialog('确定删除该工作经历？关联的技术栈也将被删除。', '🗑️')) return;
   try {
     await apiRequest(`/experiences/${id}`, 'DELETE');
     editorExperiences = editorExperiences.filter(e => e.id !== id);
@@ -223,7 +223,7 @@ async function addStack(expId) {
 }
 
 async function deleteStack(stackId) {
-  if (!confirm('确定删除该技术栈？')) return;
+  if (!await showConfirmDialog('确定删除该技术栈？', '🗑️')) return;
   try {
     await apiRequest(`/stacks/${stackId}`, 'DELETE');
     editorStacks = editorStacks.filter(s => s.id !== stackId);
@@ -386,7 +386,7 @@ async function saveProject(id) {
 }
 
 async function deleteProject(id) {
-  if (!confirm('确定删除该项目？关联的项目成果也将被删除。')) return;
+  if (!await showConfirmDialog('确定删除该项目？关联的项目成果也将被删除。', '🗑️')) return;
   try {
     await apiRequest(`/projects/${id}`, 'DELETE');
     editorProjects = editorProjects.filter(p => p.id !== id);
@@ -411,7 +411,7 @@ async function addAchievement(projId) {
 }
 
 async function deleteAchievement(achId) {
-  if (!confirm('确定删除该成果？')) return;
+  if (!await showConfirmDialog('确定删除该成果？', '🗑️')) return;
   try {
     await apiRequest(`/achievements/${achId}`, 'DELETE');
     editorAchievements = editorAchievements.filter(a => a.id !== achId);

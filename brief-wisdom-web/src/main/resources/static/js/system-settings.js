@@ -262,7 +262,7 @@ async function saveMenu(e) {
 }
 
 async function deleteMenu(id) {
-  if (!confirm('确定要删除此菜单吗？')) return;
+  if (!await showConfirmDialog('确定要删除此菜单吗？', '🗑️')) return;
   try {
     const res = await fetch(`${MENU_API}/${id}`, { method: 'DELETE' });
     const result = await res.json();
@@ -413,7 +413,7 @@ async function saveUserLevel(e) {
 }
 
 async function resetUserPassword(id, username) {
-  if (!confirm(`确定要重置用户 "${username}" 的密码吗？`)) return;
+  if (!await showConfirmDialog(`确定要重置用户 "${username}" 的密码吗？`, '🔑')) return;
   try {
     const res = await fetch(`${USER_API}/${id}/reset-password`, { method: 'PUT' });
     const result = await res.json();
@@ -428,7 +428,7 @@ async function resetUserPassword(id, username) {
 }
 
 async function deleteUser(id, username) {
-  if (!confirm(`确定要删除用户 "${username}" 吗？`)) return;
+  if (!await showConfirmDialog(`确定要删除用户 "${username}" 吗？`, '🗑️')) return;
   try {
     const res = await fetch(`${USER_API}/${id}`, { method: 'DELETE' });
     const result = await res.json();
@@ -549,7 +549,7 @@ async function saveRole(e) {
 }
 
 async function deleteRole(id, name) {
-  if (!confirm(`确定要删除角色“${name}”吗？`)) return;
+  if (!await showConfirmDialog(`确定要删除角色"${name}"吗？`, '🗑️')) return;
   try {
     const res = await fetch(`${ROLE_API}/${id}`, { method: 'DELETE' });
     const result = await res.json();

@@ -538,7 +538,7 @@ async function saveModel(e) {
 }
 
 async function deleteModel(id) {
-  if (!confirm('确定要删除此模型吗？')) return;
+  if (!await showConfirmDialog('确定要删除此模型吗？', '🗑️')) return;
   try {
     const res = await fetch(`${MODEL_API}/${id}`, { method: 'DELETE' });
     const result = await res.json();
@@ -553,7 +553,7 @@ async function deleteModel(id) {
 }
 
 async function activateModel(id) {
-  if (!confirm('确定要激活此模型吗？（其他模型将取消激活）')) return;
+  if (!await showConfirmDialog('确定要激活此模型吗？（其他模型将取消激活）', '⚡')) return;
   try {
     const res = await fetch(`${MODEL_API}/activate/${id}`, { method: 'PUT' });
     const result = await res.json();

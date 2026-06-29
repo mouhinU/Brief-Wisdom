@@ -1181,71 +1181,112 @@ body {
 }
 
 /* ========== 自定义确认弹窗（浏览器居中） ========== */
-.chat-confirm-overlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    z-index: 100000;
-    animation: fadeIn 0.15s ease;
+/* ===== 全局确认弹窗样式 ===== */
+.global-confirm-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 100000;
+  animation: fadeIn 0.2s ease;
 }
 
-.chat-confirm-modal {
-    background: white;
-    border-radius: 12px;
-    padding: 24px 28px;
-    min-width: 300px;
-    max-width: 400px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-    animation: slideUpModal 0.2s ease;
+.global-confirm-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 32px 36px;
+  min-width: 360px;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUpModal 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.chat-confirm-message {
-    font-size: 15px;
-    color: #333;
-    text-align: center;
-    margin-bottom: 20px;
-    line-height: 1.5;
+.global-confirm-icon {
+  text-align: center;
+  font-size: 48px;
+  margin-bottom: 16px;
 }
 
-.chat-confirm-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
+.global-confirm-message {
+  font-size: 16px;
+  color: #333;
+  text-align: center;
+  margin-bottom: 28px;
+  line-height: 1.6;
+  font-weight: 400;
 }
 
-.chat-confirm-cancel, .chat-confirm-ok {
-    padding: 8px 24px;
-    border-radius: 8px;
-    font-size: 14px;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s;
+.global-confirm-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
 }
 
-.chat-confirm-cancel {
-    background: #f0f0f0;
-    color: #666;
+.global-confirm-cancel, .global-confirm-ok {
+  padding: 10px 32px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  min-width: 100px;
 }
 
-.chat-confirm-cancel:hover {
-    background: #e0e0e0;
+.global-confirm-cancel {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #e0e0e0;
 }
 
-.chat-confirm-ok {
-    background: #667eea;
-    color: white;
+.global-confirm-cancel:hover {
+  background: #e8e8e8;
+  border-color: #d0d0d0;
+  transform: translateY(-1px);
 }
 
-.chat-confirm-ok:hover {
-    background: #5a6fd6;
+.global-confirm-ok {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.global-confirm-ok:hover {
+  background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px);
+}
+
+.global-confirm-ok:active, .global-confirm-cancel:active {
+  transform: translateY(0);
+}
+
+/* 深色主题支持 */
+[data-theme="dark"] .global-confirm-modal {
+  background: #2a2a2a;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .global-confirm-message {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .global-confirm-cancel {
+  background: #3a3a3a;
+  color: #ccc;
+  border-color: #4a4a4a;
+}
+
+[data-theme="dark"] .global-confirm-cancel:hover {
+  background: #4a4a4a;
+  border-color: #5a5a5a;
 }
 
 /* ===== 菜单下拉样式 ===== */

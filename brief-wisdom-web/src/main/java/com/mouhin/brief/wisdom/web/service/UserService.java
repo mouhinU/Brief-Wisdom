@@ -9,6 +9,7 @@ import com.mouhin.brief.wisdom.persistence.model.SysRole;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class UserService {
 
     private final ChatUserRepository chatUserRepository;
     private final RoleService roleService;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 分页获取用户列表（支持按级别、关键词筛选）
@@ -86,16 +88,16 @@ public class UserService {
     }
 
     /**
-     * 重置用户密码（清空密码，用户需重新设置）
+     * 重置用户密码为 123456
      */
     public void resetPassword(Long id) {
         ChatUser user = chatUserRepository.findById(id);
         if (user == null) {
             throw new IllegalArgumentException("用户不存在");
         }
-        user.setPassword(null);
+        user.setPassword(passwordEncoder.encode("123456"));
         chatUserRepository.update(user);
-        log.info("重置用户密码: userId={}, username={}", user.getUserId(), user.getUsername());
+        log.info("重置用户密码为123456: userId={}, username={}", user.getUserId(), user.getUsername());
     }
 
     /**

@@ -178,7 +178,7 @@ function editExperience(id) {
 }
 
 async function deleteExperience(id) {
-  if (!confirm('确定删除该工作经历？删除后关联的项目、成果、技术栈也将被删除。')) return;
+  if (!await showConfirmDialog('确定删除该工作经历？删除后关联的项目、成果、技术栈也将被删除。', '🗑️')) return;
   await apiRequest(`/experiences/${id}`, 'DELETE');
   loadExperiences();
 }
@@ -293,7 +293,7 @@ function editProject(id) {
 }
 
 async function deleteProject(id) {
-  if (!confirm('确定删除该项目？删除后关联的项目成果也将被删除。')) return;
+  if (!await showConfirmDialog('确定删除该项目？删除后关联的项目成果也将被删除。', '🗑️')) return;
   await apiRequest(`/projects/${id}`, 'DELETE');
   loadProjects();
 }
@@ -389,7 +389,7 @@ async function editAchievement(id) {
 }
 
 async function deleteAchievement(id) {
-  if (!confirm('确定删除该项目成果？')) return;
+  if (!await showConfirmDialog('确定删除该项目成果？', '🗑️')) return;
   await apiRequest(`/achievements/${id}`, 'DELETE');
   loadAchievements();
 }
@@ -485,7 +485,7 @@ async function editStack(id) {
 }
 
 async function deleteStack(id) {
-  if (!confirm('确定删除该技术栈？')) return;
+  if (!await showConfirmDialog('确定删除该技术栈？', '🗑️')) return;
   await apiRequest(`/stacks/${id}`, 'DELETE');
   loadStacks();
 }

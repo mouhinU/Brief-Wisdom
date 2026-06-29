@@ -574,6 +574,60 @@ function showLoginRequiredToast() {
 }
 
 /**
+ * 全局确认弹窗（居中显示，替代浏览器原生 confirm）
+ * @param {string} message 确认消息
+ * @param {string} icon 图标（可选，默认 ⚠️）
+ * @returns {Promise<boolean>} 用户选择结果
+ */
+function showConfirmDialog(message, icon) {
+  return new Promise((resolve) => {
+    // 移除已存在的弹窗
+    const existing = document.getElementById('globalConfirmDialog');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'globalConfirmDialog';
+    overlay.className = 'global-confirm-overlay';
+    overlay.innerHTML = `
+      <div class="global-confirm-modal">
+        ${icon ? `<div class="global-confirm-icon">${icon}</div>` : ''}
+        <div class="global-confirm-message">${message}</div>
+        <div class="global-confirm-buttons">
+          <button class="global-confirm-cancel">取消</button>
+          <button class="global-confirm-ok">确定</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const cancelBtn = overlay.querySelector('.global-confirm-cancel');
+    const okBtn = overlay.querySelector('.global-confirm-ok');
+
+    const close = (result) => {
+      overlay.remove();
+      resolve(result);
+    };
+
+    cancelBtn.onclick = () => close(false);
+    okBtn.onclick = () => close(true);
+    // 点击遮罩层取消
+    overlay.onclick = (e) => {
+      if (e.target === overlay) close(false);
+    };
+    // ESC 键取消
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        close(false);
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+    // 默认聚焦确定按钮
+    okBtn.focus();
+  });
+}
+
+/**
  * 动态初始化页面 Tab 导航
  * 从 /api/menu/tree 接口获取当前页面的子菜单，渲染为 Tab 按钮
  * @param {Object} config 页面配置

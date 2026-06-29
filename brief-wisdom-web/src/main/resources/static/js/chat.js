@@ -472,51 +472,11 @@ async function selectSession(sessionId) {
     console.log('会话切换完成');
 }
 
-// 自定义居中确认弹窗（返回 Promise）
-function showConfirmDialog(message) {
-    return new Promise((resolve) => {
-        // 移除已存在的弹窗
-        const existing = document.getElementById('chatConfirmDialog');
-        if (existing) existing.remove();
-
-        const overlay = document.createElement('div');
-        overlay.id = 'chatConfirmDialog';
-        overlay.className = 'chat-confirm-overlay';
-        overlay.innerHTML = `
-            <div class="chat-confirm-modal">
-                <div class="chat-confirm-message">${message}</div>
-                <div class="chat-confirm-buttons">
-                    <button class="chat-confirm-cancel">取消</button>
-                    <button class="chat-confirm-ok">确定</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        const cancelBtn = overlay.querySelector('.chat-confirm-cancel');
-        const okBtn = overlay.querySelector('.chat-confirm-ok');
-
-        const close = (result) => {
-            overlay.remove();
-            resolve(result);
-        };
-
-        cancelBtn.onclick = () => close(false);
-        okBtn.onclick = () => close(true);
-        // 点击遮罩层取消
-        overlay.onclick = (e) => {
-            if (e.target === overlay) close(false);
-        };
-        // 默认聚焦确定按钮
-        okBtn.focus();
-    });
-}
-
 // 删除会话
 async function deleteSession(event, sessionId) {
     event.stopPropagation();
     
-    const confirmed = await showConfirmDialog('确定要删除这个会话吗？');
+    const confirmed = await showConfirmDialog('确定要删除这个会话吗？', '🗑️');
     if (!confirmed) {
         return;
     }
