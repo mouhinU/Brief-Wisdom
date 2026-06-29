@@ -11,7 +11,8 @@ let selectedSessionId = null;
 let currentMessages = []; // 缓存当前消息列表
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadUsers();
+  // 默认显示模型管理页面
+  loadManageModels();
 });
 
 // ===== 筛选事件 =====
@@ -58,18 +59,18 @@ async function loadSessionsByLevel() {
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      alert(`加载会话失败 (HTTP ${res.status})`);
+      showToast(`加载会话失败 (HTTP ${res.status})`, 'error');
       return;
     }
     const result = await res.json();
     if (!result.success) {
-      alert('加载会话失败: ' + (result.error || result.msg || '未知错误'));
+      showToast('加载会话失败: ' + (result.error || result.msg || '未知错误'), 'error');
       return;
     }
     renderSessions(result.data);
   } catch (err) {
     console.error('[loadSessionsByLevel] error:', err);
-    alert('加载会话异常: ' + err.message);
+    showToast('加载会话异常: ' + err.message, 'error');
   }
 }
 
@@ -82,7 +83,7 @@ async function loadUsers() {
     const res = await fetch(url);
     const result = await res.json();
     if (!result.success) {
-      alert('加载用户失败: ' + result.error);
+      showToast('加载用户失败: ' + result.error, 'error');
       return;
     }
     renderUsers(result.data);
@@ -133,7 +134,7 @@ async function selectUser(userId, userName, el) {
     const res = await fetch(url);
     const result = await res.json();
     if (!result.success) {
-      alert('加载会话失败: ' + result.error);
+      showToast('加载会话失败: ' + result.error, 'error');
       return;
     }
     renderSessions(result.data);
@@ -176,7 +177,7 @@ async function manageSelectSession(sessionId, title, el) {
     const res = await fetch(`${API_BASE}/session/${sessionId}/messages`);
     const result = await res.json();
     if (!result.success) {
-      alert('加载消息失败: ' + result.error);
+      showToast('加载消息失败: ' + result.error, 'error');
       return;
     }
     renderMessages(result.data);
@@ -421,6 +422,8 @@ function switchManageTab(tab) {
   });
   if (tab === 'models') {
     loadManageModels();
+  } else if (tab === 'sessions') {
+    loadUsers();
   }
 }
 
@@ -432,7 +435,7 @@ async function loadManageModels() {
     const res = await fetch(MODEL_API);
     const result = await res.json();
     if (!result.success) {
-      alert('加载模型失败: ' + result.error);
+      showToast('加载模型失败: ' + result.error, 'error');
       return;
     }
     renderModelTable(result.data);
@@ -523,13 +526,13 @@ async function saveModel(e) {
     });
     const result = await res.json();
     if (!result.success) {
-      alert('保存失败: ' + result.error);
+      showToast('保存失败: ' + result.error, 'error');
       return;
     }
     closeModelModal();
     loadManageModels();
   } catch (err) {
-    alert('保存异常: ' + err.message);
+    showToast('保存异常: ' + err.message, 'error');
   }
 }
 
@@ -539,12 +542,12 @@ async function deleteModel(id) {
     const res = await fetch(`${MODEL_API}/${id}`, { method: 'DELETE' });
     const result = await res.json();
     if (!result.success) {
-      alert('删除失败: ' + result.error);
+      showToast('删除失败: ' + result.error, 'error');
       return;
     }
     loadManageModels();
   } catch (err) {
-    alert('删除异常: ' + err.message);
+    showToast('删除异常: ' + err.message, 'error');
   }
 }
 
@@ -554,12 +557,12 @@ async function activateModel(id) {
     const res = await fetch(`${MODEL_API}/activate/${id}`, { method: 'PUT' });
     const result = await res.json();
     if (!result.success) {
-      alert('激活失败: ' + result.error);
+      showToast('激活失败: ' + result.error, 'error');
       return;
     }
     loadManageModels();
   } catch (err) {
-    alert('激活异常: ' + err.message);
+    showToast('激活异常: ' + err.message, 'error');
   }
 }
 
@@ -568,12 +571,12 @@ async function toggleModel(id, enabled) {
     const res = await fetch(`${MODEL_API}/${id}/toggle?enabled=${enabled}`, { method: 'PUT' });
     const result = await res.json();
     if (!result.success) {
-      alert('操作失败: ' + result.error);
+      showToast('操作失败: ' + result.error, 'error');
       return;
     }
     loadManageModels();
   } catch (err) {
-    alert('操作异常: ' + err.message);
+    showToast('操作异常: ' + err.message, 'error');
   }
 }
 

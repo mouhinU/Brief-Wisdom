@@ -1,9 +1,11 @@
 package com.mouhin.brief.wisdom.web.service;
 
 import com.mouhin.brief.wisdom.common.role.RoleDTO;
+import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import com.mouhin.brief.wisdom.persistence.model.SysRole;
 import com.mouhin.brief.wisdom.persistence.model.UserRole;
 import com.mouhin.brief.wisdom.persistence.repository.RoleMenuRepository;
+import com.mouhin.brief.wisdom.persistence.repository.SysMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysRoleRepository;
 import com.mouhin.brief.wisdom.persistence.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class RoleService {
     private final SysRoleRepository sysRoleRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleMenuRepository roleMenuRepository;
+    private final SysMenuRepository sysMenuRepository;
 
     /**
      * 获取所有角色
@@ -206,6 +209,52 @@ public class RoleService {
      */
     public List<Long> getRoleMenuIds(Long roleId) {
         return roleMenuRepository.findMenuIdsByRoleId(roleId);
+    }
+
+    /**
+     * 获取用户拥有的所有权限标识（基于角色的菜单 permission 字段）
+     * <p>
+     * super_admin 返回 null（表示拥有所有权限，无需检查）
+     * 其他角色返回其关联菜单中非空的 permission 集合
+     *
+     * @param userId 用户ID
+     * @return 权限标识列表，super_admin 返回 null
+     */
+    public List<String> getUserPermissions(String userId) {
+        List<String> roleKeys = getUserRoleKeys(userId);
+        return getPermissionsByRoleKeys(roleKeys);
+    }
+
+    /**
+     * 根据角色 Key 列表获取所有权限标识
+     *
+     * @param roleKeys 角色 Key 列表
+     * @return 权限标识列表，super_admin 返回 null
+     */
+    public List<String> getPermissionsByRoleKeys(List<String> roleKeys) {
+        if (roleKeys.contains("super_admin")) {
+            return null; // super_admin 拥有所有权限
+        }
+
+        // 获取所有角色关联的菜单 ID
+        List<Long> menuIds = roleKeys.stream()
+                .map(sysRoleRepository::findByRoleKey)
+                .filter(role -> role != null)
+                .flatMap(role -> roleMenuRepository.findMenuIdsByRoleId(role.getId()).stream())
+                .distinct()
+                .toList();
+
+        if (menuIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 获取菜单中非空的 permission 字段
+        List<SysMenu> menus = sysMenuRepository.findByIds(menuIds);
+        return menus.stream()
+                .map(SysMenu::getPermission)
+                .filter(p -> p != null && !p.isEmpty())
+                .distinct()
+                .toList();
     }
 
     private RoleDTO toRoleDTO(SysRole role) {

@@ -11,8 +11,40 @@ let userCurrentPage = 1;
 let userHasMore = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadMenus();
+  // 等待 navbar.js 的 checkLoginStatus 完成后再加载数据和渲染
+  // checkLoginStatus 是异步请求 /api/auth/status，需要等待它完成才能正确判断权限
+  setTimeout(() => {
+    loadMenus();
+    applyPermissionsToUI();
+  }, 800);
 });
+
+/**
+ * 根据用户权限控制按钮显示/隐藏
+ */
+function applyPermissionsToUI() {
+  // 菜单管理权限
+  if (!hasPermission('menu:manage')) {
+    // 隐藏“新增菜单”按钮
+    document.querySelectorAll('#menu-tab-content .btn-primary').forEach(btn => btn.style.display = 'none');
+    // 隐藏表格中的编辑/删除/切换显示按钮
+    document.querySelectorAll('#menu-tab-content .btn-edit, #menu-tab-content .btn-delete, #menu-tab-content .btn-toggle-vis').forEach(btn => btn.style.display = 'none');
+  }
+
+  // 用户管理权限
+  if (!hasPermission('user:manage')) {
+    // 隐藏表格中的操作按钮
+    document.querySelectorAll('#user-tab-content .btn-edit, #user-tab-content .btn-role, #user-tab-content .btn-reset-pwd, #user-tab-content .btn-delete').forEach(btn => btn.style.display = 'none');
+  }
+
+  // 角色管理权限
+  if (!hasPermission('role:manage')) {
+    // 隐藏“新增角色”按钮
+    document.querySelectorAll('#role-tab-content .btn-primary').forEach(btn => btn.style.display = 'none');
+    // 隐藏表格中的操作按钮
+    document.querySelectorAll('#role-tab-content .btn-edit, #role-tab-content .btn-role, #role-tab-content .btn-delete').forEach(btn => btn.style.display = 'none');
+  }
+}
 
 // ===== Tab 切换 =====
 function switchSettingsTab(tab) {
@@ -40,7 +72,7 @@ async function loadMenus() {
     const res = await fetch(`${MENU_API}/all`);
     const result = await res.json();
     if (!result.success) {
-      alert('加载菜单失败: ' + result.error);
+      showToast('加载菜单失败: ' + result.error, 'error');
       return;
     }
     renderMenuTable(result.data);
@@ -99,26 +131,28 @@ function renderMenuTable(menus) {
   tbody.innerHTML = menus.map(m => {
     const type = m.type ?? 1;
     const parentName = m.parentId && m.parentId !== 0 ? (nameMap[m.parentId] || '顶级') : '顶级';
+    const canManage = hasPermission('menu:manage');
+    const toggleVisBtn = canManage ? `<button class="btn btn-toggle-vis" onclick="toggleVisible(${m.id})">${m.isVisible === 1 ? '隐藏' : '显示'}</button>` : '';
+    const editBtn = canManage ? `<button class="btn btn-edit" onclick='editMenu(${JSON.stringify(m)})'>\u7F16\u8F91</button>` : '';
+    const deleteBtn = canManage ? `<button class="btn btn-delete" onclick="deleteMenu(${m.id})">\u5220\u9664</button>` : '';
     return `
     <tr>
       <td>${m.sortOrder ?? 0}</td>
       <td class="icon-cell">${m.icon || '-'}</td>
       <td>${escapeHtml(m.name)}</td>
-      <td><span class="type-badge ${typeBadgeClass[type] || ''}">${typeLabels[type] || '菜单'}</span></td>
+      <td><span class="type-badge ${typeBadgeClass[type] || ''}">${typeLabels[type] || '\u83DC\u5355'}</span></td>
       <td>${parentName}</td>
       <td><code>${escapeHtml(m.url) || '-'}</code></td>
       <td>
         <span class="badge ${m.isVisible === 1 ? 'badge-show' : 'badge-hide'}">
-          ${m.isVisible === 1 ? '显示' : '隐藏'}
+          ${m.isVisible === 1 ? '\u663E\u793A' : '\u9690\u85CF'}
         </span>
-        <button class="btn btn-toggle-vis" onclick="toggleVisible(${m.id})">
-          ${m.isVisible === 1 ? '隐藏' : '显示'}
-        </button>
+        ${toggleVisBtn}
       </td>
       <td>
         <div class="actions">
-          <button class="btn btn-edit" onclick='editMenu(${JSON.stringify(m)})'>编辑</button>
-          <button class="btn btn-delete" onclick="deleteMenu(${m.id})">删除</button>
+          ${editBtn}
+          ${deleteBtn}
         </div>
       </td>
     </tr>
@@ -215,13 +249,13 @@ async function saveMenu(e) {
     });
     const result = await res.json();
     if (!result.success) {
-      alert('保存失败: ' + result.error);
+      showToast('保存失败: ' + result.error, 'error');
       return;
     }
     closeModal();
     loadMenus();
   } catch (err) {
-    alert('保存异常: ' + err.message);
+    showToast('保存异常: ' + err.message, 'error');
   }
 }
 
@@ -231,12 +265,12 @@ async function deleteMenu(id) {
     const res = await fetch(`${MENU_API}/${id}`, { method: 'DELETE' });
     const result = await res.json();
     if (!result.success) {
-      alert('删除失败: ' + result.error);
+      showToast('删除失败: ' + result.error, 'error');
       return;
     }
     loadMenus();
   } catch (err) {
-    alert('删除异常: ' + err.message);
+    showToast('删除异常: ' + err.message, 'error');
   }
 }
 
@@ -245,12 +279,12 @@ async function toggleVisible(id) {
     const res = await fetch(`${MENU_API}/${id}/toggle`, { method: 'PUT' });
     const result = await res.json();
     if (!result.success) {
-      alert('切换失败: ' + result.error);
+      showToast('切换失败: ' + result.error, 'error');
       return;
     }
     loadMenus();
   } catch (err) {
-    alert('切换异常: ' + err.message);
+    showToast('切换异常: ' + err.message, 'error');
   }
 }
 
@@ -273,7 +307,7 @@ async function loadUsers(page) {
     const res = await fetch(url);
     const result = await res.json();
     if (!result.success) {
-      alert('加载用户失败: ' + result.error);
+      showToast('加载用户失败: ' + result.error, 'error');
       return;
     }
     const data = result.data;
@@ -297,6 +331,13 @@ function renderUserTable(users) {
   tbody.innerHTML = users.map(u => {
     const lvl = u.userLevel || 'normal';
     const time = u.createTime ? formatDateTime(u.createTime) : '-';
+    const canManage = hasPermission('user:manage');
+    const actionBtns = canManage ? `
+      <button class="btn btn-edit" onclick="showUserLevelModal(${u.id}, '${lvl}')">\u6539\u7EA7\u522B</button>
+      <button class="btn btn-role" onclick="showUserRoleModal('${escapeHtml(u.userId)}', '${escapeHtml(u.username)}')">\u5206\u914D\u89D2\u8272</button>
+      <button class="btn btn-reset-pwd" onclick="resetUserPassword(${u.id}, '${escapeHtml(u.username)}')">\u91CD\u7F6E\u5BC6\u7801</button>
+      <button class="btn btn-delete" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')">\u5220\u9664</button>
+    ` : '<span class="no-perm-hint">\u65E0\u64CD\u4F5C\u6743\u9650</span>';
     return `
       <tr>
         <td>${escapeHtml(u.username)}</td>
@@ -305,10 +346,7 @@ function renderUserTable(users) {
         <td>${time}</td>
         <td>
           <div class="actions">
-            <button class="btn btn-edit" onclick="showUserLevelModal(${u.id}, '${lvl}')">改级别</button>
-            <button class="btn btn-role" onclick="showUserRoleModal('${escapeHtml(u.userId)}', '${escapeHtml(u.username)}')">分配角色</button>
-            <button class="btn btn-reset-pwd" onclick="resetUserPassword(${u.id}, '${escapeHtml(u.username)}')">重置密码</button>
-            <button class="btn btn-delete" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')">删除</button>
+            ${actionBtns}
           </div>
         </td>
       </tr>
@@ -362,13 +400,13 @@ async function saveUserLevel(e) {
     });
     const result = await res.json();
     if (!result.success) {
-      alert('修改失败: ' + result.error);
+      showToast('修改失败: ' + result.error, 'error');
       return;
     }
     closeUserLevelModal();
     loadUsers();
   } catch (err) {
-    alert('修改异常: ' + err.message);
+    showToast('修改异常: ' + err.message, 'error');
   }
 }
 
@@ -378,12 +416,12 @@ async function resetUserPassword(id, username) {
     const res = await fetch(`${USER_API}/${id}/reset-password`, { method: 'PUT' });
     const result = await res.json();
     if (!result.success) {
-      alert('重置失败: ' + result.error);
+      showToast('重置失败: ' + result.error, 'error');
       return;
     }
-    alert('密码已重置');
+    showToast('密码已重置', 'success');
   } catch (err) {
-    alert('重置异常: ' + err.message);
+    showToast('重置异常: ' + err.message, 'error');
   }
 }
 
@@ -393,12 +431,12 @@ async function deleteUser(id, username) {
     const res = await fetch(`${USER_API}/${id}`, { method: 'DELETE' });
     const result = await res.json();
     if (!result.success) {
-      alert('删除失败: ' + result.error);
+      showToast('删除失败: ' + result.error, 'error');
       return;
     }
     loadUsers();
   } catch (err) {
-    alert('删除异常: ' + err.message);
+    showToast('删除异常: ' + err.message, 'error');
   }
 }
 
@@ -409,7 +447,7 @@ async function loadRoles() {
     const res = await fetch(`${ROLE_API}/list`);
     const result = await res.json();
     if (!result.success) {
-      alert('加载角色失败: ' + result.error);
+      showToast('加载角色失败: ' + result.error, 'error');
       return;
     }
     renderRoleTable(result.data);
@@ -429,6 +467,12 @@ function renderRoleTable(roles) {
       ? '<span class="badge badge-show">启用</span>'
       : '<span class="badge badge-hide">禁用</span>';
     const time = r.createTime ? formatDateTime(r.createTime) : '-';
+    const canManage = hasPermission('role:manage');
+    const actionBtns = canManage ? `
+      <button class="btn btn-edit" onclick='editRole(${JSON.stringify(r)})'>\u7F16\u8F91</button>
+      <button class="btn btn-role" onclick="showMenuPermModal(${r.id}, '${escapeHtml(r.roleName)}')">\u83DC\u5355\u6743\u9650</button>
+      <button class="btn btn-delete" onclick="deleteRole(${r.id}, '${escapeHtml(r.roleName)}')">\u5220\u9664</button>
+    ` : '<span class="no-perm-hint">\u65E0\u64CD\u4F5C\u6743\u9650</span>';
     return `
       <tr>
         <td><strong>${escapeHtml(r.roleName)}</strong></td>
@@ -438,9 +482,7 @@ function renderRoleTable(roles) {
         <td>${time}</td>
         <td>
           <div class="actions">
-            <button class="btn btn-edit" onclick='editRole(${JSON.stringify(r)})'>编辑</button>
-            <button class="btn btn-role" onclick="showMenuPermModal(${r.id}, '${escapeHtml(r.roleName)}')">菜单权限</button>
-            <button class="btn btn-delete" onclick="deleteRole(${r.id}, '${escapeHtml(r.roleName)}')">删除</button>
+            ${actionBtns}
           </div>
         </td>
       </tr>
@@ -494,13 +536,13 @@ async function saveRole(e) {
     });
     const result = await res.json();
     if (!result.success) {
-      alert('保存失败: ' + result.error);
+      showToast('保存失败: ' + result.error, 'error');
       return;
     }
     closeRoleModal();
     loadRoles();
   } catch (err) {
-    alert('保存异常: ' + err.message);
+    showToast('保存异常: ' + err.message, 'error');
   }
 }
 
@@ -510,12 +552,12 @@ async function deleteRole(id, name) {
     const res = await fetch(`${ROLE_API}/${id}`, { method: 'DELETE' });
     const result = await res.json();
     if (!result.success) {
-      alert('删除失败: ' + result.error);
+      showToast('删除失败: ' + result.error, 'error');
       return;
     }
     loadRoles();
   } catch (err) {
-    alert('删除异常: ' + err.message);
+    showToast('删除异常: ' + err.message, 'error');
   }
 }
 
@@ -536,7 +578,7 @@ async function showMenuPermModal(roleId, roleName) {
   const menuIdsResult = await menuIdsRes.json();
 
   if (!treeResult.success || !menuIdsResult.success) {
-    alert('加载菜单数据失败');
+    showToast('加载菜单数据失败', 'error');
     return;
   }
 
@@ -603,13 +645,13 @@ async function saveMenuPermissions() {
     });
     const result = await res.json();
     if (!result.success) {
-      alert('保存失败: ' + result.error);
+      showToast('保存失败: ' + result.error, 'error');
       return;
     }
     closeMenuPermModal();
-    alert('菜单权限已保存');
+    showToast('菜单权限已保存', 'success');
   } catch (err) {
-    alert('保存异常: ' + err.message);
+    showToast('保存异常: ' + err.message, 'error');
   }
 }
 
@@ -630,7 +672,7 @@ async function showUserRoleModal(userId, username) {
   const userRolesResult = await userRolesRes.json();
 
   if (!rolesResult.success || !userRolesResult.success) {
-    alert('加载角色数据失败');
+    showToast('加载角色数据失败', 'error');
     return;
   }
 
@@ -666,13 +708,13 @@ async function saveUserRoles() {
     });
     const result = await res.json();
     if (!result.success) {
-      alert('保存失败: ' + result.error);
+      showToast('保存失败: ' + result.error, 'error');
       return;
     }
     closeUserRoleModal();
-    alert('用户角色已保存');
+    showToast('用户角色已保存', 'success');
   } catch (err) {
-    alert('保存异常: ' + err.message);
+    showToast('保存异常: ' + err.message, 'error');
   }
 }
 

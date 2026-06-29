@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.web.controller;
 
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
+import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.web.req.UpdateLevelRequest;
 import com.mouhin.brief.wisdom.web.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
+@RequiresPermission("user:manage")
 public class UserController {
 
     private final UserService userService;

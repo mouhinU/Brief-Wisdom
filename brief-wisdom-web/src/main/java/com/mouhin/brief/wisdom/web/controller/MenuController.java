@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.web.controller;
 
 import com.mouhin.brief.wisdom.common.menu.MenuDTO;
 import com.mouhin.brief.wisdom.common.menu.MenuTreeDTO;
+import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import com.mouhin.brief.wisdom.web.service.MenuService;
 import com.mouhin.brief.wisdom.web.service.RoleService;
@@ -73,6 +74,7 @@ public class MenuController {
      * 获取全部菜单（含隐藏，系统设置用，扁平结构）
      */
     @GetMapping("/all")
+    @RequiresPermission("menu:manage")
     public java.util.List<MenuDTO> listAllMenus() {
         return menuService.listAllMenus();
     }
@@ -81,6 +83,7 @@ public class MenuController {
      * 获取全部菜单（树形结构，系统设置用）
      */
     @GetMapping("/all/tree")
+    @RequiresPermission("menu:manage")
     public java.util.List<MenuTreeDTO> listAllMenuTree() {
         return menuService.listAllMenuTree();
     }
@@ -89,6 +92,7 @@ public class MenuController {
      * 新增菜单
      */
     @PostMapping
+    @RequiresPermission("menu:manage")
     public Boolean createMenu(@RequestBody SysMenu menu) {
         menuService.createMenu(menu);
         return true;
@@ -98,6 +102,7 @@ public class MenuController {
      * 更新菜单
      */
     @PutMapping
+    @RequiresPermission("menu:manage")
     public Boolean updateMenu(@RequestBody SysMenu menu) {
         menuService.updateMenu(menu);
         return true;
@@ -107,6 +112,7 @@ public class MenuController {
      * 删除菜单
      */
     @DeleteMapping("/{id}")
+    @RequiresPermission("menu:manage")
     public Boolean deleteMenu(@PathVariable Long id) {
         menuService.deleteMenu(id);
         return true;
@@ -116,6 +122,7 @@ public class MenuController {
      * 切换菜单显示/隐藏
      */
     @PutMapping("/{id}/toggle")
+    @RequiresPermission("menu:manage")
     public Boolean toggleVisible(@PathVariable Long id) {
         menuService.toggleVisible(id);
         return true;

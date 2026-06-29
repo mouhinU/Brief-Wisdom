@@ -43,7 +43,10 @@ public class MenuService {
 
     /**
      * 根据用户角色获取可见菜单（树形结构）
-     * 超级管理员拥有所有菜单权限，其他角色按分配权限过滤
+     * <p>
+     * 规则：
+     * - 超级管理员：返回所有可见菜单
+     * - 其他用户：角色分配的菜单 + 无需权限控制的公开菜单（首页、简历、AI助手等）
      */
     public List<MenuTreeDTO> getMenuTreeByRoles(List<String> roleKeys) {
         List<SysMenu> menus;
@@ -54,10 +57,23 @@ public class MenuService {
         } else {
             // 获取用户所有角色的菜单 ID
             List<Long> menuIds = getRoleMenuIds(roleKeys);
-            if (menuIds.isEmpty()) {
+
+            // 始终包含无需权限控制的公开菜单（首页、简历、AI助手等）
+            List<SysMenu> publicMenus = sysMenuRepository.findPublicVisibleMenus();
+            List<Long> publicMenuIds = publicMenus.stream().map(SysMenu::getId).toList();
+
+            // 合并去重
+            List<Long> allMenuIds = new ArrayList<>(menuIds);
+            for (Long id : publicMenuIds) {
+                if (!allMenuIds.contains(id)) {
+                    allMenuIds.add(id);
+                }
+            }
+
+            if (allMenuIds.isEmpty()) {
                 return List.of();
             }
-            menus = sysMenuRepository.findByIds(menuIds);
+            menus = sysMenuRepository.findByIds(allMenuIds);
         }
 
         return buildTree(menus);

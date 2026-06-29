@@ -8,6 +8,10 @@
 let isLoggedIn = false;
 // 当前用户角色列表（用于菜单权限校验）
 let currentUserRoles = [];
+// 当前用户权限标识列表（用于细粒度权限校验）
+let currentUserPermissions = [];
+// 是否为超级管理员（super_admin 拥有所有权限）
+let isSuperAdmin = false;
 
 // ===== 全局 fetch 拦截器：处理 401 未登录 / 403 权限不足 =====
 const _originalFetch = window.fetch;
@@ -379,16 +383,22 @@ async function checkLoginStatus() {
     if (data.loggedIn && data.user) {
       isLoggedIn = true;
       currentUserRoles = data.roles || [];
+      currentUserPermissions = data.permissions || [];
+      isSuperAdmin = data.isSuperAdmin === true;
       window._currentUser = data.user;
     } else {
       isLoggedIn = false;
       currentUserRoles = [];
+      currentUserPermissions = [];
+      isSuperAdmin = false;
       window._currentUser = null;
     }
   } catch (err) {
     console.error('检查登录状态失败:', err);
     isLoggedIn = false;
     currentUserRoles = [];
+    currentUserPermissions = [];
+    isSuperAdmin = false;
   }
 }
 
@@ -463,21 +473,28 @@ function checkMenuPermission(menu) {
     showGlobalToast('当前未登录，请先登录后再访问', 'login');
     return false;
   }
-  // 2. 权限校验：如果菜单设置了 permission，检查用户是否拥有对应角色
+  // 2. 权限校验：如果菜单设置了 permission，检查用户是否拥有对应权限
   if (menu.permission) {
-    // permission 与角色的映射关系
-    const permissionRoleMap = {
-      'role:list': ['super_admin'],
-    };
-    // 默认需要 admin 或 super_admin
-    const requiredRoles = permissionRoleMap[menu.permission] || ['admin', 'super_admin'];
-    const hasRole = currentUserRoles.some(role => requiredRoles.includes(role));
-    if (!hasRole) {
+    // 超级管理员拥有所有权限
+    if (isSuperAdmin) return true;
+    // 检查用户权限列表是否包含该权限标识
+    if (!currentUserPermissions.includes(menu.permission)) {
       showGlobalToast('权限不足，无法访问该功能', 'error');
       return false;
     }
   }
   return true;
+}
+
+/**
+ * 检查当前用户是否拥有指定权限
+ * @param {string} permission 权限标识
+ * @returns {boolean} 是否拥有权限
+ */
+function hasPermission(permission) {
+  if (!isLoggedIn) return false;
+  if (isSuperAdmin) return true;
+  return currentUserPermissions.includes(permission);
 }
 
 /**
@@ -523,7 +540,33 @@ function closeGlobalToast() {
 }
 
 /**
- * 显示“当前未登录”提示 toast，然后跳转到首页
+ * 显示操作反馈 Toast（居中显示，3秒自动消失）
+ * @param {string} message 提示消息
+ * @param {string} type 'success' | 'error'，默认 'success'
+ */
+function showToast(message, type) {
+  type = type || 'success';
+  // 移除已存在的 toast
+  const existing = document.getElementById('opToast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'opToast';
+  toast.className = 'op-toast op-toast-' + type;
+
+  const icon = type === 'success' ? '✓' : '✕';
+  toast.innerHTML = `<span class="op-toast-icon">${icon}</span><span class="op-toast-text">${message}</span>`;
+  document.body.appendChild(toast);
+
+  // 3秒后自动消失（带淡出动画）
+  setTimeout(() => {
+    toast.classList.add('op-toast-fadeout');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+/**
+ * 显示"当前未登录"提示 toast，然后跳转到首页
  * @deprecated 使用 showGlobalToast 替代
  */
 function showLoginRequiredToast() {

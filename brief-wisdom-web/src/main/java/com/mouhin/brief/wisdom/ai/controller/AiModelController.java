@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
 import com.mouhin.brief.wisdom.common.ai.AiModelDTO;
+import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
 import com.mouhin.brief.wisdom.web.service.AiModelService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 @Slf4j
+@RequiresPermission("ai:manage")
 public class AiModelController {
 
     private final AiModelService aiModelService;

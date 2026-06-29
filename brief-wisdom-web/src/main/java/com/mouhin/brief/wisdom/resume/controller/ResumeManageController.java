@@ -4,6 +4,7 @@ import com.mouhin.brief.wisdom.common.resume.ProjectAchievementDTO;
 import com.mouhin.brief.wisdom.common.resume.ProjectDTO;
 import com.mouhin.brief.wisdom.common.resume.WorkExperienceDTO;
 import com.mouhin.brief.wisdom.common.resume.WorkExperienceStackDTO;
+import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.Project;
 import com.mouhin.brief.wisdom.persistence.model.ProjectAchievement;
 import com.mouhin.brief.wisdom.persistence.model.WorkExperience;
@@ -23,6 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 @Slf4j
+@RequiresPermission("resume:manage")
 public class ResumeManageController {
 
     private final ResumeManageService resumeManageService;

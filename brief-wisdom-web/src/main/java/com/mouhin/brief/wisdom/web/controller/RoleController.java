@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.web.controller;
 
 import com.mouhin.brief.wisdom.common.role.RoleDTO;
+import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.SysRole;
 import com.mouhin.brief.wisdom.web.service.RoleService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/role")
 @RequiredArgsConstructor
+@RequiresPermission("role:manage")
 public class RoleController {
 
     private final RoleService roleService;

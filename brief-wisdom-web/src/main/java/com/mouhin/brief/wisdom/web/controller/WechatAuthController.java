@@ -143,6 +143,10 @@ public class WechatAuthController {
                 // 返回用户角色 Key 列表，供前端权限校验
                 List<String> roles = roleService.getUserRoleKeys(user.getUserId());
                 result.put("roles", roles);
+                // 返回用户权限标识列表（super_admin 为 null 表示拥有所有权限）
+                List<String> permissions = roleService.getUserPermissions(user.getUserId());
+                result.put("permissions", permissions);
+                result.put("isSuperAdmin", permissions == null);
                 return ResponseEntity.ok(result);
             }
         }

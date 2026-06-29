@@ -25,6 +25,20 @@ public class SysMenuRepository {
         );
     }
 
+    /**
+     * 查询无需权限控制的可见菜单（permission 为空 且 require_login=0）
+     * 这些菜单对所有用户（包括未登录）可见
+     */
+    public List<SysMenu> findPublicVisibleMenus() {
+        return sysMenuMapper.selectList(
+                new LambdaQueryWrapper<SysMenu>()
+                        .eq(SysMenu::getIsVisible, 1)
+                        .eq(SysMenu::getRequireLogin, 0)
+                        .and(w -> w.isNull(SysMenu::getPermission).or().eq(SysMenu::getPermission, ""))
+                        .orderByAsc(SysMenu::getSortOrder)
+        );
+    }
+
     public List<SysMenu> findAllOrderBySortOrderAsc() {
         return sysMenuMapper.selectList(
                 new LambdaQueryWrapper<SysMenu>()
