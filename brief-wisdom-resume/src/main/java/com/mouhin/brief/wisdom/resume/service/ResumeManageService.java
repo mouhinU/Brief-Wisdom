@@ -4,6 +4,7 @@ import com.mouhin.brief.wisdom.common.resume.ProjectAchievementDTO;
 import com.mouhin.brief.wisdom.common.resume.ProjectDTO;
 import com.mouhin.brief.wisdom.common.resume.WorkExperienceDTO;
 import com.mouhin.brief.wisdom.common.resume.WorkExperienceStackDTO;
+import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.persistence.model.Project;
 import com.mouhin.brief.wisdom.persistence.model.ProjectAchievement;
 import com.mouhin.brief.wisdom.persistence.model.WorkExperience;
@@ -13,6 +14,7 @@ import com.mouhin.brief.wisdom.persistence.repository.ProjectRepository;
 import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceRepository;
 import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceStackRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,18 +43,21 @@ public class ResumeManageService {
         return e != null ? toExpDTO(e) : null;
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public WorkExperienceDTO createExperience(WorkExperience experience) {
         workExperienceRepository.save(experience);
         return toExpDTO(experience);
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public WorkExperienceDTO updateExperience(WorkExperience experience) {
         workExperienceRepository.update(experience);
         return toExpDTO(workExperienceRepository.findById(experience.getId()));
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public void deleteExperience(Long id) {
         workExperienceRepository.deleteById(id);
@@ -73,18 +78,21 @@ public class ResumeManageService {
         return p != null ? toProjDTO(p) : null;
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public ProjectDTO createProject(Project project) {
         projectRepository.save(project);
         return toProjDTO(project);
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public ProjectDTO updateProject(Project project) {
         projectRepository.update(project);
         return toProjDTO(projectRepository.findById(project.getId()));
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public void deleteProject(Long id) {
         projectRepository.deleteById(id);
@@ -105,18 +113,21 @@ public class ResumeManageService {
         return a != null ? toAchDTO(a) : null;
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public ProjectAchievementDTO createAchievement(ProjectAchievement achievement) {
         projectAchievementRepository.save(achievement);
         return toAchDTO(achievement);
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public ProjectAchievementDTO updateAchievement(ProjectAchievement achievement) {
         projectAchievementRepository.update(achievement);
         return toAchDTO(projectAchievementRepository.findById(achievement.getId()));
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public void deleteAchievement(Long id) {
         projectAchievementRepository.deleteById(id);
@@ -137,18 +148,21 @@ public class ResumeManageService {
         return s != null ? toStackDTO(s) : null;
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public WorkExperienceStackDTO createStack(WorkExperienceStack stack) {
         workExperienceStackRepository.save(stack);
         return toStackDTO(stack);
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public WorkExperienceStackDTO updateStack(WorkExperienceStack stack) {
         workExperienceStackRepository.update(stack);
         return toStackDTO(workExperienceStackRepository.findById(stack.getId()));
     }
 
+    @CacheEvict(value = CachePrefix.RESUME_EXPERIENCES_CACHE, allEntries = true)
     @Transactional
     public void deleteStack(Long id) {
         workExperienceStackRepository.deleteById(id);

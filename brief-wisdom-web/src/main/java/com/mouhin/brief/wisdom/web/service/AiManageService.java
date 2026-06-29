@@ -3,6 +3,7 @@ package com.mouhin.brief.wisdom.web.service;
 import com.mouhin.brief.wisdom.common.manage.MessageDTO;
 import com.mouhin.brief.wisdom.common.manage.SessionDTO;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
+import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
 import com.mouhin.brief.wisdom.persistence.model.ChatSession;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
@@ -10,6 +11,7 @@ import com.mouhin.brief.wisdom.persistence.repository.ChatMessageRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatSessionRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -53,6 +55,7 @@ public class AiManageService {
     /**
      * 查询指定用户的会话列表
      */
+    @Cacheable(value = CachePrefix.AI_SESSION_CACHE, key = "'user:' + #userId")
     public List<SessionDTO> listSessionsByUserId(String userId) {
         List<ChatSession> sessions = chatSessionRepository.findByUserIdOrderByUpdateTimeDesc(userId);
         return sessions.stream().map(this::toSessionDTO).collect(Collectors.toList());
@@ -61,6 +64,7 @@ public class AiManageService {
     /**
      * 按用户级别查询会话列表（查询该级别下所有用户的会话）
      */
+    @Cacheable(value = CachePrefix.AI_SESSION_CACHE, key = "'level:' + #userLevel")
     public List<SessionDTO> listSessionsByUserLevel(String userLevel) {
         // 先查出该级别的所有用户
         List<ChatUser> users = chatUserRepository.findByUserLevel(userLevel);

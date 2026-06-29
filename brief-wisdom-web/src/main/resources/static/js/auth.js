@@ -98,8 +98,9 @@ async function doLogin() {
         const data = await resp.json();
 
         if (data.success) {
-            // 登录成功，刷新页面以重新初始化所有组件（AI助手会话列表等）
-            window.location.reload();
+            // 登录成功，立即关闭弹窗并更新 UI（无需刷新整页）
+            closeAuthModal();
+            if (typeof refreshAuthUI === 'function') refreshAuthUI();
         } else {
             showError('loginError', data.error || data.message || '登录失败');
         }

@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -77,19 +78,38 @@ public class SecurityConfig {
                 // 未认证时的处理
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(401);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"success\":false,\"error\":\"未登录\"}");
+                            if (isPageRequest(request)) {
+                                response.sendRedirect("/");
+                            } else {
+                                response.setStatus(401);
+                                response.setContentType("application/json;charset=UTF-8");
+                                response.getWriter().write("{\"success\":false,\"error\":\"未登录\"}");
+                            }
                         })
                         // 无权限时的处理
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(403);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"success\":false,\"error\":\"权限不足\"}");
+                            if (isPageRequest(request)) {
+                                response.sendRedirect("/");
+                            } else {
+                                response.setStatus(403);
+                                response.setContentType("application/json;charset=UTF-8");
+                                response.getWriter().write("{\"success\":false,\"error\":\"权限不足\"}");
+                            }
                         })
                 );
 
         return http.build();
+    }
+
+    /**
+     * 判断是否为页面请求（非 AJAX/Fetch）
+     * 页面请求返回 HTML，应重定向；API 请求返回 JSON
+     */
+    private boolean isPageRequest(HttpServletRequest request) {
+        String accept = request.getHeader("Accept");
+        String xRequested = request.getHeader("X-Requested-With");
+        // Accept 包含 text/html 且不是 AJAX 请求，视为页面请求
+        return accept != null && accept.contains("text/html") && !"XMLHttpRequest".equals(xRequested);
     }
 
     /**

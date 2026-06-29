@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.web.service;
 
+import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.common.role.RoleDTO;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import com.mouhin.brief.wisdom.persistence.model.SysRole;
@@ -10,10 +11,14 @@ import com.mouhin.brief.wisdom.persistence.repository.SysRoleRepository;
 import com.mouhin.brief.wisdom.persistence.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 角色管理服务
@@ -31,6 +36,7 @@ public class RoleService {
     /**
      * 获取所有角色
      */
+    @Cacheable(value = CachePrefix.USER_ROLE_LIST_CACHE, key = "'all'")
     public List<RoleDTO> listRoles() {
         return sysRoleRepository.findAll().stream().map(this::toRoleDTO).toList();
     }
@@ -56,6 +62,7 @@ public class RoleService {
     /**
      * 根据 roleKey 查询角色
      */
+    @Cacheable(value = CachePrefix.USER_ROLE_CACHE, key = "#roleKey", unless = "#result == null")
     public SysRole getRoleByKey(String roleKey) {
         return sysRoleRepository.findByRoleKey(roleKey);
     }
@@ -63,6 +70,10 @@ public class RoleService {
     /**
      * 创建角色
      */
+    @Caching(evict = {
+            @CacheEvict(value = CachePrefix.USER_ROLE_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.USER_ROLE_LIST_CACHE, allEntries = true)
+    })
     public void createRole(RoleDTO roleDTO) {
         // 检查 roleKey 是否已存在
         SysRole existing = sysRoleRepository.findByRoleKey(roleDTO.getRoleKey());
@@ -82,6 +93,12 @@ public class RoleService {
     /**
      * 更新角色
      */
+    @Caching(evict = {
+            @CacheEvict(value = CachePrefix.USER_ROLE_CACHE, key = "#roleDTO.roleKey"),
+            @CacheEvict(value = CachePrefix.USER_PERMS_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.USER_ROLE_LIST_CACHE, allEntries = true)
+    })
     public void updateRole(RoleDTO roleDTO) {
         SysRole role = sysRoleRepository.findById(roleDTO.getId());
         if (role == null) {
@@ -108,6 +125,12 @@ public class RoleService {
      * 2. 已有用户使用的角色不可删除
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CachePrefix.USER_ROLES_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.USER_PERMS_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.USER_ROLE_LIST_CACHE, allEntries = true)
+    })
     public void deleteRole(Long id) {
         SysRole role = sysRoleRepository.findById(id);
         if (role == null) {
@@ -136,6 +159,11 @@ public class RoleService {
      * 分配角色菜单权限
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CachePrefix.USER_PERMS_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.USER_ROLE_LIST_CACHE, allEntries = true)
+    })
     public void assignMenus(Long roleId, List<Long> menuIds) {
         SysRole role = sysRoleRepository.findById(roleId);
         if (role == null) {
@@ -170,6 +198,7 @@ public class RoleService {
     /**
      * 获取用户的角色 Key 列表
      */
+    @Cacheable(value = CachePrefix.USER_ROLES_CACHE, key = "#userId")
     public List<String> getUserRoleKeys(String userId) {
         return getUserRoles(userId).stream().map(SysRole::getRoleKey).toList();
     }
@@ -178,6 +207,11 @@ public class RoleService {
      * 为用户分配角色
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CachePrefix.USER_ROLES_CACHE, key = "#userId"),
+            @CacheEvict(value = CachePrefix.USER_PERMS_CACHE, key = "#userId"),
+            @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true)
+    })
     public void assignUserRoles(String userId, List<Long> roleIds) {
         // 先删除原有角色
         userRoleRepository.deleteByUserId(userId);
@@ -220,6 +254,7 @@ public class RoleService {
      * @param userId 用户ID
      * @return 权限标识列表，super_admin 返回 null
      */
+    @Cacheable(value = CachePrefix.USER_PERMS_CACHE, key = "#userId", unless = "#result == null")
     public List<String> getUserPermissions(String userId) {
         List<String> roleKeys = getUserRoleKeys(userId);
         return getPermissionsByRoleKeys(roleKeys);
@@ -231,6 +266,7 @@ public class RoleService {
      * @param roleKeys 角色 Key 列表
      * @return 权限标识列表，super_admin 返回 null
      */
+    @Cacheable(value = CachePrefix.USER_PERMS_CACHE, key = "#roleKeys.toString()", unless = "#result == null")
     public List<String> getPermissionsByRoleKeys(List<String> roleKeys) {
         if (roleKeys.contains("super_admin")) {
             return null; // super_admin 拥有所有权限
@@ -239,7 +275,7 @@ public class RoleService {
         // 获取所有角色关联的菜单 ID
         List<Long> menuIds = roleKeys.stream()
                 .map(sysRoleRepository::findByRoleKey)
-                .filter(role -> role != null)
+                .filter(Objects::nonNull)
                 .flatMap(role -> roleMenuRepository.findMenuIdsByRoleId(role.getId()).stream())
                 .distinct()
                 .toList();

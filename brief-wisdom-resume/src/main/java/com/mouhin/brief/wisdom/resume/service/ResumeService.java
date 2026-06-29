@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.resume.service;
 
+import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.persistence.model.Project;
 import com.mouhin.brief.wisdom.persistence.model.ProjectAchievement;
 import com.mouhin.brief.wisdom.persistence.model.WorkExperience;
@@ -11,6 +12,7 @@ import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceStackReposit
 import com.mouhin.brief.wisdom.resume.dto.ProjectVO;
 import com.mouhin.brief.wisdom.resume.dto.WorkExperienceVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -37,6 +39,7 @@ public class ResumeService {
      *
      * @return 工作经历列表，按 sort_order 排序
      */
+    @Cacheable(value = CachePrefix.RESUME_EXPERIENCES_CACHE, key = "'all'")
     public List<WorkExperienceVO> listAllExperiences() {
         // 1. 查询所有可见的工作经历
         List<WorkExperience> experiences = workExperienceRepository.findVisibleOrderBySortOrderAsc();

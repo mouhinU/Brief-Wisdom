@@ -1,9 +1,13 @@
 package com.mouhin.brief.wisdom.web.service;
 
 import com.mouhin.brief.wisdom.common.ai.AiModelDTO;
+import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
 import com.mouhin.brief.wisdom.persistence.repository.AiModelRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +25,7 @@ public class AiModelService {
     /**
      * 获取所有模型列表
      */
+    @Cacheable(value = CachePrefix.AI_MODEL_CACHE, key = "'all'")
     public List<AiModelDTO> listModels() {
         return aiModelRepository.findAllOrderBySortOrderAsc().stream().map(this::toDTO).toList();
     }
@@ -28,6 +33,7 @@ public class AiModelService {
     /**
      * 获取所有启用的模型
      */
+    @Cacheable(value = CachePrefix.AI_MODEL_CACHE, key = "'enabled'")
     public List<AiModelDTO> listEnabledModels() {
         return aiModelRepository.findByEnabledOrderBySortOrderAsc().stream().map(this::toDTO).toList();
     }
@@ -35,6 +41,7 @@ public class AiModelService {
     /**
      * 获取当前激活的模型
      */
+    @Cacheable(value = CachePrefix.AI_MODEL_CACHE, key = "'active'", unless = "#result == null")
     public AiModelDTO getActiveModel() {
         AiModel model = aiModelRepository.findActiveModel();
         return model != null ? toDTO(model) : null;
@@ -51,6 +58,7 @@ public class AiModelService {
     /**
      * 切换激活模型
      */
+    @CacheEvict(value = CachePrefix.AI_MODEL_CACHE, allEntries = true)
     @Transactional
     public void activateModel(Long modelId) {
         // 先取消所有模型的激活状态
@@ -66,6 +74,7 @@ public class AiModelService {
     /**
      * 新增模型
      */
+    @CacheEvict(value = CachePrefix.AI_MODEL_CACHE, allEntries = true)
     public void createModel(AiModel model) {
         aiModelRepository.save(model);
     }
@@ -73,6 +82,7 @@ public class AiModelService {
     /**
      * 更新模型
      */
+    @CacheEvict(value = CachePrefix.AI_MODEL_CACHE, allEntries = true)
     public void updateModel(AiModel model) {
         aiModelRepository.update(model);
     }
@@ -80,6 +90,7 @@ public class AiModelService {
     /**
      * 删除模型（逻辑删除）
      */
+    @CacheEvict(value = CachePrefix.AI_MODEL_CACHE, allEntries = true)
     public void deleteModel(Long id) {
         aiModelRepository.deleteById(id);
     }
@@ -87,6 +98,7 @@ public class AiModelService {
     /**
      * 启用/禁用模型
      */
+    @CacheEvict(value = CachePrefix.AI_MODEL_CACHE, allEntries = true)
     public void toggleModelEnabled(Long id, boolean enabled) {
         AiModel model = aiModelRepository.findById(id);
         if (model != null) {

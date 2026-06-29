@@ -1,4 +1,4 @@
-package com.mouhin.brief.wisdom.config;
+ package com.mouhin.brief.wisdom.config;
 
 import com.mouhin.brief.wisdom.ai.service.AiAgentService.ContentSecurityException;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService.RateLimitException;
@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * 全局异常处理器
@@ -58,6 +59,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<?>> handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("[参数错误] {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.fail(e.getMessage()));
+    }
+
+    /**
+     * 静态资源未找到 —— 静默处理（Chrome DevTools 探测请求等）
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Result<?>> handleNoResourceFoundException(NoResourceFoundException e) {
+        // 不打印堆栈，仅记录简短 debug 日志
+        log.debug("[资源未找到] {}", e.getResourcePath());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Result.fail("资源不存在"));
     }
 
     /**

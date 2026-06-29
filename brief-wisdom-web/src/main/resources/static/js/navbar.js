@@ -17,20 +17,25 @@ let isSuperAdmin = false;
 const _originalFetch = window.fetch;
 window.fetch = async function(...args) {
   const response = await _originalFetch.apply(this, args);
-  const url = (args[1] && args[1].url) || (typeof args[0] === 'string' ? args[0] : args[0].url) || '';
+  const url = (typeof args[0] === 'string' ? args[0] : args[0]?.url) || '';
 
-  if (response.status === 401) {
-    // 未登录：弹窗提示并跳转首页
-    showGlobalToast('当前未登录，请先登录后再访问', 'login');
-  } else if (response.status === 403) {
-    // 权限不足：弹窗提示并跳转首页
-    showGlobalToast('权限不足，无法访问该资源', 'error');
+  // 跳过认证接口本身（登录/注册/状态检查等接口不需要拦截）
+  const isAuthApi = url.startsWith('/auth/') || url.startsWith('/api/auth/');
+
+  if (!isAuthApi && response.status === 401) {
+    showGlobalToast('登录已过期，请重新登录', 'login');
+  } else if (!isAuthApi && response.status === 403) {
+    showGlobalToast('权限不足，无法访问该功能', 'error');
   }
 
   return response;
 };
 
 async function initNavbar() {
+  // 立即注入登录弹窗和脚本（不等待 API 请求，确保用户点击登录时立即可用）
+  injectAuthOverlay();
+  loadAuthScriptIfNeeded();
+
   try {
     // 1. 先检查登录状态，确定用户角色
     await checkLoginStatus();
@@ -211,12 +216,6 @@ function renderNavbar(menus) {
   // 插入到 body 最前面
   document.body.insertBefore(navbar, document.body.firstChild);
 
-  // 动态注入登录/注册弹窗 HTML（所有页面都可使用）
-  injectAuthOverlay();
-
-  // 动态加载 auth.js（如果未加载）
-  loadAuthScriptIfNeeded();
-
   // 动态注入 AI 智能助手组件（所有页面都可用）
   injectAiAssistant();
 
@@ -272,13 +271,52 @@ function injectAuthOverlay() {
 }
 
 /**
+ * 登录弹窗控制（直接定义在 navbar.js 中，确保 auth.js 加载前即可使用）
+ * auth.js 加载后会覆盖这些函数，提供更完整的实现
+ */
+if (typeof showAuthModal !== 'function') {
+  window.showAuthModal = function(tab) {
+    const overlay = document.getElementById('authOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    if (typeof switchAuthTab === 'function') switchAuthTab(tab || 'login');
+  };
+}
+if (typeof closeAuthModal !== 'function') {
+  window.closeAuthModal = function() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) overlay.style.display = 'none';
+  };
+}
+if (typeof switchAuthTab !== 'function') {
+  window.switchAuthTab = function(tab) {
+    const tabLogin = document.getElementById('tabLogin');
+    const tabRegister = document.getElementById('tabRegister');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    if (!tabLogin) return;
+    if (tab === 'login') {
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      loginForm.style.display = 'flex';
+      registerForm.style.display = 'none';
+    } else {
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+      registerForm.style.display = 'flex';
+      loginForm.style.display = 'none';
+    }
+  };
+}
+
+/**
  * 动态加载 auth.js（如果页面未引入）
  */
 function loadAuthScriptIfNeeded() {
   // 检查 auth.js 是否已加载
   if (typeof showAuthModal === 'function') return;
   const script = document.createElement('script');
-  script.src = 'js/auth.js?v=5';
+  script.src = 'js/auth.js?v=7';
   document.head.appendChild(script);
 }
 
@@ -369,8 +407,87 @@ function loadChatScriptsIfNeeded() {
 async function refreshAuthUI() {
   // 先检查登录状态（更新全局变量）
   await checkLoginStatus();
-  // 再更新导航栏 UI
+  // 更新导航栏右侧认证区域（登录/注册按钮 → 用户头像/昵称）
   updateAuthArea();
+  // 重新加载菜单（登录后可能多出管理菜单项）
+  try {
+    const res = await fetch('/api/menu/tree');
+    const result = await res.json();
+    if (!result.success) return;
+    const menus = result.data;
+    // 重新渲染菜单区域
+    const oldNavbar = document.querySelector('nav.navbar');
+    if (oldNavbar) {
+      // 保留导航栏，只更新菜单列表和认证区域
+      const oldMenuList = oldNavbar.querySelector('.navbar-menu');
+      if (oldMenuList) oldMenuList.remove();
+      // 构建新菜单列表
+      const newMenuList = buildMenuList(menus);
+      const brand = oldNavbar.querySelector('.navbar-brand');
+      if (brand && brand.nextSibling) {
+        oldNavbar.insertBefore(newMenuList, brand.nextSibling);
+      } else {
+        oldNavbar.appendChild(newMenuList);
+      }
+    }
+  } catch (err) {
+    console.error('刷新菜单失败:', err);
+  }
+}
+
+/**
+ * 构建菜单列表 DOM（从 renderNavbar 中提取，复用菜单渲染逻辑）
+ */
+function buildMenuList(menus) {
+  const menuList = document.createElement('ul');
+  menuList.className = 'navbar-menu';
+  const currentPath = window.location.pathname;
+
+  menus.forEach(menu => {
+    const li = document.createElement('li');
+    if (menu.type === 0 && menu.children && menu.children.length > 0) {
+      li.className = 'menu-dropdown';
+      const a = document.createElement('a');
+      a.href = 'javascript:void(0)';
+      a.className = 'dropdown-trigger';
+      a.onclick = function(e) {
+        e.preventDefault(); e.stopPropagation();
+        document.querySelectorAll('.menu-dropdown.open').forEach(el => { if (el !== li) el.classList.remove('open'); });
+        li.classList.toggle('open');
+      };
+      if (menu.icon) { const s = document.createElement('span'); s.className = 'menu-icon'; s.textContent = menu.icon; a.appendChild(s); }
+      const t = document.createElement('span'); t.className = 'menu-text'; t.textContent = menu.name; a.appendChild(t);
+      const arrow = document.createElement('span'); arrow.className = 'dropdown-arrow'; arrow.textContent = '▼'; a.appendChild(arrow);
+      li.appendChild(a);
+      const ul = document.createElement('ul'); ul.className = 'dropdown-menu';
+      menu.children.forEach(child => {
+        const childLi = document.createElement('li');
+        const childA = document.createElement('a');
+        childA.href = child.url || '#';
+        if (child.target && child.target !== '_self') childA.target = child.target;
+        childA.onclick = function(e) { if (!checkMenuPermission(child)) e.preventDefault(); };
+        const childPath = (child.url || '').split('#')[0];
+        if (currentPath === childPath) { childA.classList.add('active'); li.classList.add('has-active-child'); }
+        if (child.icon) { const s = document.createElement('span'); s.className = 'menu-icon'; s.textContent = child.icon; childA.appendChild(s); }
+        const ct = document.createElement('span'); ct.className = 'menu-text'; ct.textContent = child.name; childA.appendChild(ct);
+        childLi.appendChild(childA); ul.appendChild(childLi);
+      });
+      li.appendChild(ul);
+    } else {
+      const a = document.createElement('a');
+      a.href = menu.url || '#';
+      if (menu.target && menu.target !== '_self') a.target = menu.target;
+      a.onclick = function(e) { if (!checkMenuPermission(menu)) e.preventDefault(); };
+      const menuPath = (menu.url || '').split('#')[0];
+      if (menuPath === '/' && (currentPath === '/' || currentPath === '/index.html')) a.classList.add('active');
+      else if (menuPath !== '/' && currentPath === menuPath) a.classList.add('active');
+      if (menu.icon) { const s = document.createElement('span'); s.className = 'menu-icon'; s.textContent = menu.icon; a.appendChild(s); }
+      const t = document.createElement('span'); t.className = 'menu-text'; t.textContent = menu.name; a.appendChild(t);
+      li.appendChild(a);
+    }
+    menuList.appendChild(li);
+  });
+  return menuList;
 }
 
 /**
@@ -458,8 +575,8 @@ async function doLogout() {
   } catch (e) {
     console.error('退出失败:', e);
   }
-  // 刷新页面状态
-  window.location.reload();
+  // 直接跳转首页（避免 reload 当前页面因需要登录而显示异常）
+  window.location.href = '/';
 }
 
 /**

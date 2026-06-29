@@ -1,45 +1,36 @@
 package com.mouhin.brief.wisdom.ai.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
- * 接口限流服务（基于滑动窗口的简易限流）
+ * 接口限流服务（基于 Redis 的滑动窗口限流）
  * <p>
  * 防止单个用户恶意刷接口，保护 AI 模型调用成本和服务稳定性。
  * <ul>
  *   <li>每用户每分钟最多请求数：{@link #MAX_REQUESTS_PER_MINUTE}</li>
  *   <li>每用户每天最多请求数：{@link #MAX_REQUESTS_PER_DAY}</li>
  * </ul>
- * 注：当前为内存级限流，重启后计数清零。分布式场景建议接入 Redis。
+ * 使用 Redis INCR + EXPIRE 实现分布式限流，支持多实例部署。
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class RateLimitService {
 
-    /**
-     * 每用户每分钟最大请求数
-     */
     private static final int MAX_REQUESTS_PER_MINUTE = 20;
-
-    /**
-     * 每用户每天最大请求数
-     */
     private static final int MAX_REQUESTS_PER_DAY = 200;
 
-    /**
-     * 分钟级计数器：key = userId，value = 当前分钟的请求计数
-     */
-    private final Map<String, WindowCounter> minuteCounters = new ConcurrentHashMap<>();
+    private static final String KEY_PREFIX = "bw:ratelimit:";
+    private static final DateTimeFormatter DAY_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    /**
-     * 天级计数器：key = userId，value = 当天的请求计数
-     */
-    private final Map<String, WindowCounter> dayCounters = new ConcurrentHashMap<>();
+    private final StringRedisTemplate redisTemplate;
 
     /**
      * 检查用户是否被限流
@@ -52,25 +43,27 @@ public class RateLimitService {
             return false;
         }
 
-        long now = System.currentTimeMillis();
-
         // 检查分钟级限制
-        WindowCounter minuteCounter = minuteCounters.computeIfAbsent(userId, k -> new WindowCounter(now));
-        if (!minuteCounter.isInWindow(now, 60_000L)) {
-            minuteCounter.reset(now);
+        String minuteKey = KEY_PREFIX + "m:" + userId;
+        Long minuteCount = redisTemplate.opsForValue().increment(minuteKey);
+        if (minuteCount != null && minuteCount == 1) {
+            // 首次设置，过期时间 60 秒
+            redisTemplate.expire(minuteKey, Duration.ofSeconds(65));
         }
-        if (minuteCounter.incrementAndGet() > MAX_REQUESTS_PER_MINUTE) {
-            log.warn("[限流] 用户 {} 分钟级请求超限: {}/{}", userId, minuteCounter.getCount(), MAX_REQUESTS_PER_MINUTE);
+        if (minuteCount != null && minuteCount > MAX_REQUESTS_PER_MINUTE) {
+            log.warn("[限流] 用户 {} 分钟级请求超限: {}/{}", userId, minuteCount, MAX_REQUESTS_PER_MINUTE);
             return true;
         }
 
         // 检查天级限制
-        WindowCounter dayCounter = dayCounters.computeIfAbsent(userId, k -> new WindowCounter(now));
-        if (!dayCounter.isInWindow(now, 86_400_000L)) {
-            dayCounter.reset(now);
+        String dayKey = KEY_PREFIX + "d:" + userId + ":" + LocalDateTime.now().format(DAY_FORMAT);
+        Long dayCount = redisTemplate.opsForValue().increment(dayKey);
+        if (dayCount != null && dayCount == 1) {
+            // 首次设置，过期时间 25 小时（留 1 小时缓冲）
+            redisTemplate.expire(dayKey, Duration.ofHours(25));
         }
-        if (dayCounter.incrementAndGet() > MAX_REQUESTS_PER_DAY) {
-            log.warn("[限流] 用户 {} 天级请求超限: {}/{}", userId, dayCounter.getCount(), MAX_REQUESTS_PER_DAY);
+        if (dayCount != null && dayCount > MAX_REQUESTS_PER_DAY) {
+            log.warn("[限流] 用户 {} 天级请求超限: {}/{}", userId, dayCount, MAX_REQUESTS_PER_DAY);
             return true;
         }
 
@@ -82,34 +75,5 @@ public class RateLimitService {
      */
     public String getRateLimitMessage() {
         return "请求过于频繁，请稍后再试。每分钟最多 " + MAX_REQUESTS_PER_MINUTE + " 次，每天最多 " + MAX_REQUESTS_PER_DAY + " 次。";
-    }
-
-    /**
-     * 滑动窗口计数器
-     */
-    private static class WindowCounter {
-        private final AtomicInteger count = new AtomicInteger(0);
-        private volatile long windowStart;
-
-        WindowCounter(long windowStart) {
-            this.windowStart = windowStart;
-        }
-
-        boolean isInWindow(long now, long windowSize) {
-            return now - windowStart < windowSize;
-        }
-
-        void reset(long now) {
-            this.windowStart = now;
-            this.count.set(0);
-        }
-
-        int incrementAndGet() {
-            return count.incrementAndGet();
-        }
-
-        int getCount() {
-            return count.get();
-        }
     }
 }

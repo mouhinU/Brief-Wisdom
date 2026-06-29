@@ -1,6 +1,6 @@
 # Brief-Wisdom
 
-> 基于 Spring Boot 3 + Spring AI 的 AI 智能对话平台，支持多会话管理、页面上下文感知、多模型管理、多端实时同步、第三方登录、简历管理等功能。
+> 基于 Spring Boot 3 + Spring AI 的 AI 智能对话平台，支持 RBAC 权限控制、多会话管理、页面上下文感知、多模型管理、多端实时同步、第三方登录、Redis 分布式缓存、简历管理等功能。
 
 ---
 
@@ -16,6 +16,8 @@
 - [MyBatis-Plus 配置](#mybatis-plus-配置)
 - [逻辑删除](#逻辑删除)
 - [自动填充](#自动填充)
+- [RBAC 权限体系](#rbac-权限体系)
+- [Redis 缓存架构](#redis-缓存架构)
 - [AI 智能体](#ai-智能体)
 - [安全与合规](#安全与合规)
 - [会话管理](#会话管理)
@@ -31,14 +33,17 @@
 
 Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 
+- **RBAC 权限控制**：基于角色的访问控制，支持超级管理员/管理员/普通用户三级权限体系，细粒度到按钮级别的权限管理
 - **多会话管理**：支持创建、切换、删除多个会话，分页加载（无限滚动）
 - **页面上下文感知**：AI 助手识别当前页面，提供针对性的对话能力（如简历页提供简历优化建议）
 - **多模型管理**：支持 AI 模型的动态管理（启用/禁用/切换/价格配置），当前支持通义千问系列
 - **多端实时同步**：基于 SSE 的实时数据同步，支持多设备同时在线
+- **Redis 分布式缓存**：菜单、用户权限、简历数据等低频变动数据的 Redis 缓存，Spring Session 会话持久化
+- **分布式锁**：基于 Redisson 的分布式锁，防止并发操作冲突
 - **用户认证体系**：支持用户名/密码登录、微信扫码登录、钉钉扫码登录、支付宝扫码登录
 - **访客系统**：未登录用户基于 IP + 浏览器 + 设备类型生成唯一指纹，保证会话连续性
 - **个人简历管理**：完整的工作经历、项目经历、项目成果、技术栈的 CRUD 管理
-- **系统管理**：用户管理（级别/状态）、菜单管理（动态配置）
+- **系统管理**：用户管理（级别/状态）、角色管理、菜单管理（树形结构 + 动态配置）
 - **AI 管理后台**：按用户级别查看会话历史、消息记录
 - **安全合规**：输入关键词拦截、输出敏感信息过滤、接口限流保护
 
@@ -51,18 +56,33 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 - **多会话支持**：每个用户可创建多个独立会话，会话间上下文隔离
 - **上下文记忆**：每个会话保留最近 10 条消息作为 AI 上下文
 - **页面上下文感知**：AI 助手根据当前页面（首页/简历/设置等）自动切换角色定位
-- **多模型支持**：用户可在聊天界面切换 AI 模型（通义千问 Max/Plus/Turbo 等）
+- **多模型支持**：用户可在聊天界面切换 AI 模型（通义千问 Max/Plus/Turbo/Qwen3.7-Plus 等）
 - **Token 统计**：自动记录每次对话的 Token 用量和费用
 - **欢迎界面**：每次打开 AI 助手显示欢迎界面，介绍能力和使用说明
 
-### 2. 多端实时同步
+### 2. RBAC 权限控制
+
+- **三级角色**：超级管理员（super_admin）、管理员（admin）、普通用户（normal）
+- **树形菜单**：支持目录 → 菜单 → 按钮三级菜单结构
+- **细粒度权限**：基于 `permission` 标识的 API 级权限控制，通过 `@RequiresPermission` 注解实现
+- **动态菜单**：根据用户角色动态加载可见菜单，前端按权限渲染
+- **超级管理员特权**：super_admin 角色拥有所有权限，自动放行
+
+### 3. 多端实时同步
 
 - **SSE 推送**：基于 Server-Sent Events 实现实时数据同步
 - **事件类型**：会话创建、会话删除、消息添加等事件实时推送到所有在线设备
 - **连接管理**：关闭聊天窗口时主动断开 SSE 连接，清理服务端资源
 - **同步状态检测**：提供轻量级同步状态接口，前端轮询检测数据变更
 
-### 3. 安全与合规
+### 4. Redis 分布式缓存
+
+- **Spring Cache**：基于注解的缓存管理，不同缓存域设置独立 TTL
+- **业务域缓存**：菜单树（10min）、用户权限（5min）、简历数据（30min）、AI 模型（15min）
+- **Session 持久化**：Spring Session + Redis，支持分布式会话共享
+- **分布式锁**：基于 Redisson 的 `@DistributedLock` 注解，防止并发冲突
+
+### 5. 安全与合规
 
 - **三层防线**：
     1. **系统提示词**：引导 AI 遵守伦理合规和安全风控准则
@@ -71,7 +91,7 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 - **接口限流**：滑动窗口算法，每用户每分钟 20 次、每天 200 次
 - **输入校验**：空值检测、长度限制（最大 10000 字符）
 
-### 4. 用户认证
+### 6. 用户认证
 
 - **用户名/密码登录**：支持注册、登录，密码 BCrypt 加密
 - **微信扫码登录**：OAuth2.0 标准流程
@@ -80,17 +100,18 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 - **访客模式**：未登录用户基于客户端指纹生成唯一 ID，保证会话连续性
 - **用户级别**：admin（管理员）、vip（会员）、normal（普通用户）
 
-### 5. 简历管理
+### 7. 简历管理
 
 - **工作经历**：支持 CRUD，包含职位、岗位、描述、排序、显示控制
 - **项目经历**：关联工作经历，包含项目名称、周期、背景、职责
 - **项目成果**：关联项目，记录具体成果内容
 - **技术栈**：关联工作经历，记录使用的技术
 
-### 6. 系统管理
+### 8. 系统管理
 
 - **用户管理**：分页查询、级别修改、删除用户、重置密码
-- **菜单管理**：动态菜单配置（名称、链接、图标、排序、显示控制）
+- **角色管理**：角色 CRUD、角色分配菜单权限、用户角色分配（仅 super_admin 可管理）
+- **菜单管理**：树形菜单配置（目录/菜单/按钮、权限标识、排序、显示控制）
 - **AI 模型管理**：模型 CRUD、启用/禁用、激活切换、价格配置
 
 ---
@@ -101,11 +122,11 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 Brief-Wisdom/
 ├── brief-wisdom-persistence/   # 数据持久化模块（Entity + Mapper + Repository）
 ├── brief-wisdom-ai/            # AI 智能模块（Service + 业务逻辑）
-├── brief-wisdom-web/           # Web 应用模块（Controller + 前端资源）
+├── brief-wisdom-web/           # Web 应用模块（Controller + 配置 + 前端资源）
 ├── brief-wisdom-api/           # API 接口定义模块
 ├── brief-wisdom-service/       # 通用服务模块
 ├── brief-wisdom-resume/        # 个人简历模块
-└── brief-wisdom-common/        # 公共模块（DTO + 工具类）
+└── brief-wisdom-common/        # 公共模块（DTO + 工具类 + 常量 + 安全注解）
 ```
 
 **依赖关系**：
@@ -119,35 +140,39 @@ brief-wisdom-web (Web入口)
     ├── brief-wisdom-persistence (数据访问)
     ├── brief-wisdom-api (API定义)
     ├── brief-wisdom-service (通用服务)
-    └── brief-wisdom-common (公共DTO)
+    └── brief-wisdom-common (公共DTO/常量/注解)
 ```
 
 ### 各模块职责
 
-| 模块          | 职责            | 关键类                                                                                                           |
-|-------------|---------------|---------------------------------------------------------------------------------------------------------------|
-| persistence | 数据存储和访问层      | `ChatUser`, `ChatSession`, `ChatMessage`, `AiModel`, `WorkExperience`, `Project`, 各 Mapper/Repository         |
-| ai          | AI 服务和业务逻辑    | `AiAgentService`, `ChatSyncService`, `ContentFilterService`, `RateLimitService`, `SystemPrompts`              |
-| web         | Web 入口和前端资源   | `WebApplication`, `AiAgentController`, `AuthController`, `UserController`, `MenuController`, `SecurityConfig` |
-| resume      | 个人简历展示和管理     | `ResumeController`, `ResumeManageController`, `ResumeService`, `ResumeManageService`                          |
-| common      | 公共 DTO 和工具    | `ApiResponse`, `PageResult`, `SessionMetaDTO`, `ChatMessageDTO`, `AiModelDTO` 等                               |
-| api         | API 接口定义和 DTO | 通用响应封装                                                                                                        |
-| service     | 通用服务层         | 业务服务类                                                                                                         |
+| 模块          | 职责            | 关键类                                                                                                                              |
+|-------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| persistence | 数据存储和访问层      | `ChatUser`, `ChatSession`, `ChatMessage`, `AiModel`, `SysRole`, `SysMenu`, `RoleMenu`, `UserRole`, `WorkExperience`, `Project`, 各 Mapper/Repository |
+| ai          | AI 服务和业务逻辑    | `AiAgentService`, `ChatSyncService`, `ContentFilterService`, `RateLimitService`, `SystemPrompts`                                     |
+| web         | Web 入口、配置和前端资源 | `WebApplication`, `AiAgentController`, `AuthController`, `UserController`, `RoleController`, `MenuController`, `SecurityConfig`, `RedisConfig`, `PermissionInterceptor` |
+| resume      | 个人简历展示和管理     | `ResumeController`, `ResumeManageController`, `ResumeService`, `ResumeManageService`                                               |
+| common      | 公共 DTO、常量和注解  | `Result`, `PageResult`, `CachePrefix`, `RequiresPermission`, `SessionMetaDTO`, `ChatMessageDTO`, `AiModelDTO` 等                       |
+| api         | API 接口定义和 DTO | 通用响应封装                                                                                                                             |
+| service     | 通用服务层         | 业务服务类                                                                                                                              |
 
 ---
 
 ## 技术栈
 
-| 组件          | 版本/说明                     |
-|-------------|---------------------------|
-| Java        | 17                        |
-| Spring Boot | 3.5.7                     |
-| Spring AI   | 1.0.0 (Spring AI Alibaba) |
-| ORM         | MyBatis-Plus 3.5.5        |
-| 数据库         | MySQL 8.0+                |
-| 安全          | Spring Security 6         |
-| 前端          | 原生 HTML/CSS/JS            |
-| 构建工具        | Maven                     |
+| 组件            | 版本/说明                        |
+|---------------|------------------------------|
+| Java          | 17                           |
+| Spring Boot   | 3.5.7                        |
+| Spring AI     | 1.0.0 (OpenAI 兼容协议对接 DashScope) |
+| Spring Security | 6                          |
+| Spring Session | Redis 存储（`bw:session` 命名空间） |
+| Spring Cache  | Redis 实现，按业务域划分缓存域          |
+| ORM           | MyBatis-Plus 3.5.5           |
+| 数据库           | MySQL 8.0+                   |
+| 缓存            | Redis + Lettuce 连接池          |
+| 分布式锁          | Redisson 3.40.2              |
+| 前端            | 原生 HTML/CSS/JS                |
+| 构建工具          | Maven                        |
 
 ---
 
@@ -157,29 +182,27 @@ brief-wisdom-web (Web入口)
 
 - JDK 17+
 - MySQL 8.0+
+- Redis 6.0+
 - Maven（或使用项目自带 `mvnw`）
 
 ### 2. 初始化数据库
 
 ```bash
-# 初始化基础表结构
-mysql -u root -p < brief-wisdom-web/src/main/resources/init.sql
-
-# 初始化 AI 模型配置
-mysql -u root -p < brief-wisdom-web/src/main/resources/ai_model_init.sql
-
-# 初始化简历数据
-mysql -u root -p < brief-wisdom-web/src/main/resources/resume_init.sql
-
-# 初始化菜单数据
-mysql -u root -p < brief-wisdom-web/src/main/resources/menu_init.sql
+# 完整初始化（含建表 + RBAC + 初始数据，推荐使用）
+mysql -u root -p < brief-wisdom-web/src/main/resources/init-20260629.sql
 ```
 
-### 3. 配置 AI 提供商
+> `init-20260629.sql` 为最新一体化初始化脚本，包含所有表结构、RBAC 权限、菜单树、AI 模型、简历示例数据。
 
-编辑 `brief-wisdom-web/src/main/resources/application-ai.yml`，配置 AI 模型参数。
+### 3. 启动 Redis
 
-### 4. 启动应用
+确保 Redis 服务已启动（默认 `localhost:6379`）。
+
+### 4. 配置 AI 提供商
+
+编辑 `brief-wisdom-web/src/main/resources/application.yml`，配置 AI 模型参数和 Redis 连接信息。
+
+### 5. 启动应用
 
 ```bash
 ./mvnw spring-boot:run -pl brief-wisdom-web
@@ -203,23 +226,25 @@ mysql -u root -p < brief-wisdom-web/src/main/resources/menu_init.sql
 
 ### 初始化方式
 
-**方式一：手动执行初始化脚本（推荐）**
+**方式一：执行一体化初始化脚本（推荐）**
 
 ```bash
-mysql -u root -p123456 < brief-wisdom-web/src/main/resources/init.sql
+mysql -u root -p123456 < brief-wisdom-web/src/main/resources/init-20260629.sql
 ```
+
+该脚本包含：
+1. 创建数据库 `brief_wisdom`
+2. 创建所有表（含 RBAC 表：`sys_role`、`sys_user_role`、`sys_role_menu`）
+3. 插入默认用户：`default-user/guest`（访客）和 `admin/mouhin`（超级管理员）
+4. 插入默认角色：super_admin、admin、normal
+5. 插入树形菜单（含系统设置子菜单：用户管理、角色管理、菜单管理）
+6. 插入角色-菜单权限分配
+7. 插入 AI 模型配置（qwen-max/plus/turbo/qwen3.7-plus）
+8. 插入简历示例数据
 
 **方式二：应用启动时自动建表**
 
-MyBatis-Plus 启动后会自动创建表结构（需提前创建数据库）。
-
-### 初始化数据
-
-初始化脚本会自动：
-
-1. 创建数据库 `brief_wisdom`（如果不存在）
-2. 创建所有必要的表
-3. 插入默认用户：`default-user/guest`（访客）和 `admin/mouhin`
+MyBatis-Plus 启动后会自动创建表结构（需提前创建数据库），但 RBAC 初始数据仍需手动执行 `rbac_migration.sql`。
 
 ### 数据库备份与恢复
 
@@ -228,7 +253,7 @@ MyBatis-Plus 启动后会自动创建表结构（需提前创建数据库）。
 mysqldump -u root -p brief_wisdom > backup_$(date +%Y%m%d).sql
 
 # 恢复
-mysql -u root -p brief_wisdom < backup_20260101.sql
+mysql -u root -p brief_wisdom < backup_20260629.sql
 ```
 
 ---
@@ -242,14 +267,21 @@ chat_user (用户)
     ├── chat_session (会话) [一对多]
     │       └── chat_message (消息) [一对多]
     ├── user_oauth (第三方登录绑定) [一对多]
-    └── ai_model (AI模型配置) [独立]
+    └── sys_user_role (用户角色关联) [一对多]
+            └── sys_role (角色)
+
+sys_role (角色)
+    └── sys_role_menu (角色菜单关联) [一对多]
+            └── sys_menu (菜单)
+
+sys_menu (系统菜单) [树形结构，parent_id 自引用]
+
+ai_model (AI模型配置) [独立]
 
 work_experience (工作经历)
     ├── project (项目) [一对多]
     │       └── project_achievement (项目成果) [一对多]
     └── work_experience_stack (技术栈) [一对多]
-
-sys_menu (系统菜单) [独立]
 ```
 
 ### chat_user（用户表）
@@ -273,7 +305,7 @@ sys_menu (系统菜单) [独立]
 |---------------|--------------|----------------------|
 | id            | BIGINT       | 自增主键                 |
 | session_id    | VARCHAR(36)  | 会话ID (UUID, UNIQUE)  |
-| user_id       | VARCHAR(36)  | 用户ID (外键)            |
+| user_id       | VARCHAR(36)  | 用户ID                 |
 | title         | VARCHAR(200) | 会话标题                 |
 | description   | TEXT         | 会话描述                 |
 | page_context  | VARCHAR(200) | 页面上下文（如 /about.html） |
@@ -287,8 +319,8 @@ sys_menu (系统菜单) [独立]
 | 字段           | 类型           | 说明                     |
 |--------------|--------------|------------------------|
 | id           | BIGINT       | 自增主键                   |
-| session_id   | VARCHAR(36)  | 会话ID (外键)              |
-| user_id      | VARCHAR(36)  | 用户ID (外键)              |
+| session_id   | VARCHAR(36)  | 会话ID                   |
+| user_id      | VARCHAR(36)  | 用户ID                   |
 | role         | VARCHAR(20)  | 角色 (user/assistant)    |
 | content      | LONGTEXT     | 消息内容                   |
 | model        | VARCHAR(500) | AI模型名称                 |
@@ -332,6 +364,57 @@ sys_menu (系统菜单) [独立]
 | is_deleted  | TINYINT      | 逻辑删除                            |
 
 **唯一约束**：`UNIQUE KEY uk_provider_openid (provider, openid)`
+
+### sys_menu（系统菜单表 - RBAC）
+
+| 字段          | 类型           | 说明                       |
+|-------------|--------------|--------------------------|
+| id          | BIGINT       | 自增主键                     |
+| parent_id   | BIGINT       | 父菜单ID，0表示顶级             |
+| name        | VARCHAR(100) | 菜单名称                     |
+| url         | VARCHAR(500) | 菜单链接                     |
+| icon        | VARCHAR(100) | 菜单图标                     |
+| target      | VARCHAR(20)  | 打开方式: _self/_blank       |
+| type        | TINYINT      | 菜单类型: 0-目录, 1-菜单, 2-按钮  |
+| permission  | VARCHAR(200) | 权限标识（如 `user:list`）       |
+| sort_order  | INT          | 排序序号                     |
+| is_visible  | TINYINT      | 是否显示: 1-显示, 0-隐藏         |
+| require_login | TINYINT    | 是否需要登录: 0-否, 1-是        |
+| create_time | DATETIME     | 创建时间                     |
+| update_time | DATETIME     | 更新时间                     |
+| is_deleted  | TINYINT      | 逻辑删除                     |
+
+### sys_role（系统角色表 - RBAC）
+
+| 字段          | 类型           | 说明                 |
+|-------------|--------------|--------------------|
+| id          | BIGINT       | 自增主键               |
+| role_name   | VARCHAR(100) | 角色名称               |
+| role_key    | VARCHAR(100) | 角色标识 (UNIQUE)      |
+| description | VARCHAR(500) | 角色描述               |
+| status      | TINYINT      | 状态: 1-启用, 0-禁用     |
+| create_time | DATETIME     | 创建时间               |
+| update_time | DATETIME     | 更新时间               |
+
+### sys_user_role（用户-角色关联表）
+
+| 字段      | 类型           | 说明       |
+|---------|--------------|----------|
+| id      | BIGINT       | 自增主键     |
+| user_id | VARCHAR(36)  | 用户ID     |
+| role_id | BIGINT       | 角色ID     |
+
+**唯一约束**：`UNIQUE KEY uk_user_role (user_id, role_id)`
+
+### sys_role_menu（角色-菜单关联表）
+
+| 字段      | 类型     | 说明   |
+|---------|--------|------|
+| id      | BIGINT | 自增主键 |
+| role_id | BIGINT | 角色ID |
+| menu_id | BIGINT | 菜单ID |
+
+**唯一约束**：`UNIQUE KEY uk_role_menu (role_id, menu_id)`
 
 ### work_experience（工作经历表）
 
@@ -386,27 +469,23 @@ sys_menu (系统菜单) [独立]
 | update_time   | DATETIME     | 更新时间                  |
 | is_deleted    | TINYINT      | 逻辑删除                  |
 
-### sys_menu（系统菜单表）
+### 主键策略
 
-| 字段          | 类型           | 说明                 |
-|-------------|--------------|--------------------|
-| id          | BIGINT       | 自增主键               |
-| name        | VARCHAR(100) | 菜单名称               |
-| url         | VARCHAR(500) | 菜单链接               |
-| icon        | VARCHAR(100) | 菜单图标               |
-| target      | VARCHAR(20)  | 打开方式: _self/_blank |
-| sort_order  | INT          | 排序序号               |
-| is_visible  | TINYINT      | 是否显示: 1-显示, 0-隐藏   |
-| create_time | DATETIME     | 创建时间               |
-| update_time | DATETIME     | 更新时间               |
-| is_deleted  | TINYINT      | 逻辑删除               |
+所有表均使用 `@TableId(type = IdType.AUTO)` 自增主键，`user_id` / `session_id` 为业务唯一键（UNIQUE）。
 
-### 外键约束
+| 表              | 主键                         | 业务键                             |
+|----------------|----------------------------|---------------------------------|
+| chat_user      | `id` BIGINT AUTO_INCREMENT | `user_id` VARCHAR(36) UNIQUE    |
+| chat_session   | `id` BIGINT AUTO_INCREMENT | `session_id` VARCHAR(36) UNIQUE |
+| chat_message   | `id` BIGINT AUTO_INCREMENT | -                               |
+| user_oauth     | `id` BIGINT AUTO_INCREMENT | -                               |
+| ai_model       | `id` BIGINT AUTO_INCREMENT | `model_name` VARCHAR(100)       |
+| sys_menu       | `id` BIGINT AUTO_INCREMENT | -                               |
+| sys_role       | `id` BIGINT AUTO_INCREMENT | `role_key` VARCHAR(100) UNIQUE  |
+| sys_user_role  | `id` BIGINT AUTO_INCREMENT | `UNIQUE(user_id, role_id)`      |
+| sys_role_menu  | `id` BIGINT AUTO_INCREMENT | `UNIQUE(role_id, menu_id)`      |
 
-- `chat_session.user_id` → `chat_user.user_id` (CASCADE DELETE)
-- `chat_message.session_id` → `chat_session.session_id` (CASCADE DELETE)
-- `chat_message.user_id` → `chat_user.user_id` (CASCADE DELETE)
-- `user_oauth.user_id` → `chat_user.user_id` (CASCADE DELETE)
+> 按业务键查询时需使用 `LambdaQueryWrapper`，而非 `selectById()`。表设计不使用数据库外键，关联关系通过应用层维护。
 
 ---
 
@@ -428,20 +507,6 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 ```
-
-### 主键策略
-
-所有表均使用 `@TableId(type = IdType.AUTO)` 自增主键，`user_id` / `session_id` 为业务唯一键（UNIQUE）。
-
-| 表            | 主键                         | 业务键                             |
-|--------------|----------------------------|---------------------------------|
-| chat_user    | `id` BIGINT AUTO_INCREMENT | `user_id` VARCHAR(36) UNIQUE    |
-| chat_session | `id` BIGINT AUTO_INCREMENT | `session_id` VARCHAR(36) UNIQUE |
-| chat_message | `id` BIGINT AUTO_INCREMENT | -                               |
-| user_oauth   | `id` BIGINT AUTO_INCREMENT | -                               |
-| ai_model     | `id` BIGINT AUTO_INCREMENT | `model_name` VARCHAR(100)       |
-
-> 按业务键查询时需使用 `LambdaQueryWrapper`，而非 `selectById()`。
 
 ### 分页插件
 
@@ -469,7 +534,6 @@ app:
 ### 实体类配置
 
 ```java
-
 @TableLogic
 @TableField(value = "is_deleted")
 private Integer isDeleted;  // 0-未删除, 1-已删除
@@ -497,7 +561,6 @@ private Integer isDeleted;  // 0-未删除, 1-已删除
 ### 配置（MybatisPlusConfig.java）
 
 ```java
-
 @Configuration
 public class MybatisPlusConfig implements MetaObjectHandler {
 
@@ -529,17 +592,119 @@ public class MybatisPlusConfig implements MetaObjectHandler {
 
 ---
 
+## RBAC 权限体系
+
+### 架构概览
+
+```
+用户 (chat_user)
+    ↓ 多对多 (sys_user_role)
+角色 (sys_role)
+    ↓ 多对多 (sys_role_menu)
+菜单 (sys_menu) ← 树形结构 (parent_id)
+```
+
+### 三级角色定义
+
+| 角色          | role_key    | 权限范围                                  |
+|-------------|-------------|---------------------------------------|
+| 超级管理员       | super_admin | 拥有系统所有权限，`@RequiresPermission` 自动放行 |
+| 管理员         | admin       | 系统管理权限（除角色管理外）                        |
+| 普通用户        | normal      | 基本访问权限（首页、简历、AI助手）                   |
+
+### 菜单类型
+
+| type | 名称   | 说明                         |
+|------|------|----------------------------|
+| 0    | 目录   | 一级分类，可包含子菜单（如"系统设置"）     |
+| 1    | 菜单   | 具体页面链接（如"用户管理"、"角色管理"）   |
+| 2    | 按钮   | 页面内操作权限标识（如 `user:create`） |
+
+### 权限校验流程
+
+1. **Spring Security 路由级**：基于 `hasRole()` 控制页面和 API 路径的访问
+2. **`@RequiresPermission` 注解级**：`PermissionInterceptor` 拦截标注了权限注解的 Controller 方法
+3. **前端 `checkMenuPermission`**：根据用户 `roles` 动态渲染菜单和按钮
+
+### 权限标识示例
+
+| 权限标识            | 说明     | 所属角色              |
+|-----------------|--------|-------------------|
+| `user:list`     | 用户管理   | admin, super_admin |
+| `role:list`     | 角色管理   | super_admin 专属     |
+| `menu:list`     | 菜单管理   | admin, super_admin |
+| `system:settings` | 系统设置目录 | admin, super_admin |
+
+---
+
+## Redis 缓存架构
+
+### Key 命名规范
+
+项目全局前缀 `bw:`，按业务域划分：
+
+| Key 模式                | 用途         | TTL    |
+|------------------------|------------|--------|
+| `bw:menu:tree::{key}` | 菜单树（按角色）   | 10 分钟  |
+| `bw:menu:public::{key}` | 公开菜单      | 10 分钟  |
+| `bw:menu:all::{key}`  | 全部菜单（含隐藏） | 10 分钟  |
+| `bw:user:roles::{key}` | 用户角色 Key 列表 | 5 分钟  |
+| `bw:user:perms::{key}` | 用户权限标识     | 5 分钟   |
+| `bw:user:role::{key}` | 角色信息       | 30 分钟  |
+| `bw:user:role:list`   | 角色列表（管理用） | 10 分钟  |
+| `bw:resume:experiences` | 简历工作经历    | 30 分钟  |
+| `bw:ai:model::{key}`  | AI 模型列表    | 15 分钟  |
+| `bw:ai:session::{key}` | AI 会话历史    | 5 分钟   |
+| `bw:ratelimit::{key}` | 接口限流计数     | 按窗口周期  |
+| `bw:lock::{name}`     | 分布式锁       | 按锁定时间  |
+| `bw:session::{id}`    | 用户会话（Spring Session） | 按配置 |
+
+### Spring Cache 使用
+
+通过 `@Cacheable` / `@CacheEvict` 注解实现自动缓存与失效：
+
+```java
+@Cacheable(value = CachePrefix.MENU_TREE_CACHE, key = "#roles")
+public List<MenuDTO> getMenuTree(List<String> roles) { ... }
+
+@CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true)
+public void updateMenu(SysMenu menu) { ... }
+```
+
+### Session 持久化
+
+```yaml
+spring:
+  session:
+    store-type: redis
+    redis:
+      namespace: bw:session
+```
+
+用户登录 Session 存储在 Redis 中，支持分布式部署和多实例共享会话。
+
+### 分布式锁
+
+基于 Redisson 实现，通过自定义 `@DistributedLock` 注解使用：
+
+```java
+@DistributedLock(key = "'chat:' + #sessionId")
+public void sendMessage(String sessionId, String content) { ... }
+```
+
+---
+
 ## AI 智能体
 
 ### 当前 AI 提供商
 
-项目当前使用 **阿里通义千问（DashScope）**，通过 OpenAI 兼容协议对接，配置文件 `application-ai.yml`：
+项目当前使用 **阿里通义千问（DashScope）**，通过 OpenAI 兼容协议对接：
 
 ```yaml
 spring:
   ai:
     openai:
-      api-key: your-api-key
+      api-key: ${AI_API_KEY}
       base-url: https://dashscope.aliyuncs.com/compatible-mode
       chat:
         options:
@@ -550,7 +715,7 @@ spring:
 
 系统支持动态管理多个 AI 模型：
 
-- **模型列表**：qwen-max、qwen-plus、qwen-turbo、qwen3.7-plus 等
+- **模型列表**：qwen-max、qwen-plus、qwen-turbo、qwen3.7-plus
 - **激活切换**：同时只激活一个模型作为默认模型
 - **启用/禁用**：可禁用某些模型，禁用后不在聊天界面显示
 - **价格配置**：配置每个模型的输入/输出价格（元/百万Token），自动计算费用
@@ -659,20 +824,6 @@ SSE 通知其他设备同步
 - **事件推送**：会话创建/删除、消息添加等事件实时推送到所有在线设备
 - **同步状态**：提供轻量级接口检测数据变更，前端轮询对比指纹
 
-### 前端关键函数
-
-| 函数                              | 说明               |
-|---------------------------------|------------------|
-| `loadPaginationConfig()`        | 加载分页配置           |
-| `loadSessions()`                | 加载会话列表（第一页）      |
-| `loadMoreSessions()`            | 加载更多会话（下一页，无限滚动） |
-| `createNewSession()`            | 创建新会话（传递页面上下文）   |
-| `selectSession(sessionId)`      | 切换会话             |
-| `sendMessage()`                 | 发送消息             |
-| `loadSessionHistory(sessionId)` | 加载历史消息           |
-| `connectSyncSSE()`              | 建立 SSE 连接        |
-| `disconnectSyncSSE()`           | 断开 SSE 连接        |
-
 ---
 
 ## API 接口
@@ -704,7 +855,7 @@ SSE 通知其他设备同步
 | `/api/ai/sync/events` | DELETE | 断开 SSE 连接    |
 | `/api/ai/sync/status` | GET    | 获取同步状态（指纹对比） |
 
-### AI 模型管理
+### AI 模型管理（需 admin/super_admin 角色）
 
 | 接口                             | 方法     | 说明        |
 |--------------------------------|--------|-----------|
@@ -717,7 +868,7 @@ SSE 通知其他设备同步
 | `/api/ai/models/{id}`          | DELETE | 删除模型      |
 | `/api/ai/models/{id}/toggle`   | PUT    | 启用/禁用模型   |
 
-### AI 管理后台
+### AI 管理后台（需 admin/super_admin 角色）
 
 | 接口                                            | 方法  | 说明              |
 |-----------------------------------------------|-----|-----------------|
@@ -739,11 +890,11 @@ SSE 通知其他设备同步
 | `/auth/dingtalk/callback` | GET  | 钉钉授权回调        |
 | `/auth/alipay/login`      | GET  | 获取支付宝扫码登录 URL |
 | `/auth/alipay/callback`   | GET  | 支付宝授权回调       |
-| `/api/auth/status`        | GET  | 检查登录状态        |
+| `/api/auth/status`        | GET  | 检查登录状态（含 roles） |
 | `/api/auth/user`          | GET  | 获取当前用户信息（需登录） |
 | `/auth/logout`            | POST | 退出登录          |
 
-### 用户管理
+### 用户管理（需 admin/super_admin 角色）
 
 | 接口                              | 方法     | 说明       |
 |---------------------------------|--------|----------|
@@ -753,12 +904,27 @@ SSE 通知其他设备同步
 | `/api/user/{id}`                | DELETE | 删除用户     |
 | `/api/user/{id}/reset-password` | PUT    | 重置用户密码   |
 
+### 角色管理（需 super_admin 角色）
+
+| 接口                                  | 方法     | 说明          |
+|-------------------------------------|--------|-------------|
+| `/api/role/list`                    | GET    | 获取角色列表      |
+| `/api/role`                         | POST   | 创建角色        |
+| `/api/role`                         | PUT    | 更新角色        |
+| `/api/role/{id}`                    | DELETE | 删除角色        |
+| `/api/role/{id}/menus`              | GET    | 获取角色关联的菜单ID |
+| `/api/role/{id}/menus`              | PUT    | 更新角色菜单权限    |
+| `/api/role/user/{userId}`           | GET    | 获取用户的角色列表   |
+| `/api/role/user/{userId}`           | PUT    | 更新用户角色      |
+
 ### 菜单管理
 
 | 接口                      | 方法     | 说明          |
 |-------------------------|--------|-------------|
 | `/api/menu/list`        | GET    | 获取可见菜单列表    |
 | `/api/menu/all`         | GET    | 获取全部菜单（含隐藏） |
+| `/api/menu/tree`        | GET    | 获取菜单树结构     |
+| `/api/menu/my-menus`    | GET    | 获取当前用户菜单（需登录） |
 | `/api/menu`             | POST   | 新增菜单        |
 | `/api/menu`             | PUT    | 更新菜单        |
 | `/api/menu/{id}`        | DELETE | 删除菜单        |
@@ -792,8 +958,6 @@ SSE 通知其他设备同步
 
 ### 认证方式
 
-系统支持多种认证方式：
-
 | 认证方式   | 说明                  |
 |--------|---------------------|
 | 用户名/密码 | 标准注册登录，密码 BCrypt 加密 |
@@ -816,13 +980,16 @@ SSE 通知其他设备同步
 
 ### 安全配置
 
-`SecurityConfig` 配置了 Spring Security 路由权限：
+`SecurityConfig` 基于 Spring Security 6 实现 RBAC 路由权限：
 
-- 静态资源、AI API、认证 API、简历 API、菜单 API 全部公开访问
-- `/api/auth/user` 需要登录才能获取用户信息
+- **公开访问**：静态资源、AI 聊天 API、认证 API、简历展示 API、菜单列表 API
+- **admin/super_admin**：AI 管理后台、菜单管理、用户管理、简历数据管理、系统设置页面
+- **super_admin 专属**：角色管理 API
+- **需登录**：获取当前用户信息、获取当前用户菜单
+- **Session 管理**：同一用户最多 1 个并发 Session，新登录踢掉旧会话
+- **Session 持久化**：Redis 存储（`bw:session` 命名空间）
 - 禁用 CSRF、formLogin、httpBasic
-- 同一用户最多 1 个并发 Session，新登录踢掉旧会话
-- 未认证时返回 `401 JSON` 响应
+- 未认证返回 `401 JSON`，权限不足返回 `403 JSON`
 
 ### 用户级别
 
@@ -836,14 +1003,14 @@ SSE 通知其他设备同步
 
 ## 前端页面
 
-| 页面     | 路径                      | 说明                         |
-|--------|-------------------------|----------------------------|
-| 主页     | `/` / `index.html`      | AI 聊天助手入口，右下角悬浮按钮打开聊天窗口    |
-| 个人简历   | `/about.html`           | 个人简历展示页，支持深色/浅色主题切换、PDF 导出 |
-| 简历数据维护 | `/resume-manage.html`   | 工作经历、项目、成果、技术栈的 CRUD 管理    |
-| 系统设置   | `/system-settings.html` | 用户管理、菜单管理等系统配置             |
-| AI助手管理 | `/ai-manage.html`       | AI 模型管理、用户会话查看             |
-| 测试页    | `/test-session.html`    | 会话 API 独立测试页面              |
+| 页面     | 路径                      | 权限要求                  | 说明                         |
+|--------|-------------------------|-----------------------|----------------------------|
+| 主页     | `/` / `index.html`      | 公开                    | AI 聊天助手入口，右下角悬浮按钮打开聊天窗口    |
+| 个人简历   | `/about.html`           | 公开                    | 个人简历展示页，支持深色/浅色主题切换、PDF 导出 |
+| 简历数据维护 | `/resume-manage.html`   | admin/super_admin     | 工作经历、项目、成果、技术栈的 CRUD 管理    |
+| 系统设置   | `/system-settings.html` | admin/super_admin     | 用户管理、角色管理、菜单管理等系统配置        |
+| AI助手管理 | `/ai-manage.html`       | admin/super_admin     | AI 模型管理、用户会话查看             |
+| 测试页    | `/test-session.html`    | 公开                    | 会话 API 独立测试页面              |
 
 ---
 
@@ -860,7 +1027,6 @@ SSE 通知其他设备同步
 3. **检查 Network 标签**：确认请求 URL 包含正确的 sessionId
 4. **测试后端 API**：
    ```bash
-   # 创建会话
    curl -X POST http://localhost:8090/api/ai/session
    # 应返回: {"success":true,"data":"uuid-here"}
    ```
@@ -880,7 +1046,6 @@ SSE 通知其他设备同步
 ```sql
 -- 查看会话状态
 SELECT * FROM chat_session WHERE session_id = 'xxx';
-
 -- 恢复会话
 UPDATE chat_session SET is_deleted = 0 WHERE session_id = 'xxx';
 ```
@@ -893,10 +1058,7 @@ UPDATE chat_session SET is_deleted = 0 WHERE session_id = 'xxx';
 
 ```java
 LambdaQueryWrapper<ChatSession> qw = new LambdaQueryWrapper<>();
-qw.
-
-eq(ChatSession::getSessionId, sessionId);
-
+qw.eq(ChatSession::getSessionId, sessionId);
 ChatSession session = sessionMapper.selectOne(qw);
 ```
 
@@ -907,6 +1069,20 @@ ChatSession session = sessionMapper.selectOne(qw);
 **原因**：前端 `EventSource.close()` 后服务端不会立即感知断开
 
 **解决**：关闭聊天窗口时主动调用 `DELETE /api/ai/sync/events` 断开连接，清理服务端资源。
+
+### 问题 6：Redis 反序列化失败
+
+**症状**：日志报 `ClassCastException` 或 `SerializationException`
+
+**原因**：Redis 序列化器变更后旧缓存数据不兼容
+
+**解决**：
+```bash
+# 清空项目相关缓存
+redis-cli FLUSHDB
+# 或清空指定缓存域
+redis-cli KEYS "bw:*" | xargs redis-cli DEL
+```
 
 ---
 
@@ -928,12 +1104,15 @@ ChatSession session = sessionMapper.selectOne(qw);
 - **热部署**：已启用 DevTools 热重启，修改 Java 代码后自动重启
 - **LiveReload**：已启用 LiveReload（端口 35729），前端修改后浏览器自动刷新
 - **SQL 日志**：控制台输出完整 SQL 日志，便于调试
+- **静态资源缓存**：开发阶段禁用浏览器缓存，确保修改即时生效
 
 ### 验证清单
 
-- [ ] 数据库 `brief_wisdom` 已创建，表结构完整
+- [ ] MySQL 数据库 `brief_wisdom` 已创建，执行 `init-20260629.sql` 完成初始化
+- [ ] Redis 服务已启动（`localhost:6379`）
 - [ ] 默认用户（`default-user/guest` 和 `admin/mouhin`）已插入
-- [ ] AI 模型配置已初始化（`ai_model_init.sql`）
+- [ ] RBAC 角色和权限分配已初始化
+- [ ] AI 模型配置已初始化（qwen-plus 为默认激活模型）
 - [ ] 应用启动无报错
 - [ ] 访问 http://localhost:8090 页面正常显示
 - [ ] 创建会话、发送消息、切换会话功能正常
@@ -941,6 +1120,7 @@ ChatSession session = sessionMapper.selectOne(qw);
 - [ ] AI 回复正常返回（Markdown 渲染）
 - [ ] SSE 实时同步正常（多设备测试）
 - [ ] 访问 http://localhost:8090/about.html 个人简历页面正常
+- [ ] 角色权限控制正常（普通用户无法访问管理页面）
 
 ---
 
@@ -950,9 +1130,9 @@ ChatSession session = sessionMapper.selectOne(qw);
 |---------|----------------------------|
 | 会话标签/分类 | 为会话添加标签，便于管理               |
 | 消息搜索    | 全文搜索历史消息                   |
-| 多端同步增强  | WebSocket 替代 SSE，支持双向通信    |
 | AI 模型扩展 | 支持 OpenAI、Claude 等更多提供商    |
 | 费用统计    | Token 用量和费用报表              |
 | 知识库管理   | 上传文档构建知识库，增强 AI 回答         |
 | 插件系统    | 支持 AI 调用外部工具（如搜索引擎、API 调用） |
+| WebSocket | 替代 SSE 实现双向通信             |
 

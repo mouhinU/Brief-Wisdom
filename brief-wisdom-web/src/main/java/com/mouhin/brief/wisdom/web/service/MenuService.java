@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.web.service;
 
+import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.common.menu.MenuDTO;
 import com.mouhin.brief.wisdom.common.menu.MenuTreeDTO;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
@@ -7,12 +8,16 @@ import com.mouhin.brief.wisdom.persistence.repository.RoleMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysRoleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +34,7 @@ public class MenuService {
     /**
      * 获取所有可见菜单（扁平列表），按 sort_order 排序
      */
+    @Cacheable(value = CachePrefix.MENU_PUBLIC_CACHE, key = "'flat'")
     public List<MenuDTO> listVisibleMenus() {
         return sysMenuRepository.findVisibleOrderBySortOrderAsc().stream().map(this::toMenuDTO).toList();
     }
@@ -36,6 +42,7 @@ public class MenuService {
     /**
      * 获取所有可见菜单（树形结构，含隐藏子项用于页面 Tab 渲染）
      */
+    @Cacheable(value = CachePrefix.MENU_PUBLIC_CACHE, key = "'tree'")
     public List<MenuTreeDTO> listVisibleMenuTree() {
         List<SysMenu> menus = new ArrayList<>(sysMenuRepository.findVisibleOrderBySortOrderAsc());
         // 补充隐藏的子项（用于页面 Tab 渲染）
@@ -55,6 +62,7 @@ public class MenuService {
      * 隐藏子项（is_visible=0）虽然不在导航栏显示，但会作为 children 返回，
      * 供页面动态渲染 Tab 导航。
      */
+    @Cacheable(value = CachePrefix.MENU_TREE_CACHE, key = "#roleKeys.toString()")
     public List<MenuTreeDTO> getMenuTreeByRoles(List<String> roleKeys) {
         List<SysMenu> menus;
 
@@ -94,6 +102,7 @@ public class MenuService {
     /**
      * 获取所有菜单（含隐藏，管理页面用）
      */
+    @Cacheable(value = CachePrefix.MENU_ALL_CACHE, key = "'flat'")
     public List<MenuDTO> listAllMenus() {
         return sysMenuRepository.findAllOrderBySortOrderAsc().stream().map(this::toMenuDTO).toList();
     }
@@ -101,6 +110,7 @@ public class MenuService {
     /**
      * 获取所有菜单（树形结构，管理页面用）
      */
+    @Cacheable(value = CachePrefix.MENU_ALL_CACHE, key = "'tree'")
     public List<MenuTreeDTO> listAllMenuTree() {
         List<SysMenu> menus = sysMenuRepository.findAllOrderBySortOrderAsc();
         return buildTree(menus);
@@ -116,6 +126,11 @@ public class MenuService {
     /**
      * 新增菜单
      */
+    @Caching(evict = {
+            @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_PUBLIC_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_ALL_CACHE, allEntries = true)
+    })
     public void createMenu(SysMenu menu) {
         sysMenuRepository.save(menu);
     }
@@ -123,6 +138,11 @@ public class MenuService {
     /**
      * 更新菜单
      */
+    @Caching(evict = {
+            @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_PUBLIC_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_ALL_CACHE, allEntries = true)
+    })
     public void updateMenu(SysMenu menu) {
         sysMenuRepository.update(menu);
     }
@@ -131,6 +151,11 @@ public class MenuService {
      * 删除菜单（逻辑删除）
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_PUBLIC_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_ALL_CACHE, allEntries = true)
+    })
     public void deleteMenu(Long id) {
         // 删除角色-菜单关联
         roleMenuRepository.deleteByMenuId(id);
@@ -141,6 +166,11 @@ public class MenuService {
     /**
      * 切换菜单显示/隐藏状态
      */
+    @Caching(evict = {
+            @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_PUBLIC_CACHE, allEntries = true),
+            @CacheEvict(value = CachePrefix.MENU_ALL_CACHE, allEntries = true)
+    })
     public void toggleVisible(Long id) {
         SysMenu menu = sysMenuRepository.findById(id);
         if (menu != null) {
@@ -155,7 +185,7 @@ public class MenuService {
     private List<Long> getRoleMenuIds(List<String> roleKeys) {
         return roleKeys.stream()
                 .map(sysRoleRepository::findByRoleKey)
-                .filter(role -> role != null)
+                .filter(Objects::nonNull)
                 .flatMap(role -> roleMenuRepository.findMenuIdsByRoleId(role.getId()).stream())
                 .distinct()
                 .toList();
