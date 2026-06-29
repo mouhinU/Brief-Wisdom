@@ -211,10 +211,9 @@ header {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  white-space: nowrap;
 }
-
-.job-item:nth-child(1) { flex: 0 0 50%; }
-.job-item:nth-child(2), .job-item:nth-child(3) { flex: 0 0 25%; }
 
 .job-item strong {
   font-weight: 600;
@@ -533,9 +532,7 @@ footer {
   .contact-bar { gap: 15px; }
   .section { padding: 20px; }
   .job-info { flex-direction: column; gap: 10px; }
-  .job-item:nth-child(1),
-  .job-item:nth-child(2),
-  .job-item:nth-child(3) { flex: none; }
+  .job-item { flex: none; white-space: normal; }
   .certifications { grid-template-columns: 1fr; }
   .phase-header { padding: 15px; }
   .phase-title-container { flex-direction: column; align-items: flex-start; gap: 8px; }
