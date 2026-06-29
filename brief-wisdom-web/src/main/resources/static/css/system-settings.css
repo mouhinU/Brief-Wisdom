@@ -214,6 +214,30 @@ header h1 {
   font-size: 20px;
 }
 
+/* 菜单类型标签 */
+.type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.type-dir {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.type-menu {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.type-btn {
+  background: #fff3e0;
+  color: #e65100;
+}
+
 /* 用户筛选栏 */
 .user-filter-bar {
   display: flex;
@@ -419,4 +443,112 @@ header h1 {
   padding: 40px 20px;
   color: #999;
   font-size: 14px;
+}
+
+/* ===== 角色管理按钮 ===== */
+.btn-role {
+  background: #f0f5ff;
+  color: #6366f1;
+  border: 1px solid #6366f1;
+  padding: 4px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.btn-role:hover {
+  background: #6366f1;
+  color: #fff;
+}
+
+/* ===== 菜单权限树 ===== */
+.menu-tree-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.menu-perm-tree {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fafbfc;
+}
+
+.menu-perm-item {
+  padding: 4px 0;
+}
+
+.menu-perm-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.menu-perm-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4a90d9;
+  cursor: pointer;
+}
+
+.menu-perm-icon {
+  font-size: 16px;
+}
+
+.menu-perm-name {
+  color: #333;
+}
+
+.menu-perm-type {
+  font-size: 11px;
+  color: #999;
+  background: #f0f0f0;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* ===== 用户角色分配 ===== */
+.role-checkbox-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.role-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.role-checkbox-item:hover {
+  background: #f8faff;
+}
+
+.role-checkbox-item:last-child {
+  border-bottom: none;
+}
+
+.role-checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4a90d9;
+  cursor: pointer;
+}
+
+.role-cb-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.role-cb-key {
+  font-size: 12px;
+  color: #999;
 }

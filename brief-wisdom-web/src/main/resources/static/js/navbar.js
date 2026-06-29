@@ -4,9 +4,29 @@
  * 右侧显示登录/注册按钮或用户信息
  */
 
+// 全局登录状态
+let isLoggedIn = false;
+
+// ===== 全局 fetch 拦截器：处理 401 未登录 / 403 权限不足 =====
+const _originalFetch = window.fetch;
+window.fetch = async function(...args) {
+  const response = await _originalFetch.apply(this, args);
+  const url = (args[1] && args[1].url) || (typeof args[0] === 'string' ? args[0] : args[0].url) || '';
+
+  if (response.status === 401) {
+    // 未登录：弹窗提示并跳转首页
+    showGlobalToast('当前未登录，请先登录后再访问', 'login');
+  } else if (response.status === 403) {
+    // 权限不足：弹窗提示并跳转首页
+    showGlobalToast('权限不足，无法访问该资源', 'error');
+  }
+
+  return response;
+};
+
 async function initNavbar() {
   try {
-    const res = await fetch('/api/menu/list');
+    const res = await fetch('/api/menu/tree');
     const result = await res.json();
     if (!result.success) {
       console.error('加载菜单失败:', result.error);
@@ -39,35 +59,136 @@ function renderNavbar(menus) {
 
   menus.forEach(menu => {
     const li = document.createElement('li');
-    const a = document.createElement('a');
-    a.href = menu.url;
-    if (menu.target && menu.target !== '_self') {
-      a.target = menu.target;
+    
+    // 目录类型菜单（type=0）需要展示下拉
+    if (menu.type === 0 && menu.children && menu.children.length > 0) {
+      li.className = 'menu-dropdown';
+      const a = document.createElement('a');
+      a.href = 'javascript:void(0)';
+      a.className = 'dropdown-trigger';
+      a.onclick = function(e) { 
+        e.preventDefault(); 
+        e.stopPropagation();
+        // 关闭其他下拉
+        document.querySelectorAll('.menu-dropdown.open').forEach(el => {
+          if (el !== li) el.classList.remove('open');
+        });
+        li.classList.toggle('open'); 
+      };
+      
+      // 图标
+      if (menu.icon) {
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'menu-icon';
+        iconSpan.textContent = menu.icon;
+        a.appendChild(iconSpan);
+      }
+      
+      // 文字
+      const textSpan = document.createElement('span');
+      textSpan.className = 'menu-text';
+      textSpan.textContent = menu.name;
+      a.appendChild(textSpan);
+      
+      // 下拉箭头
+      const arrowSpan = document.createElement('span');
+      arrowSpan.className = 'dropdown-arrow';
+      arrowSpan.textContent = '▼';
+      a.appendChild(arrowSpan);
+      
+      li.appendChild(a);
+      
+      // 子菜单
+      const ul = document.createElement('ul');
+      ul.className = 'dropdown-menu';
+      menu.children.forEach(child => {
+        const childLi = document.createElement('li');
+        const childA = document.createElement('a');
+        childA.href = child.url || '#';
+        if (child.target && child.target !== '_self') {
+          childA.target = child.target;
+        }
+        
+        // 拦截需要登录的菜单点击
+        if (child.requireLogin === 1) {
+          childA.onclick = function(e) {
+            if (!isLoggedIn) {
+              e.preventDefault();
+              showLoginRequiredToast();
+            }
+          };
+        }
+        
+        // 判断当前页面是否匹配
+        const childUrl = child.url || '';
+        const childPath = childUrl.split('#')[0];
+        if (currentPath === childPath) {
+          childA.classList.add('active');
+          li.classList.add('has-active-child');
+        }
+        
+        // 图标
+        if (child.icon) {
+          const childIconSpan = document.createElement('span');
+          childIconSpan.className = 'menu-icon';
+          childIconSpan.textContent = child.icon;
+          childA.appendChild(childIconSpan);
+        }
+        
+        // 文字
+        const childTextSpan = document.createElement('span');
+        childTextSpan.className = 'menu-text';
+        childTextSpan.textContent = child.name;
+        childA.appendChild(childTextSpan);
+        
+        childLi.appendChild(childA);
+        ul.appendChild(childLi);
+      });
+      li.appendChild(ul);
+    } else {
+      // 普通菜单
+      const a = document.createElement('a');
+      a.href = menu.url || '#';
+      if (menu.target && menu.target !== '_self') {
+        a.target = menu.target;
+      }
+
+      // 拦截需要登录的菜单点击
+      if (menu.requireLogin === 1) {
+        a.onclick = function(e) {
+          if (!isLoggedIn) {
+            e.preventDefault();
+            showLoginRequiredToast();
+          }
+        };
+      }
+
+      // 判断当前页面是否匹配（url 可能为 null）
+      const menuUrl = menu.url || '';
+      const menuPath = menuUrl.split('#')[0]; // 去掉 hash
+      if (menuPath === '/' && (currentPath === '/' || currentPath === '/index.html')) {
+        a.classList.add('active');
+      } else if (menuPath !== '/' && currentPath === menuPath) {
+        a.classList.add('active');
+      }
+
+      // 图标
+      if (menu.icon) {
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'menu-icon';
+        iconSpan.textContent = menu.icon;
+        a.appendChild(iconSpan);
+      }
+
+      // 文字
+      const textSpan = document.createElement('span');
+      textSpan.className = 'menu-text';
+      textSpan.textContent = menu.name;
+      a.appendChild(textSpan);
+
+      li.appendChild(a);
     }
-
-    // 判断当前页面是否匹配
-    const menuPath = menu.url.split('#')[0]; // 去掉 hash
-    if (menuPath === '/' && (currentPath === '/' || currentPath === '/index.html')) {
-      a.classList.add('active');
-    } else if (menuPath !== '/' && currentPath === menuPath) {
-      a.classList.add('active');
-    }
-
-    // 图标
-    if (menu.icon) {
-      const iconSpan = document.createElement('span');
-      iconSpan.className = 'menu-icon';
-      iconSpan.textContent = menu.icon;
-      a.appendChild(iconSpan);
-    }
-
-    // 文字
-    const textSpan = document.createElement('span');
-    textSpan.className = 'menu-text';
-    textSpan.textContent = menu.name;
-    a.appendChild(textSpan);
-
-    li.appendChild(a);
+    
     menuList.appendChild(li);
   });
 
@@ -247,6 +368,7 @@ async function refreshAuthUI() {
     const resp = await fetch('/api/auth/status');
     const data = await resp.json();
     if (data.loggedIn && data.user) {
+      isLoggedIn = true;
       const nickname = data.user.nickname || data.user.username || '用户';
       const avatar = data.user.avatar || '';
       authArea.innerHTML = `
@@ -262,6 +384,7 @@ async function refreshAuthUI() {
         </div>
       `;
     } else {
+      isLoggedIn = false;
       authArea.innerHTML = `
         <button class="auth-btn auth-login-btn" onclick="showAuthModal('login')">登录</button>
         <button class="auth-btn auth-register-btn" onclick="showAuthModal('register')">注册</button>
@@ -301,6 +424,56 @@ async function doLogout() {
   }
   // 刷新页面状态
   window.location.reload();
+}
+
+/**
+ * 显示全局 Toast 提示（支持未登录和权限不足两种场景）
+ * @param {string} message 提示消息
+ * @param {string} type 'login' 显示去登录按钮 | 'error' 仅提示
+ */
+function showGlobalToast(message, type) {
+  // 移除已存在的 toast
+  const existing = document.getElementById('globalToast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'globalToast';
+  toast.className = 'login-required-toast';
+
+  const icon = type === 'login' ? '⚠️' : '🔒';
+  let actionBtn = '';
+  if (type === 'login') {
+    actionBtn = `<button class="toast-login-btn" onclick="closeGlobalToast();showAuthModal('login')">去登录</button>`;
+  }
+
+  toast.innerHTML = `
+    <span class="toast-icon">${icon}</span>
+    <span class="toast-text">${message}</span>
+    ${actionBtn}
+  `;
+  document.body.appendChild(toast);
+
+  // 3秒后自动跳转首页
+  setTimeout(() => {
+    closeGlobalToast();
+    // 如果不在首页才跳转
+    if (window.location.pathname !== '/') {
+      window.location.href = '/';
+    }
+  }, 3000);
+}
+
+function closeGlobalToast() {
+  const toast = document.getElementById('globalToast');
+  if (toast) toast.remove();
+}
+
+/**
+ * 显示“当前未登录”提示 toast，然后跳转到首页
+ * @deprecated 使用 showGlobalToast 替代
+ */
+function showLoginRequiredToast() {
+  showGlobalToast('当前未登录，请先登录后再访问', 'login');
 }
 
 // 自动初始化

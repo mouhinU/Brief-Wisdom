@@ -3,6 +3,7 @@ package com.mouhin.brief.wisdom.web.controller;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.web.service.AlipayAuthService;
 import com.mouhin.brief.wisdom.web.service.DingtalkAuthService;
+import com.mouhin.brief.wisdom.web.service.RoleService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -19,10 +20,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 钉钉 & 支付宝扫码登录 Controller
@@ -39,6 +41,7 @@ public class OauthCallbackController {
     private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
     private final DingtalkAuthService dingtalkAuthService;
     private final AlipayAuthService alipayAuthService;
+    private final RoleService roleService;
 
     // ==================== 钉钉登录 ====================
 
@@ -129,12 +132,18 @@ public class OauthCallbackController {
         HttpSession session = request.getSession(true);
         session.setAttribute(SESSION_USER_KEY, user);
 
+        // 加载用户角色，转换为 Spring Security 权限
+        List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
+        List<SimpleGrantedAuthority> authorities = roleKeys.stream()
+                .map(key -> new SimpleGrantedAuthority("ROLE_" + key))
+                .collect(Collectors.toList());
+
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
                         user.getUserId(),
                         null,
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                        authorities
                 );
         Map<String, String> details = new HashMap<>();
         details.put("nickname", user.getNickname());
@@ -144,7 +153,7 @@ public class OauthCallbackController {
         SecurityContextHolder.setContext(context);
         session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
 
-        log.info("[OAuth] 登录成功, userId={}, nickname={}", user.getUserId(), user.getNickname());
+        log.info("[OAuth] 登录成功, userId={}, nickname={}, roles={}", user.getUserId(), user.getNickname(), roleKeys);
         response.sendRedirect("/about.html");
     }
 

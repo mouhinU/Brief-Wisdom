@@ -5,6 +5,7 @@ import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.web.req.LoginRequest;
 import com.mouhin.brief.wisdom.web.req.RegisterRequest;
 import com.mouhin.brief.wisdom.web.service.AuthService;
+import com.mouhin.brief.wisdom.web.service.RoleService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 用户名/密码 注册与登录 Controller
@@ -32,6 +35,7 @@ public class AuthController {
 
     private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
     private final AuthService authService;
+    private final RoleService roleService;
 
     /**
      * 用户注册
@@ -66,20 +70,34 @@ public class AuthController {
         HttpSession session = httpRequest.getSession(true);
         session.setAttribute(WechatAuthController.SESSION_USER_KEY, buildChatUserStub(user));
 
+        // 加载用户角色，转换为 Spring Security 权限
+        List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
+        List<SimpleGrantedAuthority> authorities = buildAuthorities(roleKeys);
+
         // 设置 Spring Security 认证上下文
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
                         user.getUserId(),
                         null,
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                        authorities
                 );
         context.setAuthentication(authToken);
         SecurityContextHolder.setContext(context);
         session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
 
-        log.info("[登录] 用户登录成功, 写入 Session: userId={}, username={}", user.getUserId(), user.getUsername());
+        log.info("[登录] 用户登录成功, 写入 Session: userId={}, username={}, roles={}", user.getUserId(), user.getUsername(), roleKeys);
         return user;
+    }
+
+    /**
+     * 根据角色 Key 列表构建权限列表
+     * 每个角色转换为 ROLE_xxx 格式的权限
+     */
+    private List<SimpleGrantedAuthority> buildAuthorities(List<String> roleKeys) {
+        return roleKeys.stream()
+                .map(key -> new SimpleGrantedAuthority("ROLE_" + key))
+                .collect(Collectors.toList());
     }
 
     /**

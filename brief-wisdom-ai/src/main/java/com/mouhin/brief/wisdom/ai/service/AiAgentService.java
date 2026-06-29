@@ -488,14 +488,15 @@ public class AiAgentService {
                 .chatResponse();
 
         // 提取回复内容
+        assert chatResponse != null;
         String response = chatResponse.getResult().getOutput().getText();
 
         // 输出过滤
         response = contentFilterService.filterOutput(response);
 
         // 提取 token 用量
-        Integer promptTokens = 0;
-        Integer completionTokens = 0;
+        int promptTokens = 0;
+        int completionTokens = 0;
         Integer totalTokens = 0;
         Usage usage = chatResponse.getMetadata().getUsage();
         if (usage != null) {

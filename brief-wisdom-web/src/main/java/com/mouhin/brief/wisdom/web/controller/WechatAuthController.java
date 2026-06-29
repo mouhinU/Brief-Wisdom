@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.web.controller;
 
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
+import com.mouhin.brief.wisdom.web.service.RoleService;
 import com.mouhin.brief.wisdom.web.service.WechatAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,10 +20,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 微信扫码登录 + 认证状态 Controller
@@ -41,6 +43,7 @@ public class WechatAuthController {
      */
     private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
     private final WechatAuthService wechatAuthService;
+    private final RoleService roleService;
 
     /**
      * 发起微信扫码登录
@@ -84,13 +87,19 @@ public class WechatAuthController {
             HttpSession session = request.getSession(true);
             session.setAttribute(SESSION_USER_KEY, user);
 
-            // 3. 设置并持久化 Spring Security 认证上下文
+            // 3. 加载用户角色，转换为 Spring Security 权限
+            List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
+            List<SimpleGrantedAuthority> authorities = roleKeys.stream()
+                    .map(key -> new SimpleGrantedAuthority("ROLE_" + key))
+                    .collect(Collectors.toList());
+
+            // 4. 设置并持久化 Spring Security 认证上下文
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(
                             user.getUserId(),
                             null,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                            authorities
                     );
             Map<String, String> details = new HashMap<>();
             details.put("nickname", user.getNickname());
@@ -101,7 +110,7 @@ public class WechatAuthController {
             // 将 SecurityContext 写入 Session，重启后仍然有效
             session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
 
-            log.info("[微信登录] 登录成功, userId={}, nickname={}", user.getUserId(), user.getNickname());
+            log.info("[微信登录] 登录成功, userId={}, nickname={}, roles={}", user.getUserId(), user.getNickname(), roleKeys);
 
             // 4. 重定向到关于我页面
             response.sendRedirect("/about.html");

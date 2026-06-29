@@ -32,6 +32,26 @@ public class SysMenuRepository {
         );
     }
 
+    public List<SysMenu> findByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return sysMenuMapper.selectList(
+                new LambdaQueryWrapper<SysMenu>()
+                        .in(SysMenu::getId, ids)
+                        .orderByAsc(SysMenu::getSortOrder)
+        );
+    }
+
+    public List<SysMenu> findByParentId(Long parentId) {
+        return sysMenuMapper.selectList(
+                new LambdaQueryWrapper<SysMenu>()
+                        .eq(SysMenu::getParentId, parentId)
+                        .eq(SysMenu::getIsVisible, 1)
+                        .orderByAsc(SysMenu::getSortOrder)
+        );
+    }
+
     public SysMenu findById(Long id) {
         return sysMenuMapper.selectById(id);
     }

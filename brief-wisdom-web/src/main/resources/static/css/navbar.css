@@ -1247,3 +1247,158 @@ body {
 .chat-confirm-ok:hover {
     background: #5a6fd6;
 }
+
+/* ===== 菜单下拉样式 ===== */
+.menu-dropdown {
+  position: relative;
+}
+
+.menu-dropdown .dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #555;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.menu-dropdown .dropdown-trigger:hover {
+  background: #f0f5ff;
+  color: #4a90d9;
+}
+
+.menu-dropdown .dropdown-arrow {
+  font-size: 10px;
+  margin-left: 2px;
+  transition: transform 0.2s;
+}
+
+.menu-dropdown.open .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.menu-dropdown.has-active-child > .dropdown-trigger {
+  background: #e8f0fe;
+  color: #4a90d9;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 140px;
+  padding: 6px 0;
+  display: none;
+  list-style: none;
+  z-index: 1001;
+}
+
+.menu-dropdown.open .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu li a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  text-decoration: none;
+  color: #555;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.dropdown-menu li a:hover {
+  background: #f0f5ff;
+  color: #4a90d9;
+}
+
+.dropdown-menu li a.active {
+  background: #e8f0fe;
+  color: #4a90d9;
+}
+
+/* 深色主题下拉菜单 */
+[data-theme="dark"] .dropdown-menu {
+  background: #2a2a2a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .dropdown-menu li a {
+  color: #ccc;
+}
+
+[data-theme="dark"] .dropdown-menu li a:hover {
+  background: rgba(74, 144, 217, 0.15);
+  color: #6aabf0;
+}
+
+[data-theme="dark"] .dropdown-menu li a.active {
+  background: rgba(74, 144, 217, 0.2);
+  color: #6aabf0;
+}
+
+/* ===== 未登录提示 Toast ===== */
+.login-required-toast {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #ffe0b2;
+  border-radius: 12px;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 10000;
+  animation: toastSlideIn 0.3s ease;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.toast-icon {
+  font-size: 20px;
+}
+
+.toast-text {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.toast-login-btn {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  background: #4a90d9;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.toast-login-btn:hover {
+  background: #3a7bc8;
+}

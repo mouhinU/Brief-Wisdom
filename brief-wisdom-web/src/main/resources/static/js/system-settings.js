@@ -4,6 +4,7 @@
 
 const MENU_API = '/api/menu';
 const USER_API = '/api/user';
+const ROLE_API = '/api/role';
 
 // 用户管理分页状态
 let userCurrentPage = 1;
@@ -21,13 +22,18 @@ function switchSettingsTab(tab) {
   document.querySelectorAll('.settings-tab-content').forEach(content => {
     content.classList.toggle('active', content.id === `${tab}-tab-content`);
   });
-  // 首次切换到用户管理时加载数据
+  // 首次切换到对应 tab 时加载数据
   if (tab === 'user') {
     loadUsers();
+  } else if (tab === 'role') {
+    loadRoles();
   }
 }
 
 // ===== 菜单管理 =====
+
+// 缓存菜单树数据，用于父级菜单选择器
+let allMenuTreeCache = [];
 
 async function loadMenus() {
   try {
@@ -43,19 +49,64 @@ async function loadMenus() {
   }
 }
 
+// 加载菜单树用于父级菜单选择器
+async function loadMenuTreeForSelector(selectedParentId) {
+  try {
+    const res = await fetch(`${MENU_API}/all/tree`);
+    const result = await res.json();
+    if (!result.success) return;
+    allMenuTreeCache = result.data || [];
+    renderParentSelect(allMenuTreeCache, selectedParentId);
+  } catch (err) {
+    console.error('加载菜单树异常:', err);
+  }
+}
+
+function renderParentSelect(nodes, selectedId, container) {
+  const select = container || document.getElementById('menu-parent');
+  if (!container) {
+    select.innerHTML = '<option value="0">顶级菜单</option>';
+  }
+  if (!nodes || nodes.length === 0) return;
+  nodes.forEach(node => {
+    const opt = document.createElement('option');
+    opt.value = node.id;
+    const typeLabel = node.type === 0 ? '[目录]' : node.type === 2 ? '[按钮]' : '[菜单]';
+    opt.textContent = `${typeLabel} ${node.icon || ''} ${node.name}`.trim();
+    if (selectedId && String(node.id) === String(selectedId)) opt.selected = true;
+    if (!container) select.appendChild(opt);
+    else container.appendChild(opt);
+
+    if (node.children && node.children.length > 0) {
+      renderParentSelect(node.children, selectedId, select);
+    }
+  });
+}
+
+const typeLabels = { 0: '目录', 1: '菜单', 2: '按钮' };
+const typeBadgeClass = { 0: 'type-dir', 1: 'type-menu', 2: 'type-btn' };
+
 function renderMenuTable(menus) {
   const tbody = document.getElementById('menu-table-body');
   if (!menus || menus.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">暂无菜单数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">暂无菜单数据</td></tr>';
     return;
   }
-  tbody.innerHTML = menus.map(m => `
+  // 构建 id -> name 映射
+  const nameMap = {};
+  menus.forEach(m => { nameMap[m.id] = m.name; });
+
+  tbody.innerHTML = menus.map(m => {
+    const type = m.type ?? 1;
+    const parentName = m.parentId && m.parentId !== 0 ? (nameMap[m.parentId] || '顶级') : '顶级';
+    return `
     <tr>
       <td>${m.sortOrder ?? 0}</td>
       <td class="icon-cell">${m.icon || '-'}</td>
       <td>${escapeHtml(m.name)}</td>
-      <td><code>${escapeHtml(m.url)}</code></td>
-      <td>${m.target === '_blank' ? '新窗口' : '当前窗口'}</td>
+      <td><span class="type-badge ${typeBadgeClass[type] || ''}">${typeLabels[type] || '菜单'}</span></td>
+      <td>${parentName}</td>
+      <td><code>${escapeHtml(m.url) || '-'}</code></td>
       <td>
         <span class="badge ${m.isVisible === 1 ? 'badge-show' : 'badge-hide'}">
           ${m.isVisible === 1 ? '显示' : '隐藏'}
@@ -71,43 +122,85 @@ function renderMenuTable(menus) {
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
-function showMenuForm() {
+async function showMenuForm() {
   document.getElementById('modal-title').textContent = '新增菜单';
   document.getElementById('menu-id').value = '';
+  document.getElementById('menu-type').value = '1';
   document.getElementById('menu-name').value = '';
   document.getElementById('menu-url').value = '';
   document.getElementById('menu-icon').value = '';
   document.getElementById('menu-sort').value = '0';
   document.getElementById('menu-target').value = '_self';
   document.getElementById('menu-visible').value = '1';
+  document.getElementById('menu-require-login').value = '0';
+  document.getElementById('menu-permission').value = '';
+  await loadMenuTreeForSelector(0);
+  onMenuTypeChange();
   document.getElementById('modal').style.display = 'flex';
 }
 
 function editMenu(menu) {
   document.getElementById('modal-title').textContent = '编辑菜单';
   document.getElementById('menu-id').value = menu.id;
+  document.getElementById('menu-type').value = String(menu.type ?? 1);
   document.getElementById('menu-name').value = menu.name;
-  document.getElementById('menu-url').value = menu.url;
+  document.getElementById('menu-url').value = menu.url || '';
   document.getElementById('menu-icon').value = menu.icon || '';
   document.getElementById('menu-sort').value = menu.sortOrder ?? 0;
-  document.getElementById('menu-target').value = menu.target;
+  document.getElementById('menu-target').value = menu.target || '_self';
   document.getElementById('menu-visible').value = String(menu.isVisible);
-  document.getElementById('modal').style.display = 'flex';
+  document.getElementById('menu-require-login').value = String(menu.requireLogin ?? 0);
+  document.getElementById('menu-permission').value = menu.permission || '';
+  loadMenuTreeForSelector(menu.parentId || 0).then(() => {
+    onMenuTypeChange();
+    document.getElementById('modal').style.display = 'flex';
+  });
+}
+
+// 根据菜单类型显示/隐藏相关字段
+function onMenuTypeChange() {
+  const type = parseInt(document.getElementById('menu-type').value);
+  const urlGroup = document.getElementById('menu-url-group');
+  const targetGroup = document.getElementById('menu-target-group');
+  const permGroup = document.getElementById('menu-perm-group');
+
+  if (type === 0) {
+    // 目录：不需要链接和权限标识
+    urlGroup.style.display = 'none';
+    targetGroup.style.display = 'none';
+    permGroup.style.display = 'none';
+  } else if (type === 1) {
+    // 菜单：需要链接和打开方式
+    urlGroup.style.display = '';
+    targetGroup.style.display = '';
+    permGroup.style.display = 'none';
+  } else {
+    // 按钮：不需要链接，需要权限标识
+    urlGroup.style.display = 'none';
+    targetGroup.style.display = 'none';
+    permGroup.style.display = '';
+  }
 }
 
 async function saveMenu(e) {
   e.preventDefault();
   const id = document.getElementById('menu-id').value;
+  const type = parseInt(document.getElementById('menu-type').value);
   const payload = {
+    parentId: parseInt(document.getElementById('menu-parent').value) || 0,
+    type: type,
     name: document.getElementById('menu-name').value.trim(),
-    url: document.getElementById('menu-url').value.trim(),
+    url: type === 1 ? document.getElementById('menu-url').value.trim() : null,
     icon: document.getElementById('menu-icon').value.trim(),
     sortOrder: parseInt(document.getElementById('menu-sort').value) || 0,
-    target: document.getElementById('menu-target').value,
-    isVisible: parseInt(document.getElementById('menu-visible').value)
+    target: type === 1 ? document.getElementById('menu-target').value : '_self',
+    isVisible: parseInt(document.getElementById('menu-visible').value),
+    requireLogin: parseInt(document.getElementById('menu-require-login').value),
+    permission: type === 2 ? document.getElementById('menu-permission').value.trim() : null
   };
 
   try {
@@ -213,6 +306,7 @@ function renderUserTable(users) {
         <td>
           <div class="actions">
             <button class="btn btn-edit" onclick="showUserLevelModal(${u.id}, '${lvl}')">改级别</button>
+            <button class="btn btn-role" onclick="showUserRoleModal('${escapeHtml(u.userId)}', '${escapeHtml(u.username)}')">分配角色</button>
             <button class="btn btn-reset-pwd" onclick="resetUserPassword(${u.id}, '${escapeHtml(u.username)}')">重置密码</button>
             <button class="btn btn-delete" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')">删除</button>
           </div>
@@ -305,6 +399,280 @@ async function deleteUser(id, username) {
     loadUsers();
   } catch (err) {
     alert('删除异常: ' + err.message);
+  }
+}
+
+// ===== 角色管理 =====
+
+async function loadRoles() {
+  try {
+    const res = await fetch(`${ROLE_API}/list`);
+    const result = await res.json();
+    if (!result.success) {
+      alert('加载角色失败: ' + result.error);
+      return;
+    }
+    renderRoleTable(result.data);
+  } catch (err) {
+    console.error('加载角色异常:', err);
+  }
+}
+
+function renderRoleTable(roles) {
+  const tbody = document.getElementById('role-table-body');
+  if (!roles || roles.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">暂无角色数据</td></tr>';
+    return;
+  }
+  tbody.innerHTML = roles.map(r => {
+    const statusBadge = r.status === 1
+      ? '<span class="badge badge-show">启用</span>'
+      : '<span class="badge badge-hide">禁用</span>';
+    const time = r.createTime ? formatDateTime(r.createTime) : '-';
+    return `
+      <tr>
+        <td><strong>${escapeHtml(r.roleName)}</strong></td>
+        <td><code>${escapeHtml(r.roleKey)}</code></td>
+        <td>${escapeHtml(r.description) || '-'}</td>
+        <td>${statusBadge}</td>
+        <td>${time}</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-edit" onclick='editRole(${JSON.stringify(r)})'>编辑</button>
+            <button class="btn btn-role" onclick="showMenuPermModal(${r.id}, '${escapeHtml(r.roleName)}')">菜单权限</button>
+            <button class="btn btn-delete" onclick="deleteRole(${r.id}, '${escapeHtml(r.roleName)}')">删除</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function showRoleForm() {
+  document.getElementById('role-modal-title').textContent = '新增角色';
+  document.getElementById('role-id').value = '';
+  document.getElementById('role-name').value = '';
+  document.getElementById('role-key').value = '';
+  document.getElementById('role-desc').value = '';
+  document.getElementById('role-status').value = '1';
+  document.getElementById('role-modal').style.display = 'flex';
+}
+
+function editRole(role) {
+  document.getElementById('role-modal-title').textContent = '编辑角色';
+  document.getElementById('role-id').value = role.id;
+  document.getElementById('role-name').value = role.roleName;
+  document.getElementById('role-key').value = role.roleKey;
+  document.getElementById('role-desc').value = role.description || '';
+  document.getElementById('role-status').value = String(role.status);
+  document.getElementById('role-modal').style.display = 'flex';
+}
+
+function closeRoleModal() {
+  document.getElementById('role-modal').style.display = 'none';
+}
+
+async function saveRole(e) {
+  e.preventDefault();
+  const id = document.getElementById('role-id').value;
+  const payload = {
+    roleName: document.getElementById('role-name').value.trim(),
+    roleKey: document.getElementById('role-key').value.trim(),
+    description: document.getElementById('role-desc').value.trim(),
+    status: parseInt(document.getElementById('role-status').value)
+  };
+
+  try {
+    const isEdit = !!id;
+    const method = isEdit ? 'PUT' : 'POST';
+    if (isEdit) payload.id = parseInt(id);
+
+    const res = await fetch(ROLE_API, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (!result.success) {
+      alert('保存失败: ' + result.error);
+      return;
+    }
+    closeRoleModal();
+    loadRoles();
+  } catch (err) {
+    alert('保存异常: ' + err.message);
+  }
+}
+
+async function deleteRole(id, name) {
+  if (!confirm(`确定要删除角色“${name}”吗？`)) return;
+  try {
+    const res = await fetch(`${ROLE_API}/${id}`, { method: 'DELETE' });
+    const result = await res.json();
+    if (!result.success) {
+      alert('删除失败: ' + result.error);
+      return;
+    }
+    loadRoles();
+  } catch (err) {
+    alert('删除异常: ' + err.message);
+  }
+}
+
+// ===== 角色菜单权限分配 =====
+
+let currentPermRoleId = null;
+
+async function showMenuPermModal(roleId, roleName) {
+  currentPermRoleId = roleId;
+  document.getElementById('menu-perm-title').textContent = `分配菜单权限 - ${roleName}`;
+
+  // 并行加载菜单树和角色已选菜单
+  const [treeRes, menuIdsRes] = await Promise.all([
+    fetch(`${MENU_API}/all/tree`),
+    fetch(`${ROLE_API}/${roleId}/menus`)
+  ]);
+  const treeResult = await treeRes.json();
+  const menuIdsResult = await menuIdsRes.json();
+
+  if (!treeResult.success || !menuIdsResult.success) {
+    alert('加载菜单数据失败');
+    return;
+  }
+
+  const checkedIds = new Set(menuIdsResult.data);
+  renderMenuPermTree(treeResult.data, checkedIds);
+  document.getElementById('menu-perm-modal').style.display = 'flex';
+}
+
+function renderMenuPermTree(nodes, checkedIds, container) {
+  const root = container || document.getElementById('menu-perm-tree');
+  root.innerHTML = '';
+  renderMenuPermNodes(nodes, checkedIds, root, 0);
+}
+
+function renderMenuPermNodes(nodes, checkedIds, container, depth) {
+  if (!nodes || nodes.length === 0) return;
+  nodes.forEach(node => {
+    const indent = depth * 24;
+    const checked = checkedIds.has(node.id) ? 'checked' : '';
+    const hasChildren = node.children && node.children.length > 0;
+    const typeLabel = node.type === 0 ? '[目录]' : node.type === 2 ? '[按钮]' : '';
+
+    const item = document.createElement('div');
+    item.className = 'menu-perm-item';
+    item.style.paddingLeft = indent + 'px';
+    item.innerHTML = `
+      <label class="menu-perm-label">
+        <input type="checkbox" class="menu-perm-cb" value="${node.id}" ${checked}>
+        <span class="menu-perm-icon">${node.icon || ''}</span>
+        <span class="menu-perm-name">${escapeHtml(node.name)}</span>
+        ${typeLabel ? `<span class="menu-perm-type">${typeLabel}</span>` : ''}
+      </label>
+    `;
+    container.appendChild(item);
+
+    if (hasChildren) {
+      renderMenuPermNodes(node.children, checkedIds, container, depth + 1);
+    }
+  });
+}
+
+function checkAllMenus(checked) {
+  document.querySelectorAll('.menu-perm-cb').forEach(cb => {
+    cb.checked = checked;
+  });
+}
+
+function closeMenuPermModal() {
+  document.getElementById('menu-perm-modal').style.display = 'none';
+  currentPermRoleId = null;
+}
+
+async function saveMenuPermissions() {
+  if (!currentPermRoleId) return;
+  const checkedIds = Array.from(
+    document.querySelectorAll('.menu-perm-cb:checked')
+  ).map(cb => parseInt(cb.value));
+
+  try {
+    const res = await fetch(`${ROLE_API}/${currentPermRoleId}/menus`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(checkedIds)
+    });
+    const result = await res.json();
+    if (!result.success) {
+      alert('保存失败: ' + result.error);
+      return;
+    }
+    closeMenuPermModal();
+    alert('菜单权限已保存');
+  } catch (err) {
+    alert('保存异常: ' + err.message);
+  }
+}
+
+// ===== 用户角色分配 =====
+
+let currentRoleUserId = null;
+
+async function showUserRoleModal(userId, username) {
+  currentRoleUserId = userId;
+  document.getElementById('user-role-title').textContent = `分配角色 - ${username}`;
+
+  // 并行加载所有角色和用户已有角色
+  const [rolesRes, userRolesRes] = await Promise.all([
+    fetch(`${ROLE_API}/enabled`),
+    fetch(`${ROLE_API}/user/${userId}`)
+  ]);
+  const rolesResult = await rolesRes.json();
+  const userRolesResult = await userRolesRes.json();
+
+  if (!rolesResult.success || !userRolesResult.success) {
+    alert('加载角色数据失败');
+    return;
+  }
+
+  const userRoleIds = new Set(userRolesResult.data.map(r => r.id));
+  const container = document.getElementById('user-role-checkboxes');
+  container.innerHTML = rolesResult.data.map(r => `
+    <label class="role-checkbox-item">
+      <input type="checkbox" value="${r.id}" ${userRoleIds.has(r.id) ? 'checked' : ''}>
+      <span class="role-cb-name">${escapeHtml(r.roleName)}</span>
+      <span class="role-cb-key">(${escapeHtml(r.roleKey)})</span>
+    </label>
+  `).join('');
+
+  document.getElementById('user-role-modal').style.display = 'flex';
+}
+
+function closeUserRoleModal() {
+  document.getElementById('user-role-modal').style.display = 'none';
+  currentRoleUserId = null;
+}
+
+async function saveUserRoles() {
+  if (!currentRoleUserId) return;
+  const checkedIds = Array.from(
+    document.querySelectorAll('#user-role-checkboxes input:checked')
+  ).map(cb => parseInt(cb.value));
+
+  try {
+    const res = await fetch(`${ROLE_API}/assign/${currentRoleUserId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(checkedIds)
+    });
+    const result = await res.json();
+    if (!result.success) {
+      alert('保存失败: ' + result.error);
+      return;
+    }
+    closeUserRoleModal();
+    alert('用户角色已保存');
+  } catch (err) {
+    alert('保存异常: ' + err.message);
   }
 }
 

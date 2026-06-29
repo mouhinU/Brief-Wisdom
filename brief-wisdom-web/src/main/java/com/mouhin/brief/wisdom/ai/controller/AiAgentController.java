@@ -14,7 +14,6 @@ import com.mouhin.brief.wisdom.config.PaginationProperties;
 import com.mouhin.brief.wisdom.web.service.UserContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -36,20 +35,18 @@ public class AiAgentController {
      * 简单聊天接口（无上下文）
      */
     @PostMapping("/chat")
-    public ResponseEntity<String> chat(@RequestBody ChatRequest request) {
-        String response = aiAgentService.chat(request.getMessage());
-        return ResponseEntity.ok(response);
+    public String chat(@RequestBody ChatRequest request) {
+        return aiAgentService.chat(request.getMessage());
     }
 
     /**
      * 带上下文的聊天接口
      */
     @PostMapping("/chat/session/{sessionId}")
-    public ResponseEntity<String> chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
+    public String chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
         String userId = userContextHelper.getCurrentUserId();
         log.info("收到聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}", sessionId, userId, request.getMessage(), request.getModel());
-        String response = aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel());
-        return ResponseEntity.ok(response);
+        return aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel());
     }
 
     /**
@@ -149,9 +146,8 @@ public class AiAgentController {
      * 智能问答接口
      */
     @PostMapping("/ask")
-    public ResponseEntity<String> ask(@RequestBody QuestionRequest request) {
-        String response = aiAgentService.askQuestion(request.getQuestion());
-        return ResponseEntity.ok(response);
+    public String ask(@RequestBody QuestionRequest request) {
+        return aiAgentService.askQuestion(request.getQuestion());
     }
 
     /**

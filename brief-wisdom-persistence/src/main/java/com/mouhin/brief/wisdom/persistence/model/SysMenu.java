@@ -18,6 +18,9 @@ public class SysMenu implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField(value = "parent_id")
+    private Long parentId;
+
     @TableField(value = "name")
     private String name;
 
@@ -30,11 +33,20 @@ public class SysMenu implements Serializable {
     @TableField(value = "target")
     private String target;
 
+    @TableField(value = "type")
+    private Integer type;
+
+    @TableField(value = "permission")
+    private String permission;
+
     @TableField(value = "sort_order")
     private Integer sortOrder;
 
     @TableField(value = "is_visible")
     private Integer isVisible;
+
+    @TableField(value = "require_login")
+    private Integer requireLogin;
 
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;

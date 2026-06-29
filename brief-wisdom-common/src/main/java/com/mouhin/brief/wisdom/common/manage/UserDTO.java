@@ -20,4 +20,6 @@ public class UserDTO implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
     private Integer sessionCount;
+    private java.util.List<String> roleKeys;
+    private java.util.List<String> roleNames;
 }

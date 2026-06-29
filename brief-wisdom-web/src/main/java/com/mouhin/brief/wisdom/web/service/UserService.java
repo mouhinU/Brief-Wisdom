@@ -5,10 +5,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
+import com.mouhin.brief.wisdom.persistence.model.SysRole;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 用户管理服务
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     private final ChatUserRepository chatUserRepository;
+    private final RoleService roleService;
 
     /**
      * 分页获取用户列表（支持按级别、关键词筛选）
@@ -95,7 +99,7 @@ public class UserService {
     }
 
     /**
-     * ChatUser 实体转 UserDTO（自动清除密码字段）
+     * ChatUser 实体转 UserDTO（自动清除密码字段，包含角色信息）
      */
     private UserDTO toUserDTO(ChatUser user) {
         UserDTO dto = new UserDTO();
@@ -106,6 +110,12 @@ public class UserService {
         dto.setAvatar(user.getAvatar());
         dto.setUserLevel(user.getUserLevel());
         dto.setCreateTime(user.getCreateTime());
+
+        // 加载用户角色信息
+        List<SysRole> roles = roleService.getUserRoles(user.getUserId());
+        dto.setRoleKeys(roles.stream().map(SysRole::getRoleKey).toList());
+        dto.setRoleNames(roles.stream().map(SysRole::getRoleName).toList());
+
         return dto;
     }
 }
