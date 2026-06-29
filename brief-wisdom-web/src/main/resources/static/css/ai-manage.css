@@ -306,7 +306,7 @@ header h1 {
   border-bottom: 2px solid #e1e5eb;
 }
 
-.manage-tab-btn {
+.manage-tabs .tab-btn {
   padding: 10px 24px;
   border: none;
   background: transparent;
@@ -319,11 +319,11 @@ header h1 {
   transition: all 0.2s;
 }
 
-.manage-tab-btn:hover {
+.manage-tabs .tab-btn:hover {
   color: #4a90d9;
 }
 
-.manage-tab-btn.active {
+.manage-tabs .tab-btn.active {
   color: #4a90d9;
   border-bottom-color: #4a90d9;
 }

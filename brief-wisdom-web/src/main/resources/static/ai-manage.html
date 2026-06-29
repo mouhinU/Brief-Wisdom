@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI助手管理</title>
-    <link rel="stylesheet" href="css/navbar.css?v=10">
-    <link rel="stylesheet" href="css/ai-manage.css?v=1">
+    <link rel="stylesheet" href="css/navbar.css?v=11">
+    <link rel="stylesheet" href="css/ai-manage.css?v=2">
 </head>
 <body>
 <div class="container">
@@ -13,12 +13,8 @@
         <h1>AI助手管理</h1>
     </header>
 
-    <!-- 顶部 Tab 导航 -->
-    <nav class="manage-tabs">
-        <button class="manage-tab-btn active" data-tab="models" onclick="switchManageTab('models')">模型管理</button>
-        <button class="manage-tab-btn" data-tab="sessions" onclick="switchManageTab('sessions')">会话历史
-        </button>
-    </nav>
+    <!-- 顶部 Tab 导航（由 initPageTabs 动态渲染） -->
+    <nav class="manage-tabs"></nav>
 
     <!-- Tab 1: 会话历史 -->
     <div id="sessions-tab-content" class="manage-tab-content">
@@ -154,7 +150,7 @@
 </div>
 
 <!-- 公共导航栏 -->
-<script src="js/navbar.js?v=7"></script>
-<script src="js/ai-manage.js?v=3"></script>
+<script src="js/navbar.js?v=8"></script>
+<script src="js/ai-manage.js?v=4"></script>
 </body>
 </html>

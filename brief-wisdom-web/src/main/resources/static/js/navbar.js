@@ -573,6 +573,80 @@ function showLoginRequiredToast() {
   showGlobalToast('当前未登录，请先登录后再访问', 'login');
 }
 
+/**
+ * 动态初始化页面 Tab 导航
+ * 从 /api/menu/tree 接口获取当前页面的子菜单，渲染为 Tab 按钮
+ * @param {Object} config 页面配置
+ * @param {string[]} config.pageUrls - 当前页面的 URL 匹配列表
+ * @param {string} config.tabContainerSelector - Tab 导航容器 CSS 选择器
+ * @param {string} config.tabContentSelector - Tab 内容区域 CSS 选择器
+ * @param {Function} config.getContentId - function(child) 返回对应的内容元素 ID
+ * @param {Function} [config.onTabSwitch] - function(child) Tab 切换时的回调
+ */
+async function initPageTabs(config) {
+  try {
+    await checkLoginStatus();
+    const res = await fetch('/api/menu/tree');
+    const result = await res.json();
+    if (!result.success) return;
+
+    const menus = result.data || [];
+    const currentUrl = window.location.pathname.split('/').pop() || window.location.pathname;
+
+    // 查找当前页面对应的菜单项
+    const currentMenu = menus.find(m => {
+      if (!m.url) return false;
+      const menuUrl = m.url.split('/').pop() || m.url;
+      return menuUrl === currentUrl || currentUrl.startsWith(menuUrl.split('?')[0]);
+    });
+
+    if (!currentMenu || !currentMenu.children || currentMenu.children.length === 0) {
+      return; // 没有子菜单，不渲染 Tab
+    }
+
+    const children = currentMenu.children;
+    const tabContainer = document.querySelector(config.tabContainerSelector);
+    if (!tabContainer) return;
+
+    // 动态渲染 Tab 按钮
+    tabContainer.innerHTML = '';
+    children.forEach((child, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn';
+      if (index === 0) btn.classList.add('active');
+      btn.textContent = child.name;
+      btn.setAttribute('data-tab-key', child.name);
+      btn.onclick = function() {
+        // 切换 Tab 按钮激活状态
+        tabContainer.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // 切换内容区域显示
+        const contentId = config.getContentId(child);
+        if (contentId) {
+          document.querySelectorAll(config.tabContentSelector).forEach(c => c.classList.remove('active'));
+          const target = document.getElementById(contentId);
+          if (target) target.classList.add('active');
+        }
+        // 回调
+        if (config.onTabSwitch) config.onTabSwitch(child);
+      };
+      tabContainer.appendChild(btn);
+    });
+
+    // 默认激活第一个 Tab 的内容
+    const firstChild = children[0];
+    const firstContentId = config.getContentId(firstChild);
+    if (firstContentId) {
+      document.querySelectorAll(config.tabContentSelector).forEach(c => c.classList.remove('active'));
+      const target = document.getElementById(firstContentId);
+      if (target) target.classList.add('active');
+    }
+    if (config.onTabSwitch) config.onTabSwitch(firstChild);
+  } catch (err) {
+    console.error('初始化页面Tab失败:', err);
+  }
+}
+
 // 自动初始化
 document.addEventListener('DOMContentLoaded', () => {
   initNavbar();

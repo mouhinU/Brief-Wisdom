@@ -11,12 +11,30 @@ let userCurrentPage = 1;
 let userHasMore = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 等待 navbar.js 的 checkLoginStatus 完成后再加载数据和渲染
-  // checkLoginStatus 是异步请求 /api/auth/status，需要等待它完成才能正确判断权限
+  // 动态初始化 Tab 导航（数据来源于菜单接口的 children）
+  initPageTabs({
+    pageUrls: ['system-settings.html'],
+    tabContainerSelector: '.settings-tabs',
+    tabContentSelector: '.settings-tab-content',
+    getContentId: function(child) {
+      // 菜单管理 → menu-tab-content, 用户管理 → user-tab-content, 角色管理 → role-tab-content
+      var nameMap = { '菜单管理': 'menu-tab-content', '用户管理': 'user-tab-content', '角色管理': 'role-tab-content' };
+      return nameMap[child.name];
+    },
+    onTabSwitch: function(child) {
+      if (child.name === '菜单管理') {
+        loadMenus();
+      } else if (child.name === '用户管理') {
+        loadUsers();
+      } else if (child.name === '角色管理') {
+        loadRoles();
+      }
+    }
+  });
+  // 等待权限状态初始化完成后应用权限控制
   setTimeout(() => {
-    loadMenus();
     applyPermissionsToUI();
-  }, 800);
+  }, 1000);
 });
 
 /**
@@ -43,22 +61,6 @@ function applyPermissionsToUI() {
     document.querySelectorAll('#role-tab-content .btn-primary').forEach(btn => btn.style.display = 'none');
     // 隐藏表格中的操作按钮
     document.querySelectorAll('#role-tab-content .btn-edit, #role-tab-content .btn-role, #role-tab-content .btn-delete').forEach(btn => btn.style.display = 'none');
-  }
-}
-
-// ===== Tab 切换 =====
-function switchSettingsTab(tab) {
-  document.querySelectorAll('.settings-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tab);
-  });
-  document.querySelectorAll('.settings-tab-content').forEach(content => {
-    content.classList.toggle('active', content.id === `${tab}-tab-content`);
-  });
-  // 首次切换到对应 tab 时加载数据
-  if (tab === 'user') {
-    loadUsers();
-  } else if (tab === 'role') {
-    loadRoles();
   }
 }
 

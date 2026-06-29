@@ -35,7 +35,7 @@ header h1 {
   border-bottom: 2px solid #e1e5eb;
 }
 
-.settings-tab-btn {
+.settings-tabs .tab-btn {
   padding: 10px 24px;
   border: none;
   background: transparent;
@@ -48,11 +48,11 @@ header h1 {
   transition: all 0.2s;
 }
 
-.settings-tab-btn:hover {
+.settings-tabs .tab-btn:hover {
   color: #4a90d9;
 }
 
-.settings-tab-btn.active {
+.settings-tabs .tab-btn.active {
   color: #4a90d9;
   border-bottom-color: #4a90d9;
 }

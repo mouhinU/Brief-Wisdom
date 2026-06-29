@@ -34,10 +34,14 @@ public class MenuService {
     }
 
     /**
-     * 获取所有可见菜单（树形结构）
+     * 获取所有可见菜单（树形结构，含隐藏子项用于页面 Tab 渲染）
      */
     public List<MenuTreeDTO> listVisibleMenuTree() {
-        List<SysMenu> menus = sysMenuRepository.findVisibleOrderBySortOrderAsc();
+        List<SysMenu> menus = new ArrayList<>(sysMenuRepository.findVisibleOrderBySortOrderAsc());
+        // 补充隐藏的子项（用于页面 Tab 渲染）
+        List<Long> visibleMenuIds = menus.stream().map(SysMenu::getId).toList();
+        List<SysMenu> hiddenChildren = sysMenuRepository.findHiddenChildrenByParentIds(visibleMenuIds);
+        menus.addAll(hiddenChildren);
         return buildTree(menus);
     }
 
@@ -45,15 +49,18 @@ public class MenuService {
      * 根据用户角色获取可见菜单（树形结构）
      * <p>
      * 规则：
-     * - 超级管理员：返回所有可见菜单
-     * - 其他用户：角色分配的菜单 + 无需权限控制的公开菜单（首页、简历、AI助手等）
+     * - 超级管理员：返回所有可见菜单 + 隐藏的子项（用于页面 Tab 渲染）
+     * - 其他用户：角色分配的菜单 + 公开菜单 + 隐藏的子项
+     * <p>
+     * 隐藏子项（is_visible=0）虽然不在导航栏显示，但会作为 children 返回，
+     * 供页面动态渲染 Tab 导航。
      */
     public List<MenuTreeDTO> getMenuTreeByRoles(List<String> roleKeys) {
         List<SysMenu> menus;
 
         // 超级管理员拥有所有权限
         if (roleKeys.contains("super_admin")) {
-            menus = sysMenuRepository.findVisibleOrderBySortOrderAsc();
+            menus = new ArrayList<>(sysMenuRepository.findVisibleOrderBySortOrderAsc());
         } else {
             // 获取用户所有角色的菜单 ID
             List<Long> menuIds = getRoleMenuIds(roleKeys);
@@ -73,8 +80,13 @@ public class MenuService {
             if (allMenuIds.isEmpty()) {
                 return List.of();
             }
-            menus = sysMenuRepository.findByIds(allMenuIds);
+            menus = new ArrayList<>(sysMenuRepository.findByIds(allMenuIds));
         }
+
+        // 补充隐藏的子项（用于页面 Tab 渲染，不在导航栏显示）
+        List<Long> visibleMenuIds = menus.stream().map(SysMenu::getId).toList();
+        List<SysMenu> hiddenChildren = sysMenuRepository.findHiddenChildrenByParentIds(visibleMenuIds);
+        menus.addAll(hiddenChildren);
 
         return buildTree(menus);
     }

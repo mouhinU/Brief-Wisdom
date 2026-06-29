@@ -10,43 +10,34 @@ let projectsCache = [];
 
 // ===== 初始化 =====
 document.addEventListener('DOMContentLoaded', () => {
-  initTabs();
+  // 预加载数据
   loadExperiences();
   loadProjects();
   loadAchievements();
   loadStacks();
-});
 
-// ===== Tab 切换 =====
-function initTabs() {
-  document.querySelectorAll('.tab-btn:not([data-tab="editor"])').forEach(btn => {
-    btn.addEventListener('click', () => {
-      switchToManage();
-      // 找到对应的 tab-content
-      const tabId = `${btn.dataset.tab}-tab`;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      btn.classList.add('active');
-      const target = document.getElementById(tabId);
-      if (target) target.classList.add('active');
-    });
+  // 动态初始化 Tab 导航（数据来源于菜单接口的 children）
+  initPageTabs({
+    pageUrls: ['resume-manage.html'],
+    tabContainerSelector: '.tabs',
+    tabContentSelector: '.tab-content',
+    getContentId: function(child) {
+      var nameMap = {
+        '在线编辑': 'editor-tab',
+        '工作经历': 'experiences-tab',
+        '项目经历': 'projects-tab',
+        '项目成果': 'achievements-tab',
+        '技术栈': 'stacks-tab'
+      };
+      return nameMap[child.name];
+    },
+    onTabSwitch: function(child) {
+      if (child.name === '在线编辑' && typeof initEditor === 'function') {
+        initEditor();
+      }
+    }
   });
-}
-
-// 切换到在线编辑器
-function switchToEditor() {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelector('.tab-btn[data-tab="editor"]').classList.add('active');
-  document.getElementById('editor-tab').classList.add('active');
-  if (typeof initEditor === 'function') initEditor();
-}
-
-// 切换到数据管理
-function switchToManage() {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-}
+});
 
 // ===== 通用 API 请求 =====
 async function apiRequest(url, method = 'GET', body = null) {

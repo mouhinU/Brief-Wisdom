@@ -11,8 +11,24 @@ let selectedSessionId = null;
 let currentMessages = []; // 缓存当前消息列表
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 默认显示模型管理页面
-  loadManageModels();
+  // 动态初始化 Tab 导航（数据来源于菜单接口的 children）
+  initPageTabs({
+    pageUrls: ['ai-manage.html'],
+    tabContainerSelector: '.manage-tabs',
+    tabContentSelector: '.manage-tab-content',
+    getContentId: function(child) {
+      // 模型管理 → models-tab-content, 会话历史 → sessions-tab-content
+      var nameMap = { '模型管理': 'models-tab-content', '会话历史': 'sessions-tab-content' };
+      return nameMap[child.name];
+    },
+    onTabSwitch: function(child) {
+      if (child.name === '模型管理') {
+        loadManageModels();
+      } else if (child.name === '会话历史') {
+        loadUsers();
+      }
+    }
+  });
 });
 
 // ===== 筛选事件 =====
@@ -410,21 +426,6 @@ function escapeHtml(str) {
 function escapeAttr(str) {
   if (!str) return '';
   return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-}
-
-// ===== Tab 切换 =====
-function switchManageTab(tab) {
-  document.querySelectorAll('.manage-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tab);
-  });
-  document.querySelectorAll('.manage-tab-content').forEach(content => {
-    content.classList.toggle('active', content.id === `${tab}-tab-content`);
-  });
-  if (tab === 'models') {
-    loadManageModels();
-  } else if (tab === 'sessions') {
-    loadUsers();
-  }
 }
 
 // ===== 模型管理 =====

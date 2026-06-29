@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>简历数据管理</title>
-    <link rel="stylesheet" href="css/navbar.css?v=10">
+    <link rel="stylesheet" href="css/navbar.css?v=11">
     <link rel="stylesheet" href="css/resume-manage.css?v=1">
     <link rel="stylesheet" href="css/resume-editor.css">
 </head>
@@ -15,14 +15,8 @@
         <a href="/" class="back-link">← 返回主页</a>
     </header>
 
-    <!-- Tab 导航 -->
-    <nav class="tabs">
-        <button class="tab-btn" data-tab="editor" onclick="switchToEditor()">在线编辑</button>
-        <button class="tab-btn active" data-tab="experiences" onclick="switchToManage()">工作经历</button>
-        <button class="tab-btn" data-tab="projects">项目</button>
-        <button class="tab-btn" data-tab="achievements">项目成果</button>
-        <button class="tab-btn" data-tab="stacks">技术栈</button>
-    </nav>
+    <!-- Tab 导航（由 initPageTabs 动态渲染） -->
+    <nav class="tabs"></nav>
 
     <!-- 在线编辑 Tab -->
     <section id="editor-tab" class="tab-content">
@@ -133,7 +127,7 @@
 </div>
 
 <!-- 公共导航栏 -->
-<script src="js/navbar.js?v=7"></script>
+<script src="js/navbar.js?v=8"></script>
 <script src="js/resume-manage.js"></script>
 <script src="js/resume-editor.js"></script>
 </body>

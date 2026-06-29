@@ -57,6 +57,22 @@ public class SysMenuRepository {
         );
     }
 
+    /**
+     * 查询指定父菜单下的隐藏子项（is_visible=0）
+     * 用于页面 Tab 渲染（Tab 项不需要在导航栏显示，但需要返回给前端）
+     */
+    public List<SysMenu> findHiddenChildrenByParentIds(List<Long> parentIds) {
+        if (parentIds == null || parentIds.isEmpty()) {
+            return List.of();
+        }
+        return sysMenuMapper.selectList(
+                new LambdaQueryWrapper<SysMenu>()
+                        .in(SysMenu::getParentId, parentIds)
+                        .eq(SysMenu::getIsVisible, 0)
+                        .orderByAsc(SysMenu::getSortOrder)
+        );
+    }
+
     public List<SysMenu> findByParentId(Long parentId) {
         return sysMenuMapper.selectList(
                 new LambdaQueryWrapper<SysMenu>()

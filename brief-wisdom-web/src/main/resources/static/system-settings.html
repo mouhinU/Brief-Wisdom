@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>系统设置</title>
-    <link rel="stylesheet" href="css/navbar.css?v=10">
-    <link rel="stylesheet" href="css/system-settings.css?v=7">
+    <link rel="stylesheet" href="css/navbar.css?v=11">
+    <link rel="stylesheet" href="css/system-settings.css?v=8">
 </head>
 <body>
 <div class="container">
@@ -13,12 +13,8 @@
         <h1>系统设置</h1>
     </header>
 
-    <!-- Tab 导航 -->
-    <nav class="settings-tabs">
-        <button class="settings-tab-btn active" data-tab="menu" onclick="switchSettingsTab('menu')">菜单管理</button>
-        <button class="settings-tab-btn" data-tab="user" onclick="switchSettingsTab('user')">用户管理</button>
-        <button class="settings-tab-btn" data-tab="role" onclick="switchSettingsTab('role')">角色管理</button>
-    </nav>
+    <!-- Tab 导航（由 initPageTabs 动态渲染） -->
+    <nav class="settings-tabs"></nav>
 
     <!-- Tab 1: 菜单管理 -->
     <div id="menu-tab-content" class="settings-tab-content active">
@@ -281,7 +277,7 @@
 </div>
 
 <!-- 公共导航栏 -->
-<script src="js/navbar.js?v=7"></script>
-<script src="js/system-settings.js?v=9"></script>
+<script src="js/navbar.js?v=8"></script>
+<script src="js/system-settings.js?v=10"></script>
 </body>
 </html>
