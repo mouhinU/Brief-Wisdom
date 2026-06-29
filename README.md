@@ -65,9 +65,9 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 ### 3. 安全与合规
 
 - **三层防线**：
-  1. **系统提示词**：引导 AI 遵守伦理合规和安全风控准则
-  2. **输入预过滤**：关键词拦截（炸弹、毒品、枪支等），命中即拒绝，不消耗 Token
-  3. **输出过滤**：正则检测 AI 回复中的敏感信息（身份证、手机号、银行卡号），自动替换
+    1. **系统提示词**：引导 AI 遵守伦理合规和安全风控准则
+    2. **输入预过滤**：关键词拦截（炸弹、毒品、枪支等），命中即拒绝，不消耗 Token
+    3. **输出过滤**：正则检测 AI 回复中的敏感信息（身份证、手机号、银行卡号），自动替换
 - **接口限流**：滑动窗口算法，每用户每分钟 20 次、每天 200 次
 - **输入校验**：空值检测、长度限制（最大 10000 字符）
 
@@ -124,30 +124,30 @@ brief-wisdom-web (Web入口)
 
 ### 各模块职责
 
-| 模块          | 职责            | 关键类                                                                             |
-|-------------|---------------|---------------------------------------------------------------------------------|
-| persistence | 数据存储和访问层      | `ChatUser`, `ChatSession`, `ChatMessage`, `AiModel`, `WorkExperience`, `Project`, 各 Mapper/Repository |
-| ai          | AI 服务和业务逻辑    | `AiAgentService`, `ChatSyncService`, `ContentFilterService`, `RateLimitService`, `SystemPrompts` |
+| 模块          | 职责            | 关键类                                                                                                           |
+|-------------|---------------|---------------------------------------------------------------------------------------------------------------|
+| persistence | 数据存储和访问层      | `ChatUser`, `ChatSession`, `ChatMessage`, `AiModel`, `WorkExperience`, `Project`, 各 Mapper/Repository         |
+| ai          | AI 服务和业务逻辑    | `AiAgentService`, `ChatSyncService`, `ContentFilterService`, `RateLimitService`, `SystemPrompts`              |
 | web         | Web 入口和前端资源   | `WebApplication`, `AiAgentController`, `AuthController`, `UserController`, `MenuController`, `SecurityConfig` |
-| resume      | 个人简历展示和管理      | `ResumeController`, `ResumeManageController`, `ResumeService`, `ResumeManageService` |
-| common      | 公共 DTO 和工具    | `ApiResponse`, `PageResult`, `SessionMetaDTO`, `ChatMessageDTO`, `AiModelDTO` 等 |
-| api         | API 接口定义和 DTO | 通用响应封装                                                                          |
-| service     | 通用服务层         | 业务服务类                                                                           |
+| resume      | 个人简历展示和管理     | `ResumeController`, `ResumeManageController`, `ResumeService`, `ResumeManageService`                          |
+| common      | 公共 DTO 和工具    | `ApiResponse`, `PageResult`, `SessionMetaDTO`, `ChatMessageDTO`, `AiModelDTO` 等                               |
+| api         | API 接口定义和 DTO | 通用响应封装                                                                                                        |
+| service     | 通用服务层         | 业务服务类                                                                                                         |
 
 ---
 
 ## 技术栈
 
-| 组件          | 版本/说明              |
-|-------------|--------------------|
-| Java        | 17                 |
-| Spring Boot | 3.5.7              |
+| 组件          | 版本/说明                     |
+|-------------|---------------------------|
+| Java        | 17                        |
+| Spring Boot | 3.5.7                     |
 | Spring AI   | 1.0.0 (Spring AI Alibaba) |
-| ORM         | MyBatis-Plus 3.5.5 |
-| 数据库         | MySQL 8.0+         |
-| 安全          | Spring Security 6  |
-| 前端          | 原生 HTML/CSS/JS     |
-| 构建工具        | Maven              |
+| ORM         | MyBatis-Plus 3.5.5        |
+| 数据库         | MySQL 8.0+                |
+| 安全          | Spring Security 6         |
+| 前端          | 原生 HTML/CSS/JS            |
+| 构建工具        | Maven                     |
 
 ---
 
@@ -254,33 +254,33 @@ sys_menu (系统菜单) [独立]
 
 ### chat_user（用户表）
 
-| 字段          | 类型           | 说明                  |
-|-------------|--------------|---------------------|
-| id          | BIGINT       | 自增主键                |
-| user_id     | VARCHAR(36)  | 用户ID (UUID, UNIQUE) |
-| username    | VARCHAR(100) | 用户名 (UNIQUE)        |
-| nickname    | VARCHAR(200) | 昵称                  |
-| avatar      | VARCHAR(500) | 头像URL               |
-| password    | VARCHAR(200) | BCrypt加密后的密码        |
+| 字段          | 类型           | 说明                     |
+|-------------|--------------|------------------------|
+| id          | BIGINT       | 自增主键                   |
+| user_id     | VARCHAR(36)  | 用户ID (UUID, UNIQUE)    |
+| username    | VARCHAR(100) | 用户名 (UNIQUE)           |
+| nickname    | VARCHAR(200) | 昵称                     |
+| avatar      | VARCHAR(500) | 头像URL                  |
+| password    | VARCHAR(200) | BCrypt加密后的密码           |
 | user_level  | VARCHAR(20)  | 用户级别: admin/vip/normal |
-| create_time | DATETIME     | 创建时间                |
-| update_time | DATETIME     | 更新时间                |
-| is_deleted  | TINYINT      | 逻辑删除: 0-未删除, 1-已删除  |
+| create_time | DATETIME     | 创建时间                   |
+| update_time | DATETIME     | 更新时间                   |
+| is_deleted  | TINYINT      | 逻辑删除: 0-未删除, 1-已删除     |
 
 ### chat_session（会话表）
 
-| 字段            | 类型           | 说明                  |
-|---------------|--------------|---------------------|
-| id            | BIGINT       | 自增主键                |
-| session_id    | VARCHAR(36)  | 会话ID (UUID, UNIQUE) |
-| user_id       | VARCHAR(36)  | 用户ID (外键)           |
-| title         | VARCHAR(200) | 会话标题                |
-| description   | TEXT         | 会话描述                |
+| 字段            | 类型           | 说明                   |
+|---------------|--------------|----------------------|
+| id            | BIGINT       | 自增主键                 |
+| session_id    | VARCHAR(36)  | 会话ID (UUID, UNIQUE)  |
+| user_id       | VARCHAR(36)  | 用户ID (外键)            |
+| title         | VARCHAR(200) | 会话标题                 |
+| description   | TEXT         | 会话描述                 |
 | page_context  | VARCHAR(200) | 页面上下文（如 /about.html） |
-| message_count | INT          | 消息数量                |
-| create_time   | DATETIME     | 创建时间                |
-| update_time   | DATETIME     | 更新时间                |
-| is_deleted    | TINYINT      | 逻辑删除                |
+| message_count | INT          | 消息数量                 |
+| create_time   | DATETIME     | 创建时间                 |
+| update_time   | DATETIME     | 更新时间                 |
+| is_deleted    | TINYINT      | 逻辑删除                 |
 
 ### chat_message（消息表）
 
@@ -300,21 +300,21 @@ sys_menu (系统菜单) [独立]
 
 ### ai_model（AI模型配置表）
 
-| 字段                    | 类型           | 说明                        |
-|-----------------------|--------------|---------------------------|
-| id                    | BIGINT       | 自增主键                      |
-| model_name            | VARCHAR(100) | 模型标识(如 qwen-max)          |
-| display_name          | VARCHAR(200) | 显示名称                      |
-| provider              | VARCHAR(50)  | 服务商(dashscope/openai等)     |
-| description           | VARCHAR(500) | 模型描述                      |
-| is_active             | TINYINT      | 是否激活(同时只激活一个)            |
-| is_enabled            | TINYINT      | 是否启用                      |
-| sort_order            | INT          | 排序序号                      |
-| input_price_per_million  | DOUBLE    | 每百万输入token价格(元)          |
-| output_price_per_million | DOUBLE    | 每百万输出token价格(元)          |
-| create_time           | DATETIME     | 创建时间                      |
-| update_time           | DATETIME     | 更新时间                      |
-| is_deleted            | TINYINT      | 逻辑删除                      |
+| 字段                       | 类型           | 说明                     |
+|--------------------------|--------------|------------------------|
+| id                       | BIGINT       | 自增主键                   |
+| model_name               | VARCHAR(100) | 模型标识(如 qwen-max)       |
+| display_name             | VARCHAR(200) | 显示名称                   |
+| provider                 | VARCHAR(50)  | 服务商(dashscope/openai等) |
+| description              | VARCHAR(500) | 模型描述                   |
+| is_active                | TINYINT      | 是否激活(同时只激活一个)          |
+| is_enabled               | TINYINT      | 是否启用                   |
+| sort_order               | INT          | 排序序号                   |
+| input_price_per_million  | DOUBLE       | 每百万输入token价格(元)        |
+| output_price_per_million | DOUBLE       | 每百万输出token价格(元)        |
+| create_time              | DATETIME     | 创建时间                   |
+| update_time              | DATETIME     | 更新时间                   |
+| is_deleted               | TINYINT      | 逻辑删除                   |
 
 ### user_oauth（第三方登录绑定表）
 
@@ -335,71 +335,71 @@ sys_menu (系统菜单) [独立]
 
 ### work_experience（工作经历表）
 
-| 字段          | 类型           | 说明                  |
-|-------------|--------------|---------------------|
-| id          | BIGINT       | 自增主键                |
-| title       | VARCHAR(500) | 职位标题                |
-| job         | VARCHAR(200) | 岗位角色                |
-| description | TEXT         | 整体描述                |
-| sort_order  | INT          | 排序序号                |
-| is_visible  | TINYINT      | 是否显示: 1-显示, 0-隐藏   |
-| create_time | DATETIME     | 创建时间                |
-| update_time | DATETIME     | 更新时间                |
-| is_deleted  | TINYINT      | 逻辑删除                |
+| 字段          | 类型           | 说明               |
+|-------------|--------------|------------------|
+| id          | BIGINT       | 自增主键             |
+| title       | VARCHAR(500) | 职位标题             |
+| job         | VARCHAR(200) | 岗位角色             |
+| description | TEXT         | 整体描述             |
+| sort_order  | INT          | 排序序号             |
+| is_visible  | TINYINT      | 是否显示: 1-显示, 0-隐藏 |
+| create_time | DATETIME     | 创建时间             |
+| update_time | DATETIME     | 更新时间             |
+| is_deleted  | TINYINT      | 逻辑删除             |
 
 ### project（项目表）
 
-| 字段          | 类型           | 说明                  |
-|-------------|--------------|---------------------|
-| id          | BIGINT       | 自增主键                |
-| experience_id | BIGINT     | 关联 work_experience.id |
-| name        | VARCHAR(200) | 项目名称                |
-| lifecycle   | VARCHAR(100) | 项目周期                |
-| background  | TEXT         | 项目背景                |
-| duty        | TEXT         | 职责描述                |
-| sort_order  | INT          | 排序序号                |
-| create_time | DATETIME     | 创建时间                |
-| update_time | DATETIME     | 更新时间                |
-| is_deleted  | TINYINT      | 逻辑删除                |
+| 字段            | 类型           | 说明                    |
+|---------------|--------------|-----------------------|
+| id            | BIGINT       | 自增主键                  |
+| experience_id | BIGINT       | 关联 work_experience.id |
+| name          | VARCHAR(200) | 项目名称                  |
+| lifecycle     | VARCHAR(100) | 项目周期                  |
+| background    | TEXT         | 项目背景                  |
+| duty          | TEXT         | 职责描述                  |
+| sort_order    | INT          | 排序序号                  |
+| create_time   | DATETIME     | 创建时间                  |
+| update_time   | DATETIME     | 更新时间                  |
+| is_deleted    | TINYINT      | 逻辑删除                  |
 
 ### project_achievement（项目成果表）
 
-| 字段          | 类型           | 说明                  |
-|-------------|--------------|---------------------|
-| id          | BIGINT       | 自增主键                |
-| project_id  | BIGINT       | 关联 project.id       |
-| content     | TEXT         | 成果内容                |
-| sort_order  | INT          | 排序序号                |
-| create_time | DATETIME     | 创建时间                |
-| update_time | DATETIME     | 更新时间                |
-| is_deleted  | TINYINT      | 逻辑删除                |
+| 字段          | 类型       | 说明            |
+|-------------|----------|---------------|
+| id          | BIGINT   | 自增主键          |
+| project_id  | BIGINT   | 关联 project.id |
+| content     | TEXT     | 成果内容          |
+| sort_order  | INT      | 排序序号          |
+| create_time | DATETIME | 创建时间          |
+| update_time | DATETIME | 更新时间          |
+| is_deleted  | TINYINT  | 逻辑删除          |
 
 ### work_experience_stack（技术栈表）
 
-| 字段          | 类型           | 说明                  |
-|-------------|--------------|---------------------|
-| id          | BIGINT       | 自增主键                |
-| experience_id | BIGINT     | 关联 work_experience.id |
-| tech_name   | VARCHAR(100) | 技术名称                |
-| sort_order  | INT          | 排序序号                |
-| create_time | DATETIME     | 创建时间                |
-| update_time | DATETIME     | 更新时间                |
-| is_deleted  | TINYINT      | 逻辑删除                |
+| 字段            | 类型           | 说明                    |
+|---------------|--------------|-----------------------|
+| id            | BIGINT       | 自增主键                  |
+| experience_id | BIGINT       | 关联 work_experience.id |
+| tech_name     | VARCHAR(100) | 技术名称                  |
+| sort_order    | INT          | 排序序号                  |
+| create_time   | DATETIME     | 创建时间                  |
+| update_time   | DATETIME     | 更新时间                  |
+| is_deleted    | TINYINT      | 逻辑删除                  |
 
 ### sys_menu（系统菜单表）
 
-| 字段          | 类型           | 说明                  |
-|-------------|--------------|---------------------|
-| id          | BIGINT       | 自增主键                |
-| name        | VARCHAR(100) | 菜单名称                |
-| url         | VARCHAR(500) | 菜单链接                |
-| icon        | VARCHAR(100) | 菜单图标                |
-| target      | VARCHAR(20)  | 打开方式: _self/_blank   |
-| sort_order  | INT          | 排序序号                |
+| 字段          | 类型           | 说明                 |
+|-------------|--------------|--------------------|
+| id          | BIGINT       | 自增主键               |
+| name        | VARCHAR(100) | 菜单名称               |
+| url         | VARCHAR(500) | 菜单链接               |
+| icon        | VARCHAR(100) | 菜单图标               |
+| target      | VARCHAR(20)  | 打开方式: _self/_blank |
+| sort_order  | INT          | 排序序号               |
 | is_visible  | TINYINT      | 是否显示: 1-显示, 0-隐藏   |
-| create_time | DATETIME     | 创建时间                |
-| update_time | DATETIME     | 更新时间                |
-| is_deleted  | TINYINT      | 逻辑删除                |
+| create_time | DATETIME     | 创建时间               |
+| update_time | DATETIME     | 更新时间               |
+| is_deleted  | TINYINT      | 逻辑删除               |
 
 ### 外键约束
 
@@ -559,13 +559,13 @@ spring:
 
 AI 助手根据当前页面自动切换角色定位：
 
-| 页面路径 | 页面名称 | AI 角色定位 |
-|---------|---------|------------|
-| `/` | 首页 | 综合性 AI 助手，知识问答、文案撰写、编程辅助等 |
-| `/about.html` | 个人简历 | 了解简历内容，协助优化描述、提炼亮点、面试建议 |
-| `/resume-manage.html` | 简历数据维护 | 协助整理工作经历、优化项目成果、技术栈分类建议 |
-| `/system-settings.html` | 系统设置 | 协助了解系统配置、AI 模型管理等 |
-| `/ai-manage.html` | AI 助手管理 | 协助了解模型特性、提供模型选择建议 |
+| 页面路径                    | 页面名称    | AI 角色定位                   |
+|-------------------------|---------|---------------------------|
+| `/`                     | 首页      | 综合性 AI 助手，知识问答、文案撰写、编程辅助等 |
+| `/about.html`           | 个人简历    | 了解简历内容，协助优化描述、提炼亮点、面试建议   |
+| `/resume-manage.html`   | 简历数据维护  | 协助整理工作经历、优化项目成果、技术栈分类建议   |
+| `/system-settings.html` | 系统设置    | 协助了解系统配置、AI 模型管理等         |
+| `/ai-manage.html`       | AI 助手管理 | 协助了解模型特性、提供模型选择建议         |
 
 ### 系统提示词
 
@@ -666,7 +666,7 @@ SSE 通知其他设备同步
 | `loadPaginationConfig()`        | 加载分页配置           |
 | `loadSessions()`                | 加载会话列表（第一页）      |
 | `loadMoreSessions()`            | 加载更多会话（下一页，无限滚动） |
-| `createNewSession()`            | 创建新会话（传递页面上下文）    |
+| `createNewSession()`            | 创建新会话（传递页面上下文）   |
 | `selectSession(sessionId)`      | 切换会话             |
 | `sendMessage()`                 | 发送消息             |
 | `loadSessionHistory(sessionId)` | 加载历史消息           |
@@ -684,107 +684,107 @@ SSE 通知其他设备同步
 | `/api/ai/session`                     | POST   | 创建新会话（支持传入 pageContext）                |
 | `/api/ai/session/{sessionId}`         | DELETE | 删除会话（逻辑删除）                             |
 | `/api/ai/sessions?page=1&size=20`     | GET    | 分页获取会话列表（返回 `records/total/hasMore` 等） |
-| `/api/ai/session/{sessionId}/history` | GET    | 分页获取会话历史消息（第1页为最新消息）                  |
+| `/api/ai/session/{sessionId}/history` | GET    | 分页获取会话历史消息（第1页为最新消息）                   |
 | `/api/ai/config/pagination`           | GET    | 获取分页配置（sessionList/messageHistory）     |
 
 ### AI 聊天
 
-| 接口                                 | 方法   | 说明        |
-|------------------------------------|------|-----------|
-| `/api/ai/chat`                     | POST | 简单聊天（无上下文） |
-| `/api/ai/chat-with-prompt`         | POST | 带系统提示的聊天  |
-| `/api/ai/ask`                      | POST | 智能问答      |
+| 接口                                 | 方法   | 说明                |
+|------------------------------------|------|-------------------|
+| `/api/ai/chat`                     | POST | 简单聊天（无上下文）        |
+| `/api/ai/chat-with-prompt`         | POST | 带系统提示的聊天          |
+| `/api/ai/ask`                      | POST | 智能问答              |
 | `/api/ai/chat/session/{sessionId}` | POST | 带上下文的会话聊天（支持指定模型） |
 
 ### AI 多端同步
 
-| 接口                    | 方法     | 说明                |
-|-----------------------|--------|-------------------|
-| `/api/ai/sync/events` | GET    | SSE 实时同步事件流       |
-| `/api/ai/sync/events` | DELETE | 断开 SSE 连接         |
-| `/api/ai/sync/status` | GET    | 获取同步状态（指纹对比）     |
+| 接口                    | 方法     | 说明           |
+|-----------------------|--------|--------------|
+| `/api/ai/sync/events` | GET    | SSE 实时同步事件流  |
+| `/api/ai/sync/events` | DELETE | 断开 SSE 连接    |
+| `/api/ai/sync/status` | GET    | 获取同步状态（指纹对比） |
 
 ### AI 模型管理
 
-| 接口                          | 方法     | 说明           |
-|-----------------------------|--------|--------------|
-| `/api/ai/models`            | GET    | 获取所有模型列表     |
-| `/api/ai/models/enabled`    | GET    | 获取启用的模型列表    |
-| `/api/ai/models/active`     | GET    | 获取当前激活的模型    |
-| `/api/ai/models/activate/{id}` | PUT | 切换激活模型        |
-| `/api/ai/models`            | POST   | 新增模型          |
-| `/api/ai/models`            | PUT    | 更新模型          |
-| `/api/ai/models/{id}`       | DELETE | 删除模型          |
-| `/api/ai/models/{id}/toggle` | PUT   | 启用/禁用模型       |
+| 接口                             | 方法     | 说明        |
+|--------------------------------|--------|-----------|
+| `/api/ai/models`               | GET    | 获取所有模型列表  |
+| `/api/ai/models/enabled`       | GET    | 获取启用的模型列表 |
+| `/api/ai/models/active`        | GET    | 获取当前激活的模型 |
+| `/api/ai/models/activate/{id}` | PUT    | 切换激活模型    |
+| `/api/ai/models`               | POST   | 新增模型      |
+| `/api/ai/models`               | PUT    | 更新模型      |
+| `/api/ai/models/{id}`          | DELETE | 删除模型      |
+| `/api/ai/models/{id}/toggle`   | PUT    | 启用/禁用模型   |
 
 ### AI 管理后台
 
-| 接口                                     | 方法  | 说明              |
-|----------------------------------------|-----|-----------------|
-| `/api/ai/manage/users`                 | GET | 获取用户列表（支持按级别筛选） |
-| `/api/ai/manage/levels`                | GET | 获取所有用户级别        |
-| `/api/ai/manage/sessions/user/{userId}` | GET | 按用户ID查询会话列表     |
-| `/api/ai/manage/sessions/level/{level}` | GET | 按用户级别查询会话列表     |
-| `/api/ai/manage/session/{sessionId}/messages` | GET | 获取会话消息历史      |
+| 接口                                            | 方法  | 说明              |
+|-----------------------------------------------|-----|-----------------|
+| `/api/ai/manage/users`                        | GET | 获取用户列表（支持按级别筛选） |
+| `/api/ai/manage/levels`                       | GET | 获取所有用户级别        |
+| `/api/ai/manage/sessions/user/{userId}`       | GET | 按用户ID查询会话列表     |
+| `/api/ai/manage/sessions/level/{level}`       | GET | 按用户级别查询会话列表     |
+| `/api/ai/manage/session/{sessionId}/messages` | GET | 获取会话消息历史        |
 
 ### 认证
 
-| 接口                      | 方法   | 说明            |
-|-------------------------|------|---------------|
-| `/api/auth/register`    | POST | 用户注册          |
-| `/api/auth/login`       | POST | 用户名/密码登录      |
-| `/auth/wechat/login`    | GET  | 获取微信扫码登录 URL  |
-| `/auth/wechat/callback` | GET  | 微信授权回调        |
-| `/auth/dingtalk/login`  | GET  | 获取钉钉扫码登录 URL  |
-| `/auth/dingtalk/callback` | GET | 钉钉授权回调       |
-| `/auth/alipay/login`    | GET  | 获取支付宝扫码登录 URL |
-| `/auth/alipay/callback` | GET  | 支付宝授权回调       |
-| `/api/auth/status`      | GET  | 检查登录状态        |
-| `/api/auth/user`        | GET  | 获取当前用户信息（需登录） |
-| `/auth/logout`          | POST | 退出登录          |
+| 接口                        | 方法   | 说明            |
+|---------------------------|------|---------------|
+| `/api/auth/register`      | POST | 用户注册          |
+| `/api/auth/login`         | POST | 用户名/密码登录      |
+| `/auth/wechat/login`      | GET  | 获取微信扫码登录 URL  |
+| `/auth/wechat/callback`   | GET  | 微信授权回调        |
+| `/auth/dingtalk/login`    | GET  | 获取钉钉扫码登录 URL  |
+| `/auth/dingtalk/callback` | GET  | 钉钉授权回调        |
+| `/auth/alipay/login`      | GET  | 获取支付宝扫码登录 URL |
+| `/auth/alipay/callback`   | GET  | 支付宝授权回调       |
+| `/api/auth/status`        | GET  | 检查登录状态        |
+| `/api/auth/user`          | GET  | 获取当前用户信息（需登录） |
+| `/auth/logout`            | POST | 退出登录          |
 
 ### 用户管理
 
-| 接口                          | 方法     | 说明        |
-|-----------------------------|--------|-----------|
-| `/api/user/list`            | GET    | 分页获取用户列表  |
-| `/api/user/levels`          | GET    | 获取用户级别选项  |
-| `/api/user/{id}/level`      | PUT    | 修改用户级别    |
-| `/api/user/{id}`            | DELETE | 删除用户      |
-| `/api/user/{id}/reset-password` | PUT | 重置用户密码   |
+| 接口                              | 方法     | 说明       |
+|---------------------------------|--------|----------|
+| `/api/user/list`                | GET    | 分页获取用户列表 |
+| `/api/user/levels`              | GET    | 获取用户级别选项 |
+| `/api/user/{id}/level`          | PUT    | 修改用户级别   |
+| `/api/user/{id}`                | DELETE | 删除用户     |
+| `/api/user/{id}/reset-password` | PUT    | 重置用户密码   |
 
 ### 菜单管理
 
-| 接口                  | 方法     | 说明           |
-|---------------------|--------|--------------|
-| `/api/menu/list`    | GET    | 获取可见菜单列表     |
-| `/api/menu/all`     | GET    | 获取全部菜单（含隐藏） |
-| `/api/menu`         | POST   | 新增菜单         |
-| `/api/menu`         | PUT    | 更新菜单         |
-| `/api/menu/{id}`    | DELETE | 删除菜单         |
-| `/api/menu/{id}/toggle` | PUT | 切换菜单显示/隐藏   |
+| 接口                      | 方法     | 说明          |
+|-------------------------|--------|-------------|
+| `/api/menu/list`        | GET    | 获取可见菜单列表    |
+| `/api/menu/all`         | GET    | 获取全部菜单（含隐藏） |
+| `/api/menu`             | POST   | 新增菜单        |
+| `/api/menu`             | PUT    | 更新菜单        |
+| `/api/menu/{id}`        | DELETE | 删除菜单        |
+| `/api/menu/{id}/toggle` | PUT    | 切换菜单显示/隐藏   |
 
 ### 简历数据
 
-| 接口                              | 方法     | 说明        |
-|---------------------------------|--------|-----------|
-| `/api/resume/experiences`       | GET    | 获取所有工作经历  |
-| `/api/resume/manage/experiences` | GET    | 获取工作经历列表  |
-| `/api/resume/manage/experiences` | POST   | 创建工作经历    |
-| `/api/resume/manage/experiences/{id}` | PUT | 更新工作经历  |
-| `/api/resume/manage/experiences/{id}` | DELETE | 删除工作经历 |
-| `/api/resume/manage/projects`   | GET    | 获取项目列表    |
-| `/api/resume/manage/projects`   | POST   | 创建项目      |
-| `/api/resume/manage/projects/{id}` | PUT | 更新项目     |
-| `/api/resume/manage/projects/{id}` | DELETE | 删除项目   |
-| `/api/resume/manage/achievements` | GET  | 获取项目成果列表  |
-| `/api/resume/manage/achievements` | POST | 创建项目成果    |
-| `/api/resume/manage/achievements/{id}` | PUT | 更新项目成果 |
-| `/api/resume/manage/achievements/{id}` | DELETE | 删除项目成果 |
-| `/api/resume/manage/stacks`     | GET    | 获取技术栈列表   |
-| `/api/resume/manage/stacks`     | POST   | 创建技术栈     |
-| `/api/resume/manage/stacks/{id}` | PUT   | 更新技术栈     |
-| `/api/resume/manage/stacks/{id}` | DELETE | 删除技术栈     |
+| 接口                                     | 方法     | 说明       |
+|----------------------------------------|--------|----------|
+| `/api/resume/experiences`              | GET    | 获取所有工作经历 |
+| `/api/resume/manage/experiences`       | GET    | 获取工作经历列表 |
+| `/api/resume/manage/experiences`       | POST   | 创建工作经历   |
+| `/api/resume/manage/experiences/{id}`  | PUT    | 更新工作经历   |
+| `/api/resume/manage/experiences/{id}`  | DELETE | 删除工作经历   |
+| `/api/resume/manage/projects`          | GET    | 获取项目列表   |
+| `/api/resume/manage/projects`          | POST   | 创建项目     |
+| `/api/resume/manage/projects/{id}`     | PUT    | 更新项目     |
+| `/api/resume/manage/projects/{id}`     | DELETE | 删除项目     |
+| `/api/resume/manage/achievements`      | GET    | 获取项目成果列表 |
+| `/api/resume/manage/achievements`      | POST   | 创建项目成果   |
+| `/api/resume/manage/achievements/{id}` | PUT    | 更新项目成果   |
+| `/api/resume/manage/achievements/{id}` | DELETE | 删除项目成果   |
+| `/api/resume/manage/stacks`            | GET    | 获取技术栈列表  |
+| `/api/resume/manage/stacks`            | POST   | 创建技术栈    |
+| `/api/resume/manage/stacks/{id}`       | PUT    | 更新技术栈    |
+| `/api/resume/manage/stacks/{id}`       | DELETE | 删除技术栈    |
 
 ---
 
@@ -794,13 +794,13 @@ SSE 通知其他设备同步
 
 系统支持多种认证方式：
 
-| 认证方式 | 说明 |
-|--------|------|
+| 认证方式   | 说明                  |
+|--------|---------------------|
 | 用户名/密码 | 标准注册登录，密码 BCrypt 加密 |
-| 微信扫码 | OAuth2.0 标准流程 |
-| 钉钉扫码 | OAuth2.0 标准流程 |
-| 支付宝扫码 | OAuth2.0 标准流程 |
-| 访客模式 | 基于客户端指纹生成唯一 ID |
+| 微信扫码   | OAuth2.0 标准流程       |
+| 钉钉扫码   | OAuth2.0 标准流程       |
+| 支付宝扫码  | OAuth2.0 标准流程       |
+| 访客模式   | 基于客户端指纹生成唯一 ID      |
 
 ### 访客指纹生成
 
@@ -826,24 +826,24 @@ SSE 通知其他设备同步
 
 ### 用户级别
 
-| 级别 | 说明 |
-|------|------|
-| admin | 管理员，可访问管理后台 |
-| vip | 会员，享受更多权限 |
-| normal | 普通用户，基础权限 |
+| 级别     | 说明          |
+|--------|-------------|
+| admin  | 管理员，可访问管理后台 |
+| vip    | 会员，享受更多权限   |
+| normal | 普通用户，基础权限   |
 
 ---
 
 ## 前端页面
 
-| 页面   | 路径                   | 说明                         |
-|------|----------------------|----------------------------|
-| 主页   | `/` / `index.html`   | AI 聊天助手入口，右下角悬浮按钮打开聊天窗口 |
-| 个人简历 | `/about.html`        | 个人简历展示页，支持深色/浅色主题切换、PDF 导出 |
-| 简历数据维护 | `/resume-manage.html` | 工作经历、项目、成果、技术栈的 CRUD 管理 |
-| 系统设置 | `/system-settings.html` | 用户管理、菜单管理等系统配置 |
-| AI助手管理 | `/ai-manage.html` | AI 模型管理、用户会话查看 |
-| 测试页  | `/test-session.html` | 会话 API 独立测试页面 |
+| 页面     | 路径                      | 说明                         |
+|--------|-------------------------|----------------------------|
+| 主页     | `/` / `index.html`      | AI 聊天助手入口，右下角悬浮按钮打开聊天窗口    |
+| 个人简历   | `/about.html`           | 个人简历展示页，支持深色/浅色主题切换、PDF 导出 |
+| 简历数据维护 | `/resume-manage.html`   | 工作经历、项目、成果、技术栈的 CRUD 管理    |
+| 系统设置   | `/system-settings.html` | 用户管理、菜单管理等系统配置             |
+| AI助手管理 | `/ai-manage.html`       | AI 模型管理、用户会话查看             |
+| 测试页    | `/test-session.html`    | 会话 API 独立测试页面              |
 
 ---
 
@@ -893,7 +893,10 @@ UPDATE chat_session SET is_deleted = 0 WHERE session_id = 'xxx';
 
 ```java
 LambdaQueryWrapper<ChatSession> qw = new LambdaQueryWrapper<>();
-qw.eq(ChatSession::getSessionId, sessionId);
+qw.
+
+eq(ChatSession::getSessionId, sessionId);
+
 ChatSession session = sessionMapper.selectOne(qw);
 ```
 
@@ -943,13 +946,13 @@ ChatSession session = sessionMapper.selectOne(qw);
 
 ## 扩展方向
 
-| 方向      | 说明             |
-|---------|----------------|
-| 会话标签/分类 | 为会话添加标签，便于管理   |
-| 消息搜索    | 全文搜索历史消息       |
-| 多端同步增强  | WebSocket 替代 SSE，支持双向通信 |
-| AI 模型扩展 | 支持 OpenAI、Claude 等更多提供商 |
-| 费用统计    | Token 用量和费用报表  |
-| 知识库管理  | 上传文档构建知识库，增强 AI 回答 |
+| 方向      | 说明                         |
+|---------|----------------------------|
+| 会话标签/分类 | 为会话添加标签，便于管理               |
+| 消息搜索    | 全文搜索历史消息                   |
+| 多端同步增强  | WebSocket 替代 SSE，支持双向通信    |
+| AI 模型扩展 | 支持 OpenAI、Claude 等更多提供商    |
+| 费用统计    | Token 用量和费用报表              |
+| 知识库管理   | 上传文档构建知识库，增强 AI 回答         |
 | 插件系统    | 支持 AI 调用外部工具（如搜索引擎、API 调用） |
 

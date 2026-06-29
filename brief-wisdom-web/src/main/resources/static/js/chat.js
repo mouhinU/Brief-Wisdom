@@ -345,6 +345,10 @@ function renderSessionList(sessions) {
     const list = getEl('sessionList');
     if (!list) return;
     list.innerHTML = '';
+    if (!sessions || sessions.length === 0) {
+        list.innerHTML = '<div class="session-empty-tip">暂无会话，发送消息即可开始</div>';
+        return;
+    }
     appendSessionItems(sessions);
 }
 
@@ -435,6 +439,10 @@ async function createNewSession() {
 async function selectSession(sessionId) {
     console.log('切换会话:', sessionId);
     currentSessionId = sessionId;
+
+    // 重置发送历史浏览状态
+    historyIndex = -1;
+    pendingInput = '';
     
     // 先清空当前聊天内容
     clearChatMessages();
@@ -755,15 +763,22 @@ function clearChatMessages() {
 }
 
 // 发送消息
+let isSending = false; // 防重复提交标志
 async function sendMessage() {
     const chatInput = getEl('chatInput');
     const sendButton = getEl('sendButton');
     if (!chatInput) return;
     const message = chatInput.value.trim();
-    
+
     if (!message) {
         return;
     }
+
+    // 防重复提交：如果正在发送中，直接返回
+    if (isSending) {
+        return;
+    }
+    isSending = true;
     
     // 确保有当前会话
     if (!currentSessionId) {
@@ -773,6 +788,7 @@ async function sendMessage() {
         if (!newId) {
             // createNewSession() 已经显示了错误信息
             if (sendButton) sendButton.disabled = false;
+            isSending = false;
             return;
         }
     }
@@ -788,11 +804,15 @@ async function sendMessage() {
         }
     }
 
+    // 记录到发送历史
+    pushSendHistory(message);
+
     // 添加用户消息
     addMessage(message, 'user');
     
-    // 清空输入框
+    // 清空输入框并禁用（防止重复提交）
     chatInput.value = '';
+    chatInput.disabled = true;
     
     // 禁用发送按钮
     if (sendButton) sendButton.disabled = true;
@@ -807,6 +827,8 @@ async function sendMessage() {
             hideTypingIndicator();
             addMessage('错误：会话ID为空，请刷新页面重试', 'ai');
             if (sendButton) sendButton.disabled = false;
+            if (chatInput) { chatInput.disabled = false; chatInput.value = message; chatInput.focus(); }
+            isSending = false;
             return;
         }
         
@@ -840,14 +862,19 @@ async function sendMessage() {
             await loadSessions();
         } else {
             addMessage('抱歉,出现了错误: ' + data.error, 'ai');
+            // 失败时恢复输入框内容
+            if (chatInput) { chatInput.value = message; }
         }
     } catch (error) {
         console.error('发送消息失败:', error);
         hideTypingIndicator();
         addMessage('抱歉,网络请求失败: ' + error.message, 'ai');
+        // 失败时恢复输入框内容
+        if (chatInput) { chatInput.value = message; }
     } finally {
         if (sendButton) sendButton.disabled = false;
-        if (chatInput) chatInput.focus();
+        if (chatInput) { chatInput.disabled = false; chatInput.focus(); }
+        isSending = false;
     }
 }
 
@@ -1121,3 +1148,71 @@ document.addEventListener('scroll', function(e) {
         loadMoreHistory();
     }
 }, true);
+
+// ========== 输入框历史消息（上下键翻页） ==========
+
+// 发送历史：记录用户发送过的消息（最近 50 条）
+const sendHistory = [];
+const SEND_HISTORY_MAX = 50;
+// 当前浏览历史的索引（-1 表示未浏览历史，正在输入新内容）
+let historyIndex = -1;
+// 暂存用户正在输入但还没发送的内容（按上键前输入框的内容）
+let pendingInput = '';
+
+/**
+ * 将消息加入发送历史
+ */
+function pushSendHistory(message) {
+    if (!message || !message.trim()) return;
+    // 去重：如果和最后一条相同，不重复添加
+    if (sendHistory.length > 0 && sendHistory[sendHistory.length - 1] === message) return;
+    sendHistory.push(message);
+    // 超过上限则移除最早的
+    if (sendHistory.length > SEND_HISTORY_MAX) {
+        sendHistory.shift();
+    }
+    // 重置历史浏览索引
+    historyIndex = -1;
+    pendingInput = '';
+}
+
+/**
+ * 输入框键盘事件：上下键浏览历史消息
+ */
+document.addEventListener('keydown', function(e) {
+    const input = e.target;
+    if (!input || input.id !== 'chatInput') return;
+
+    if (e.key === 'ArrowUp') {
+        // 光标在开头时才触发历史浏览（避免与正常编辑冲突）
+        if (input.selectionStart !== 0) return;
+        e.preventDefault();
+
+        if (sendHistory.length === 0) return;
+
+        // 第一次按上键：暂存当前输入内容
+        if (historyIndex === -1) {
+            pendingInput = input.value;
+        }
+        // 索引向前（更早的消息）移动
+        if (historyIndex < sendHistory.length - 1) {
+            historyIndex++;
+            input.value = sendHistory[sendHistory.length - 1 - historyIndex];
+        }
+    } else if (e.key === 'ArrowDown') {
+        // 只有在浏览历史时才响应下键
+        if (historyIndex === -1) return;
+        e.preventDefault();
+
+        // 索引向后（更新的消息）移动
+        if (historyIndex > 0) {
+            historyIndex--;
+            input.value = sendHistory[sendHistory.length - 1 - historyIndex];
+        } else {
+            // 回到最新位置，恢复暂存的输入内容
+            historyIndex = -1;
+            input.value = pendingInput;
+            pendingInput = '';
+        }
+    }
+});

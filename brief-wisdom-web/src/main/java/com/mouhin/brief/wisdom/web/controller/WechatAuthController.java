@@ -32,8 +32,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WechatAuthController {
 
-    private final WechatAuthService wechatAuthService;
-
     /**
      * Session 中存储用户的 Key
      */
@@ -43,6 +41,7 @@ public class WechatAuthController {
      */
     private static final String SPRING_SECURITY_CONTEXT_KEY =
             HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    private final WechatAuthService wechatAuthService;
 
     /**
      * 发起微信扫码登录

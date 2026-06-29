@@ -88,8 +88,8 @@ public class RateLimitService {
      * 滑动窗口计数器
      */
     private static class WindowCounter {
-        private volatile long windowStart;
         private final AtomicInteger count = new AtomicInteger(0);
+        private volatile long windowStart;
 
         WindowCounter(long windowStart) {
             this.windowStart = windowStart;

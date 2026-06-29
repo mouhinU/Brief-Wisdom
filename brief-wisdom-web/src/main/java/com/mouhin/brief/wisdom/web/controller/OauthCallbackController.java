@@ -35,12 +35,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OauthCallbackController {
 
-    private final DingtalkAuthService dingtalkAuthService;
-    private final AlipayAuthService alipayAuthService;
-
     private static final String SESSION_USER_KEY = "AUTH_USER";
     private static final String SPRING_SECURITY_CONTEXT_KEY =
             HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    private final DingtalkAuthService dingtalkAuthService;
+    private final AlipayAuthService alipayAuthService;
 
     // ==================== 钉钉登录 ====================
 

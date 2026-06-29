@@ -646,6 +646,15 @@ body {
     padding: 10px;
 }
 
+/* 会话列表为空时的提示 */
+.session-empty-tip {
+    text-align: center;
+    color: #aaa;
+    font-size: 13px;
+    padding: 30px 16px;
+    line-height: 1.6;
+}
+
 .session-item {
     padding: 12px;
     margin-bottom: 8px;

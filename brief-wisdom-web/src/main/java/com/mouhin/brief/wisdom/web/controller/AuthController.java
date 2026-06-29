@@ -31,10 +31,9 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
-
     private static final String SPRING_SECURITY_CONTEXT_KEY =
             HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    private final AuthService authService;
 
     /**
      * 用户注册

@@ -30,6 +30,10 @@ import java.util.*;
 @Slf4j
 public class AiAgentService {
 
+    // 默认用户ID（用于未登录场景）
+    private static final String DEFAULT_USER_ID = "default-user";
+    // 单条消息最大长度
+    private static final int MAX_MESSAGE_LENGTH = 10000;
     private final ChatClient chatClient;
     private final ChatSessionRepository sessionRepository;
     private final ChatMessageRepository messageRepository;
@@ -38,12 +42,6 @@ public class AiAgentService {
     private final ChatSyncService chatSyncService;
     private final ContentFilterService contentFilterService;
     private final RateLimitService rateLimitService;
-
-    // 默认用户ID（用于未登录场景）
-    private static final String DEFAULT_USER_ID = "default-user";
-
-    // 单条消息最大长度
-    private static final int MAX_MESSAGE_LENGTH = 10000;
 
     public AiAgentService(ChatClient chatClient,
                           ChatSessionRepository sessionRepository,
@@ -181,6 +179,10 @@ public class AiAgentService {
      */
     public List<SessionMetaDTO> listSessions(String userId) {
         List<ChatSession> sessions = sessionRepository.findByUserIdOrderByUpdateTimeDesc(userId);
+
+        // 批量获取所有会话的最后消息时间（避免 N+1 查询）
+        Map<String, LocalDateTime> lastMessageTimeMap = buildLastMessageTimeMap(userId);
+
         return sessions.stream().map(session -> {
             SessionMetaDTO meta = new SessionMetaDTO();
             meta.setSessionId(session.getSessionId());
@@ -191,9 +193,9 @@ public class AiAgentService {
             meta.setMessageCount(session.getMessageCount());
             meta.setCreateTime(session.getCreateTime());
 
-            // 使用最后一条消息的时间作为更新时间
-            LocalDateTime lastMessageTime = messageRepository.findLastMessageTime(session.getSessionId());
-            meta.setUpdateTime(lastMessageTime != null ? lastMessageTime : session.getUpdateTime());
+            // 使用批量查询的结果
+            LocalDateTime lastTime = lastMessageTimeMap.get(session.getSessionId());
+            meta.setUpdateTime(lastTime != null ? lastTime : session.getUpdateTime());
 
             return meta;
         }).toList();
@@ -221,6 +223,9 @@ public class AiAgentService {
     public PageResult<SessionMetaDTO> listSessionsPaged(String userId, int page, int size) {
         Page<ChatSession> pageResult = sessionRepository.findByUserIdOrderByUpdateTimeDesc(userId, page, size);
 
+        // 批量获取所有会话的最后消息时间（避免 N+1 查询）
+        Map<String, LocalDateTime> lastMessageTimeMap = buildLastMessageTimeMap(userId);
+
         // 转换为 SessionMeta
         List<SessionMetaDTO> sessionMetas = pageResult.getRecords().stream().map(session -> {
             SessionMetaDTO meta = new SessionMetaDTO();
@@ -232,8 +237,9 @@ public class AiAgentService {
             meta.setMessageCount(session.getMessageCount());
             meta.setCreateTime(session.getCreateTime());
 
-            LocalDateTime lastMessageTime = messageRepository.findLastMessageTime(session.getSessionId());
-            meta.setUpdateTime(lastMessageTime != null ? lastMessageTime : session.getUpdateTime());
+            // 使用批量查询的结果
+            LocalDateTime lastTime = lastMessageTimeMap.get(session.getSessionId());
+            meta.setUpdateTime(lastTime != null ? lastTime : session.getUpdateTime());
 
             return meta;
         }).toList();
@@ -248,6 +254,27 @@ public class AiAgentService {
         result.setHasMore(pageResult.getCurrent() < pageResult.getPages());
 
         return result;
+    }
+
+    /**
+     * 批量构建用户所有会话的最后消息时间 Map
+     * <p>
+     * 一次 SQL 查询获取所有会话的最后消息时间，避免 N+1 查询问题。
+     *
+     * @param userId 用户ID
+     * @return sessionId -> lastMessageTime 的映射
+     */
+    private Map<String, LocalDateTime> buildLastMessageTimeMap(String userId) {
+        Map<String, LocalDateTime> map = new HashMap<>();
+        List<Map<String, Object>> timeRows = messageRepository.findLastMessageTimesByUserId(userId);
+        for (Map<String, Object> row : timeRows) {
+            String sid = String.valueOf(row.get("session_id"));
+            Object lastTime = row.get("last_time");
+            if (lastTime instanceof LocalDateTime) {
+                map.put(sid, (LocalDateTime) lastTime);
+            }
+        }
+        return map;
     }
 
     /**
@@ -586,24 +613,6 @@ public class AiAgentService {
     }
 
     /**
-     * 内容安全异常（输入违规时抛出）
-     */
-    public static class ContentSecurityException extends RuntimeException {
-        public ContentSecurityException(String message) {
-            super(message);
-        }
-    }
-
-    /**
-     * 限流异常（请求超频时抛出）
-     */
-    public static class RateLimitException extends RuntimeException {
-        public RateLimitException(String message) {
-            super(message);
-        }
-    }
-
-    /**
      * 获取当前用户的同步状态（轻量级，用于多端同步检测）
      *
      * @param userId 用户ID
@@ -643,5 +652,23 @@ public class AiAgentService {
         syncStatus.setFingerprint(Integer.toHexString(raw.hashCode()));
 
         return syncStatus;
+    }
+
+    /**
+     * 内容安全异常（输入违规时抛出）
+     */
+    public static class ContentSecurityException extends RuntimeException {
+        public ContentSecurityException(String message) {
+            super(message);
+        }
+    }
+
+    /**
+     * 限流异常（请求超频时抛出）
+     */
+    public static class RateLimitException extends RuntimeException {
+        public RateLimitException(String message) {
+            super(message);
+        }
     }
 }

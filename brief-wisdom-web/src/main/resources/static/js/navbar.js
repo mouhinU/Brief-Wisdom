@@ -191,7 +191,7 @@ function injectAiAssistant() {
       </div>
       <div class="chat-messages" id="chatMessages">
         <div class="welcome-message">
-          <p>请输入您的问题,我会尽力为您解答1</p>
+          <p>请输入您的问题,我会尽力为您解答</p>
         </div>
       </div>
       <div class="typing-indicator" id="typingIndicator">
@@ -225,7 +225,7 @@ function loadChatScriptsIfNeeded() {
   // 加载 chat.js
   if (typeof toggleChat === 'undefined') {
     const chatScript = document.createElement('script');
-    chatScript.src = 'js/chat.js?v=6';
+    chatScript.src = 'js/chat.js?v=7';
     chatScript.onload = function() {
       // chat.js 加载完成后初始化（会话列表、模型列表等）
       if (typeof initChatApp === 'function') initChatApp();
