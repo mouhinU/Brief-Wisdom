@@ -140,6 +140,9 @@ public class WechatAuthController {
                 userInfo.put("nickname", user.getNickname());
                 userInfo.put("avatar", user.getAvatar());
                 result.put("user", userInfo);
+                // 返回用户角色 Key 列表，供前端权限校验
+                List<String> roles = roleService.getUserRoleKeys(user.getUserId());
+                result.put("roles", roles);
                 return ResponseEntity.ok(result);
             }
         }

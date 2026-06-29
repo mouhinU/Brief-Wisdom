@@ -43,4 +43,13 @@ public class UserRoleRepository {
                         .eq(UserRole::getRoleId, roleId)
         );
     }
+
+    /**
+     * 统计拥有某个角色的用户数量
+     */
+    public long countByRoleId(Long roleId) {
+        return userRoleMapper.selectCount(
+                new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, roleId)
+        );
+    }
 }

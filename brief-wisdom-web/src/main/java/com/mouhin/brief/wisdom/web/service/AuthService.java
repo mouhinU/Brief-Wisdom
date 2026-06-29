@@ -21,6 +21,7 @@ public class AuthService {
 
     private final ChatUserRepository chatUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoleService roleService;
 
     /**
      * 用户注册
@@ -47,6 +48,9 @@ public class AuthService {
         user.setNickname(nickname != null && !nickname.isBlank() ? nickname : username);
         user.setUserLevel("normal");
         chatUserRepository.save(user);
+
+        // 分配默认角色（normal 普通用户）
+        roleService.assignDefaultRole(userId);
 
         log.info("[注册] 新用户注册成功: userId={}, username={}", userId, username);
         return toDTO(user);

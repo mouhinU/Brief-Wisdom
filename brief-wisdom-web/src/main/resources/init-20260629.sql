@@ -250,7 +250,7 @@ INSERT INTO sys_menu (parent_id, name, url, icon, target, type, permission, sort
 (0, '首页', '/', '🏠', '_self', 1, NULL, 1, 1, 0),
 (0, '简历', '/about.html', '👤', '_self', 1, NULL, 2, 1, 0),
 (0, 'AI助手', '/#chat', '🤖', '_self', 1, NULL, 3, 1, 0),
-(0, '系统设置', NULL, '⚙️', '_self', 0, NULL, 4, 1, 1);
+(0, '系统设置', NULL, '⚙️', '_self', 0, 'system:settings', 4, 1, 1);
 
 -- 获取系统设置菜单ID
 SET @system_menu_id = (SELECT id FROM sys_menu WHERE name = '系统设置' AND parent_id = 0 LIMIT 1);

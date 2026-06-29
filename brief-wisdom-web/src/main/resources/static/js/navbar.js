@@ -6,6 +6,8 @@
 
 // 全局登录状态
 let isLoggedIn = false;
+// 当前用户角色列表（用于菜单权限校验）
+let currentUserRoles = [];
 
 // ===== 全局 fetch 拦截器：处理 401 未登录 / 403 权限不足 =====
 const _originalFetch = window.fetch;
@@ -26,6 +28,9 @@ window.fetch = async function(...args) {
 
 async function initNavbar() {
   try {
+    // 1. 先检查登录状态，确定用户角色
+    await checkLoginStatus();
+    // 2. 再基于登录状态加载菜单（后端会根据 session 中的用户角色过滤）
     const res = await fetch('/api/menu/tree');
     const result = await res.json();
     if (!result.success) {
@@ -109,15 +114,12 @@ function renderNavbar(menus) {
           childA.target = child.target;
         }
         
-        // 拦截需要登录的菜单点击
-        if (child.requireLogin === 1) {
-          childA.onclick = function(e) {
-            if (!isLoggedIn) {
-              e.preventDefault();
-              showLoginRequiredToast();
-            }
-          };
-        }
+        // 拦截菜单点击：登录校验 + 权限校验
+        childA.onclick = function(e) {
+          if (!checkMenuPermission(child)) {
+            e.preventDefault();
+          }
+        };
         
         // 判断当前页面是否匹配
         const childUrl = child.url || '';
@@ -153,15 +155,12 @@ function renderNavbar(menus) {
         a.target = menu.target;
       }
 
-      // 拦截需要登录的菜单点击
-      if (menu.requireLogin === 1) {
-        a.onclick = function(e) {
-          if (!isLoggedIn) {
-            e.preventDefault();
-            showLoginRequiredToast();
-          }
-        };
-      }
+      // 拦截菜单点击：登录校验 + 权限校验
+      a.onclick = function(e) {
+        if (!checkMenuPermission(menu)) {
+          e.preventDefault();
+        }
+      };
 
       // 判断当前页面是否匹配（url 可能为 null）
       const menuUrl = menu.url || '';
@@ -220,8 +219,10 @@ function renderNavbar(menus) {
   // 动态加载 AI 助手脚本（如果未加载）
   loadChatScriptsIfNeeded();
 
-  // 初始化后检查登录状态
-  refreshAuthUI();
+  // 初始化后不再重复检查（已在 initNavbar 开头检查过）
+
+  // 基于已检查的登录状态更新认证区域 UI
+  updateAuthArea();
 }
 
 /**
@@ -362,36 +363,61 @@ function loadChatScriptsIfNeeded() {
  * 检查登录状态并刷新导航栏右侧的认证区域
  */
 async function refreshAuthUI() {
-  const authArea = document.getElementById('navbarAuth');
-  if (!authArea) return;
+  // 先检查登录状态（更新全局变量）
+  await checkLoginStatus();
+  // 再更新导航栏 UI
+  updateAuthArea();
+}
+
+/**
+ * 检查登录状态，更新全局变量（不依赖 DOM）
+ */
+async function checkLoginStatus() {
   try {
     const resp = await fetch('/api/auth/status');
     const data = await resp.json();
     if (data.loggedIn && data.user) {
       isLoggedIn = true;
-      const nickname = data.user.nickname || data.user.username || '用户';
-      const avatar = data.user.avatar || '';
-      authArea.innerHTML = `
-        <div class="auth-user-area">
-          <div class="auth-avatar" onclick="toggleUserMenu()">
-            ${avatar ? '<img src="' + avatar + '" alt="avatar">' : nickname.charAt(0)}
-          </div>
-          <span class="auth-nickname" onclick="toggleUserMenu()">${nickname}</span>
-          <div class="auth-user-dropdown" id="userDropdown">
-            <a href="/about.html" class="dropdown-item">👤 我的简历</a>
-            <button class="dropdown-item dropdown-logout" onclick="doLogout()">🚪 退出登录</button>
-          </div>
-        </div>
-      `;
+      currentUserRoles = data.roles || [];
+      window._currentUser = data.user;
     } else {
       isLoggedIn = false;
-      authArea.innerHTML = `
-        <button class="auth-btn auth-login-btn" onclick="showAuthModal('login')">登录</button>
-        <button class="auth-btn auth-register-btn" onclick="showAuthModal('register')">注册</button>
-      `;
+      currentUserRoles = [];
+      window._currentUser = null;
     }
   } catch (err) {
     console.error('检查登录状态失败:', err);
+    isLoggedIn = false;
+    currentUserRoles = [];
+  }
+}
+
+/**
+ * 更新导航栏右侧的认证区域 UI
+ */
+function updateAuthArea() {
+  const authArea = document.getElementById('navbarAuth');
+  if (!authArea) return;
+  if (isLoggedIn && window._currentUser) {
+    const nickname = window._currentUser.nickname || window._currentUser.username || '用户';
+    const avatar = window._currentUser.avatar || '';
+    authArea.innerHTML = `
+      <div class="auth-user-area">
+        <div class="auth-avatar" onclick="toggleUserMenu()">
+          ${avatar ? '<img src="' + avatar + '" alt="avatar">' : nickname.charAt(0)}
+        </div>
+        <span class="auth-nickname" onclick="toggleUserMenu()">${nickname}</span>
+        <div class="auth-user-dropdown" id="userDropdown">
+          <a href="/about.html" class="dropdown-item">👤 我的简历</a>
+          <button class="dropdown-item dropdown-logout" onclick="doLogout()">🚪 退出登录</button>
+        </div>
+      </div>
+    `;
+  } else {
+    authArea.innerHTML = `
+      <button class="auth-btn auth-login-btn" onclick="showAuthModal('login')">登录</button>
+      <button class="auth-btn auth-register-btn" onclick="showAuthModal('register')">注册</button>
+    `;
   }
 }
 
@@ -424,6 +450,34 @@ async function doLogout() {
   }
   // 刷新页面状态
   window.location.reload();
+}
+
+/**
+ * 菜单权限校验
+ * @param {Object} menu 菜单对象（包含 requireLogin, permission 等属性）
+ * @returns {boolean} 是否允许访问
+ */
+function checkMenuPermission(menu) {
+  // 1. 登录校验
+  if (menu.requireLogin === 1 && !isLoggedIn) {
+    showGlobalToast('当前未登录，请先登录后再访问', 'login');
+    return false;
+  }
+  // 2. 权限校验：如果菜单设置了 permission，检查用户是否拥有对应角色
+  if (menu.permission) {
+    // permission 与角色的映射关系
+    const permissionRoleMap = {
+      'role:list': ['super_admin'],
+    };
+    // 默认需要 admin 或 super_admin
+    const requiredRoles = permissionRoleMap[menu.permission] || ['admin', 'super_admin'];
+    const hasRole = currentUserRoles.some(role => requiredRoles.includes(role));
+    if (!hasRole) {
+      showGlobalToast('权限不足，无法访问该功能', 'error');
+      return false;
+    }
+  }
+  return true;
 }
 
 /**

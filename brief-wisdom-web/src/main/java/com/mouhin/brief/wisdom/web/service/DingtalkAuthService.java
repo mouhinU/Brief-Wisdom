@@ -45,6 +45,7 @@ public class DingtalkAuthService {
     private final RestTemplate restTemplate;
     private final ChatUserRepository chatUserRepository;
     private final UserOauthRepository userOauthRepository;
+    private final RoleService roleService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -127,6 +128,9 @@ public class DingtalkAuthService {
             newOauth.setNickname(nickname);
             newOauth.setAvatar(avatar);
             userOauthRepository.save(newOauth);
+
+            // 分配默认角色（normal 普通用户）
+            roleService.assignDefaultRole(userId);
 
             log.info("[钉钉登录] 新用户注册并绑定成功: userId={}, openid={}", userId, openid);
             return user;

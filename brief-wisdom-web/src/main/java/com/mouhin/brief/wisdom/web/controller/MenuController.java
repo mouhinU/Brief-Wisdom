@@ -34,9 +34,24 @@ public class MenuController {
 
     /**
      * 获取可见菜单（树形结构）
+     * <p>
+     * 已登录用户：基于角色权限过滤菜单
+     * 未登录用户：返回所有可见菜单（公开菜单）
      */
     @GetMapping("/tree")
-    public java.util.List<MenuTreeDTO> listMenuTree() {
+    public java.util.List<MenuTreeDTO> listMenuTree(jakarta.servlet.http.HttpServletRequest request) {
+        // 检查用户是否已登录
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        if (session != null) {
+            com.mouhin.brief.wisdom.persistence.model.ChatUser user =
+                (com.mouhin.brief.wisdom.persistence.model.ChatUser) session.getAttribute(WechatAuthController.SESSION_USER_KEY);
+            if (user != null) {
+                // 已登录：基于角色过滤菜单
+                java.util.List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
+                return menuService.getMenuTreeByRoles(roleKeys);
+            }
+        }
+        // 未登录：返回所有可见菜单
         return menuService.listVisibleMenuTree();
     }
 

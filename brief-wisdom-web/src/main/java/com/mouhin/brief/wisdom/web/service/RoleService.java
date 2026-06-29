@@ -93,7 +93,16 @@ public class RoleService {
     }
 
     /**
+     * 系统预置角色 Key 列表（不可删除）
+     */
+    private static final List<String> SYSTEM_ROLE_KEYS = List.of("super_admin", "admin", "normal");
+
+    /**
      * 删除角色
+     * <p>
+     * 规则：
+     * 1. 系统预置角色（super_admin, admin, normal）不可删除
+     * 2. 已有用户使用的角色不可删除
      */
     @Transactional
     public void deleteRole(Long id) {
@@ -102,9 +111,20 @@ public class RoleService {
             throw new IllegalArgumentException("角色不存在");
         }
 
-        // 删除角色-菜单关联
+        // 1. 检查是否为系统预置角色
+        if (SYSTEM_ROLE_KEYS.contains(role.getRoleKey())) {
+            throw new IllegalArgumentException("系统预置角色【" + role.getRoleName() + "】不可删除");
+        }
+
+        // 2. 检查是否有用户正在使用该角色
+        long userCount = userRoleRepository.countByRoleId(id);
+        if (userCount > 0) {
+            throw new IllegalArgumentException("角色【" + role.getRoleName() + "】正在被 " + userCount + " 个用户使用，无法删除");
+        }
+
+        // 3. 删除角色-菜单关联
         roleMenuRepository.deleteByRoleId(id);
-        // 删除角色
+        // 4. 删除角色
         sysRoleRepository.deleteById(id);
         log.info("删除角色: id={}, roleKey={}", id, role.getRoleKey());
     }
@@ -165,6 +185,20 @@ public class RoleService {
             }
         }
         log.info("分配用户角色: userId={}, roleCount={}", userId, roleIds != null ? roleIds.size() : 0);
+    }
+
+    /**
+     * 为用户分配默认角色（normal 普通用户）
+     */
+    @Transactional
+    public void assignDefaultRole(String userId) {
+        SysRole normalRole = sysRoleRepository.findByRoleKey("normal");
+        if (normalRole != null) {
+            userRoleRepository.save(userId, normalRole.getId());
+            log.info("[角色分配] 为用户分配默认角色 normal: userId={}", userId);
+        } else {
+            log.warn("[角色分配] 未找到 normal 角色，跳过默认角色分配");
+        }
     }
 
     /**

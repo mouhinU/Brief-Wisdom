@@ -53,6 +53,7 @@ public class AlipayAuthService {
     private final RestTemplate restTemplate;
     private final ChatUserRepository chatUserRepository;
     private final UserOauthRepository userOauthRepository;
+    private final RoleService roleService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -129,6 +130,9 @@ public class AlipayAuthService {
             newOauth.setNickname(nickname);
             newOauth.setAvatar(avatar);
             userOauthRepository.save(newOauth);
+
+            // 分配默认角色（normal 普通用户）
+            roleService.assignDefaultRole(newUserId);
 
             log.info("[支付宝登录] 新用户注册并绑定成功: userId={}, openid={}", newUserId, openid);
             return user;
