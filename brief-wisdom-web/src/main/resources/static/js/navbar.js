@@ -820,5 +820,10 @@ async function initPageTabs(config) {
 
 // 自动初始化
 document.addEventListener('DOMContentLoaded', () => {
+  // 嵌入模式（iframe 中加载）不注入导航栏和 AI 助手
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('embedded') === '1') {
+    return;
+  }
   initNavbar();
 });

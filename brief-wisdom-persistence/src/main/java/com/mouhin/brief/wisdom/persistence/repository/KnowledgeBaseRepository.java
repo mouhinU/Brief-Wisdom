@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.persistence.repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.persistence.mapper.KnowledgeBaseMapper;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeBase;
 import lombok.RequiredArgsConstructor;
@@ -52,5 +53,17 @@ public class KnowledgeBaseRepository {
         LambdaQueryWrapper<KnowledgeBase> qw = new LambdaQueryWrapper<>();
         qw.eq(KnowledgeBase::getParentId, parentId);
         return knowledgeBaseMapper.selectCount(qw);
+    }
+
+    /**
+     * 分页查询顶级知识库
+     */
+    public Page<KnowledgeBase> findTopLevelPaged(int page, int size) {
+        Page<KnowledgeBase> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<KnowledgeBase> qw = new LambdaQueryWrapper<>();
+        qw.eq(KnowledgeBase::getParentId, 0L)
+                .orderByAsc(KnowledgeBase::getSortOrder)
+                .orderByDesc(KnowledgeBase::getCreateTime);
+        return knowledgeBaseMapper.selectPage(pageParam, qw);
     }
 }

@@ -17,12 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
     tabContainerSelector: '.manage-tabs',
     tabContentSelector: '.manage-tab-content',
     getContentId: function(child) {
-      // 模型管理 → models-tab-content, 会话历史 → sessions-tab-content
-      var nameMap = { '模型管理': 'models-tab-content', '会话历史': 'sessions-tab-content' };
+      // 知识库 → knowledge-tab-content, 模型管理 → models-tab-content, 会话历史 → sessions-tab-content
+      var nameMap = { '知识库': 'knowledge-tab-content', '模型管理': 'models-tab-content', '会话历史': 'sessions-tab-content' };
       return nameMap[child.name];
     },
     onTabSwitch: function(child) {
-      if (child.name === '模型管理') {
+      if (child.name === '知识库') {
+        initKnowledge();
+      } else if (child.name === '模型管理') {
         loadManageModels();
       } else if (child.name === '会话历史') {
         loadUsers();

@@ -27,6 +27,11 @@ public class KnowledgeBaseDTO {
     private Long documentCount;
 
     /**
+     * 是否有子知识库（用于前端懒加载展开）
+     */
+    private Boolean hasChildren;
+
+    /**
      * 子知识库列表（树形结构用）
      */
     private List<KnowledgeBaseDTO> children;

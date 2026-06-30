@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI助手管理</title>
     <link rel="stylesheet" href="css/navbar.css?v=11">
-    <link rel="stylesheet" href="css/ai-manage.css?v=2">
+    <link rel="stylesheet" href="css/ai-manage.css?v=10">
 </head>
 <body>
 <div class="container">
@@ -73,8 +73,219 @@
         </div>
     </div><!-- /sessions-tab-content -->
 
-    <!-- Tab 2: 模型管理 -->
-    <div id="models-tab-content" class="manage-tab-content active">
+    <!-- Tab 2: 知识库 -->
+    <div id="knowledge-tab-content" class="manage-tab-content">
+        <div class="knowledge-layout">
+            <!-- 左侧：知识库列表 -->
+            <div class="knowledge-sidebar">
+                <div class="knowledge-sidebar-header">
+                    <h3>知识库</h3>
+                    <button class="btn-new-base" onclick="showBaseForm()">+ 新建</button>
+                </div>
+                <div id="knowledge-base-list" class="knowledge-base-list">
+                    <div class="knowledge-empty-hint">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 右侧：文档列表 -->
+            <div class="knowledge-main-content">
+                <div class="knowledge-content-header">
+                    <div class="knowledge-content-title">
+                        <h2 id="knowledge-current-base-name">请选择知识库</h2>
+                        <span id="knowledge-doc-count" class="knowledge-count-badge">0</span>
+                    </div>
+                    <div class="knowledge-content-actions">
+                        <input type="text" id="knowledge-search-input" class="knowledge-search-input" placeholder="搜索文档..."
+                               onkeyup="handleSearch(event)">
+                        <div class="knowledge-doc-type-filter">
+                            <button class="knowledge-filter-btn active" data-type="" onclick="filterByType('')">全部</button>
+                            <button class="knowledge-filter-btn" data-type="INTERNAL" onclick="filterByType('INTERNAL')">📝
+                                内部文档
+                            </button>
+                            <button class="knowledge-filter-btn" data-type="FILE" onclick="filterByType('FILE')">📎 文件</button>
+                            <button class="knowledge-filter-btn" data-type="LINK" onclick="filterByType('LINK')">🔗 外部链接
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" id="knowledge-add-doc-btn" onclick="showDocForm()" style="display:none;">+
+                            新建文档
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 文档列表 -->
+                <div id="knowledge-document-list" class="knowledge-document-list">
+                    <div class="knowledge-empty-hint">请从左侧选择一个知识库</div>
+                </div>
+
+                <!-- 分页 -->
+                <div id="knowledge-pagination" class="knowledge-pagination" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- 知识库表单弹窗 -->
+        <div id="knowledge-base-modal" class="knowledge-modal" style="display:none;">
+            <div class="knowledge-modal-content">
+                <div class="knowledge-modal-header">
+                    <h3 id="knowledge-base-modal-title">新建知识库</h3>
+                    <button class="knowledge-modal-close" onclick="closeBaseModal()">&times;</button>
+                </div>
+                <form id="knowledge-base-form" class="knowledge-modal-form" onsubmit="saveBase(event)">
+                    <input type="hidden" id="knowledge-base-id">
+                    <div class="knowledge-form-group">
+                        <label>名称 *</label>
+                        <input type="text" id="knowledge-base-name" required placeholder="知识库名称">
+                    </div>
+                    <div class="knowledge-form-group">
+                        <label>描述</label>
+                        <textarea id="knowledge-base-description" rows="3" placeholder="知识库描述"></textarea>
+                    </div>
+                    <div class="knowledge-form-group">
+                        <label>图标</label>
+                        <input type="text" id="knowledge-base-icon" value="📚" placeholder="emoji 图标">
+                    </div>
+                    <div class="knowledge-form-row">
+                        <div class="knowledge-form-group">
+                            <label>排序</label>
+                            <input type="number" id="knowledge-base-sort-order" value="0" min="0">
+                        </div>
+                        <div class="knowledge-form-group">
+                            <label>是否公开</label>
+                            <select id="knowledge-base-is-public">
+                                <option value="0">私有</option>
+                                <option value="1">公开</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="knowledge-form-group">
+                        <label>父级知识库</label>
+                        <select id="knowledge-base-parent-id">
+                            <option value="0">无（顶级知识库）</option>
+                        </select>
+                    </div>
+                    <div class="knowledge-form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeBaseModal()">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 文档表单弹窗 -->
+        <div id="knowledge-doc-modal" class="knowledge-modal" style="display:none;">
+            <div class="knowledge-modal-content knowledge-modal-large">
+                <div class="knowledge-modal-header">
+                    <h3 id="knowledge-doc-modal-title">新建文档</h3>
+                    <button class="knowledge-modal-close" onclick="closeDocModal()">&times;</button>
+                </div>
+                <form id="knowledge-doc-form" class="knowledge-modal-form" onsubmit="saveDoc(event)">
+                    <input type="hidden" id="knowledge-doc-id">
+                    <div class="knowledge-form-group">
+                        <label>文档类型 *</label>
+                        <div class="knowledge-doc-type-selector">
+                            <label class="knowledge-doc-type-option">
+                                <input type="radio" name="docType" value="INTERNAL" checked
+                                       onchange="onDocTypeChange()">
+                                <span class="knowledge-doc-type-card">
+                                    <span class="knowledge-doc-type-icon">📝</span>
+                                    <span class="knowledge-doc-type-name">内部文档</span>
+                                    <span class="knowledge-doc-type-desc">富文本编辑</span>
+                                </span>
+                            </label>
+                            <label class="knowledge-doc-type-option">
+                                <input type="radio" name="docType" value="FILE" onchange="onDocTypeChange()">
+                                <span class="knowledge-doc-type-card">
+                                    <span class="knowledge-doc-type-icon">📎</span>
+                                    <span class="knowledge-doc-type-name">文件上传</span>
+                                    <span class="knowledge-doc-type-desc">PDF/Word等</span>
+                                </span>
+                            </label>
+                            <label class="knowledge-doc-type-option">
+                                <input type="radio" name="docType" value="LINK" onchange="onDocTypeChange()">
+                                <span class="knowledge-doc-type-card">
+                                    <span class="knowledge-doc-type-icon">🔗</span>
+                                    <span class="knowledge-doc-type-name">外部链接</span>
+                                    <span class="knowledge-doc-type-desc">引用外部文档</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="knowledge-form-group">
+                        <label>标题 *</label>
+                        <input type="text" id="knowledge-doc-title" required placeholder="文档标题">
+                    </div>
+                    <div id="knowledge-internal-fields">
+                        <div class="knowledge-form-group">
+                            <label>文档内容</label>
+                            <textarea id="knowledge-doc-content" rows="15" class="knowledge-content-editor"
+                                      placeholder="请输入文档内容（支持HTML）"></textarea>
+                        </div>
+                    </div>
+                    <div id="knowledge-file-fields" style="display:none;">
+                        <div class="knowledge-form-group">
+                            <label>文件URL *</label>
+                            <input type="text" id="knowledge-doc-file-url" placeholder="文件存储URL">
+                        </div>
+                        <div class="knowledge-form-row">
+                            <div class="knowledge-form-group">
+                                <label>文件名</label>
+                                <input type="text" id="knowledge-doc-file-name" placeholder="原始文件名">
+                            </div>
+                            <div class="knowledge-form-group">
+                                <label>文件大小(字节)</label>
+                                <input type="number" id="knowledge-doc-file-size" placeholder="文件大小">
+                            </div>
+                        </div>
+                        <div class="knowledge-form-group">
+                            <label>文件类型</label>
+                            <input type="text" id="knowledge-doc-file-type" placeholder="如: application/pdf">
+                        </div>
+                    </div>
+                    <div id="knowledge-link-fields" style="display:none;">
+                        <div class="knowledge-form-group">
+                            <label>链接URL *</label>
+                            <input type="text" id="knowledge-doc-link-url" placeholder="https://...">
+                        </div>
+                        <div class="knowledge-form-group">
+                            <label>链接描述</label>
+                            <input type="text" id="knowledge-doc-link-desc" placeholder="链接描述">
+                        </div>
+                    </div>
+                    <div class="knowledge-form-row">
+                        <div class="knowledge-form-group">
+                            <label>标签</label>
+                            <input type="text" id="knowledge-doc-tags" placeholder="标签，逗号分隔">
+                        </div>
+                        <div class="knowledge-form-group">
+                            <label>状态</label>
+                            <select id="knowledge-doc-status">
+                                <option value="1">已发布</option>
+                                <option value="0">草稿</option>
+                                <option value="2">已归档</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="knowledge-form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeDocModal()">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 文档详情弹窗 -->
+        <div id="knowledge-doc-detail-modal" class="knowledge-modal" style="display:none;">
+            <div class="knowledge-modal-content knowledge-modal-large">
+                <div class="knowledge-modal-header">
+                    <h3 id="knowledge-doc-detail-title">文档详情</h3>
+                    <button class="knowledge-modal-close" onclick="closeDocDetail()">&times;</button>
+                </div>
+                <div id="knowledge-doc-detail-body" class="knowledge-doc-detail-body"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: 模型管理 -->
+    <div id="models-tab-content" class="manage-tab-content">
         <div class="model-section">
             <div class="section-header">
                 <h2>模型配置</h2>
@@ -151,6 +362,7 @@
 
 <!-- 公共导航栏 -->
 <script src="js/navbar.js?v=10"></script>
-<script src="js/ai-manage.js?v=4"></script>
+<script src="js/knowledge.js?v=6"></script>
+<script src="js/ai-manage.js?v=5"></script>
 </body>
 </html>

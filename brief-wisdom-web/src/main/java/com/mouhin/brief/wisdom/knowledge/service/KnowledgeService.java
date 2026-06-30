@@ -47,6 +47,16 @@ public class KnowledgeService {
     }
 
     /**
+     * 分页查询顶级知识库
+     */
+    public Page<KnowledgeBaseDTO> listTopBasesPaged(int page, int size) {
+        Page<KnowledgeBase> basePage = knowledgeBaseRepository.findTopLevelPaged(page, size);
+        Page<KnowledgeBaseDTO> dtoPage = new Page<>(basePage.getCurrent(), basePage.getSize(), basePage.getTotal());
+        dtoPage.setRecords(basePage.getRecords().stream().map(this::toBaseDTO).toList());
+        return dtoPage;
+    }
+
+    /**
      * 获取子知识库
      */
     public List<KnowledgeBaseDTO> listChildBases(Long parentId) {
@@ -215,6 +225,8 @@ public class KnowledgeService {
         dto.setUpdateTime(base.getUpdateTime());
         // 查询文档数量
         dto.setDocumentCount(knowledgeDocumentRepository.countByBaseId(base.getId()));
+        // 查询是否有子知识库
+        dto.setHasChildren(knowledgeBaseRepository.countByParentId(base.getId()) > 0);
         return dto;
     }
 

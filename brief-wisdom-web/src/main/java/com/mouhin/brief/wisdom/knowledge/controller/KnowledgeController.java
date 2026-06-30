@@ -43,6 +43,16 @@ public class KnowledgeController {
     }
 
     /**
+     * 分页获取顶级知识库
+     */
+    @GetMapping("/bases/paged")
+    public Page<KnowledgeBaseDTO> listBasesPaged(
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+        return knowledgeService.listTopBasesPaged(page, size);
+    }
+
+    /**
      * 获取子知识库
      */
     @GetMapping("/bases/{parentId}/children")
