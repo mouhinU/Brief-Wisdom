@@ -14,6 +14,12 @@ import java.util.Map;
 /**
  * 聊天消息数据访问层
  */
+/**
+ * ChatMessageRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class ChatMessageRepository {
@@ -21,7 +27,11 @@ public class ChatMessageRepository {
     private final ChatMessageMapper chatMessageMapper;
 
     public List<ChatMessage> findBySessionIdOrderByTimestampAsc(String sessionId) {
-        return chatMessageMapper.selectBySessionIdOrderByTimestampAsc(sessionId);
+        return chatMessageMapper.selectList(
+                new LambdaQueryWrapper<ChatMessage>()
+                        .eq(ChatMessage::getSessionId, sessionId)
+                        .orderByAsc(ChatMessage::getTimestamp)
+        );
     }
 
     public Page<ChatMessage> findBySessionIdOrderByTimestampDesc(String sessionId, int page, int size) {
@@ -33,15 +43,26 @@ public class ChatMessageRepository {
     }
 
     public long countByUserId(String userId) {
-        return chatMessageMapper.countByUserId(userId);
+        return chatMessageMapper.selectCount(
+                new LambdaQueryWrapper<ChatMessage>()
+                        .eq(ChatMessage::getUserId, userId)
+        );
     }
 
     public long countBySessionId(String sessionId) {
-        return chatMessageMapper.countBySessionId(sessionId);
+        return chatMessageMapper.selectCount(
+                new LambdaQueryWrapper<ChatMessage>()
+                        .eq(ChatMessage::getSessionId, sessionId)
+        );
     }
 
     public List<ChatMessage> findRecentMessages(String sessionId, int limit) {
-        return chatMessageMapper.selectRecentMessages(sessionId, limit);
+        return chatMessageMapper.selectList(
+                new LambdaQueryWrapper<ChatMessage>()
+                        .eq(ChatMessage::getSessionId, sessionId)
+                        .orderByDesc(ChatMessage::getTimestamp)
+                        .last("LIMIT " + limit)
+        );
     }
 
     public LocalDateTime findLastMessageTime(String sessionId) {

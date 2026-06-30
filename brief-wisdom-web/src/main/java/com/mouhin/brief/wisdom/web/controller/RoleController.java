@@ -14,6 +14,12 @@ import java.util.stream.Collectors;
 /**
  * 角色管理 Controller
  */
+/**
+ * RoleController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/role")

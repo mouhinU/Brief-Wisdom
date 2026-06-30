@@ -11,6 +11,12 @@ import java.util.List;
 /**
  * AI 模型数据访问层
  */
+/**
+ * AiModelRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class AiModelRepository {

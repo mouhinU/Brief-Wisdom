@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 知识库分类实体类
  */
+/**
+ * KnowledgeBase
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("knowledge_base")
 public class KnowledgeBase implements Serializable {

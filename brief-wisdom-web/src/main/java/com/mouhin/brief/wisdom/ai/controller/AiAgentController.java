@@ -17,6 +17,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+/**
+ * AiAgentController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 
 @RestController
 @RequestMapping("/api/ai")

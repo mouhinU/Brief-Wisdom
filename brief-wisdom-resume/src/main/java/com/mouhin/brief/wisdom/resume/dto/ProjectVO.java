@@ -7,6 +7,12 @@ import java.util.List;
 /**
  * 项目 VO
  */
+/**
+ * ProjectVO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class ProjectVO {
 

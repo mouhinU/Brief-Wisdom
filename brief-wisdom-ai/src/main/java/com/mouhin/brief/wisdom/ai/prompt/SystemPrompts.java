@@ -7,6 +7,9 @@ import java.util.Map;
  * <p>
  * 包含伦理合规、安全风控等基础约束，所有对话均会附加此提示词。
  * 支持根据当前页面上下文动态切换角色定位。
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
  */
 public final class SystemPrompts {
 

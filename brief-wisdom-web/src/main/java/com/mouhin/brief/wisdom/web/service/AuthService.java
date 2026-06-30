@@ -14,6 +14,12 @@ import java.util.UUID;
 /**
  * 用户名/密码 注册与登录服务
  */
+/**
+ * AuthService
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

@@ -18,6 +18,12 @@ import java.util.function.Supplier;
  *   <li>声明式：使用 {@link DistributedLock} 注解 + AOP 切面自动加锁/释放</li>
  * </ul>
  */
+/**
+ * DistributedLockService
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

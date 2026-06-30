@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * AI模型配置实体类
  */
+/**
+ * AiModel
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("ai_model")
 public class AiModel implements Serializable {

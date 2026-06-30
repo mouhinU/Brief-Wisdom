@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 工作经历实体类
  */
+/**
+ * WorkExperience
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("work_experience")
 public class WorkExperience implements Serializable {

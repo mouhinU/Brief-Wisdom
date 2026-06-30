@@ -15,6 +15,12 @@ import java.util.regex.Pattern;
  *   <li>输出过滤：检测模型回复中的敏感内容，替换为安全提示</li>
  * </ul>
  */
+/**
+ * ContentFilterService
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Service
 public class ContentFilterService {

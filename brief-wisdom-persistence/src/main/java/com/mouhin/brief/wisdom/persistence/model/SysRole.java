@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 系统角色实体类
  */
+/**
+ * SysRole
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("sys_role")
 public class SysRole implements Serializable {

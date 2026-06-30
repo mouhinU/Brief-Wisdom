@@ -37,6 +37,12 @@ import static com.mouhin.brief.wisdom.constants.CachePrefix.USER_PERMS_CACHE;
  *   <li>bw:session:{id} — 用户会话</li>
  * </ul>
  */
+/**
+ * RedisConfig
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Configuration
 @EnableCaching
 public class RedisConfig {

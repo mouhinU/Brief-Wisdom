@@ -14,6 +14,12 @@ import java.util.List;
 /**
  * AI助手管理 REST 接口 - 按用户级别查询会话历史
  */
+/**
+ * AiManageController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @RestController
 @RequestMapping("/api/ai/manage")
 @RequiredArgsConstructor

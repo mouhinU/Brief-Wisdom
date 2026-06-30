@@ -8,6 +8,12 @@ import java.io.Serializable;
 /**
  * 用户-角色关联实体类
  */
+/**
+ * UserRole
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("sys_user_role")
 public class UserRole implements Serializable {

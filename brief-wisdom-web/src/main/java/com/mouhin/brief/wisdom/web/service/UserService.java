@@ -17,6 +17,12 @@ import java.util.List;
 /**
  * 用户管理服务
  */
+/**
+ * UserService
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

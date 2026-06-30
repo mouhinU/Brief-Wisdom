@@ -8,6 +8,12 @@ import java.time.LocalDateTime;
 /**
  * 聊天消息实体类 - 存储完整的问答历史
  */
+/**
+ * ChatMessage
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("chat_message")
 public class ChatMessage {

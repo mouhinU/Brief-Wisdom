@@ -28,6 +28,12 @@ import java.util.List;
  *   <li>查询用户角色关联的权限标识，检查是否包含注解要求的权限</li>
  * </ol>
  */
+/**
+ * PermissionInterceptor
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

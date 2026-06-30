@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 项目成果 DTO
  */
+/**
+ * ProjectAchievementDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class ProjectAchievementDTO implements Serializable {
     private Long id;

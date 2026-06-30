@@ -5,6 +5,12 @@ import lombok.Data;
 /**
  * 知识文档创建/更新请求
  */
+/**
+ * KnowledgeDocumentRequest
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class KnowledgeDocumentRequest {
 

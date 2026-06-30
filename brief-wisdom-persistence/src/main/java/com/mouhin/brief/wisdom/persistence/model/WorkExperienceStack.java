@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 工作经历技术栈实体类
  */
+/**
+ * WorkExperienceStack
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("work_experience_stack")
 public class WorkExperienceStack implements Serializable {

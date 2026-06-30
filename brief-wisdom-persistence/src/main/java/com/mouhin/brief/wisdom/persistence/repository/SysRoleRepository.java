@@ -11,6 +11,12 @@ import java.util.List;
 /**
  * 系统角色数据访问层
  */
+/**
+ * SysRoleRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class SysRoleRepository {

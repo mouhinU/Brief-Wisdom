@@ -8,6 +8,7 @@ import com.mouhin.brief.wisdom.persistence.repository.RoleMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysRoleRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -22,7 +23,11 @@ import java.util.stream.Collectors;
 
 /**
  * 菜单服务
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MenuService {

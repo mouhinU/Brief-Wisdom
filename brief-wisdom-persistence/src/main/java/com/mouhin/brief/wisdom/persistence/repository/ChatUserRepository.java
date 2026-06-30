@@ -12,6 +12,12 @@ import java.util.List;
 /**
  * 聊天用户数据访问层
  */
+/**
+ * ChatUserRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class ChatUserRepository {
@@ -26,14 +32,20 @@ public class ChatUserRepository {
     }
 
     public ChatUser findByUsername(String username) {
-        return chatUserMapper.selectByUsername(username);
+        return chatUserMapper.selectOne(
+                new LambdaQueryWrapper<ChatUser>()
+                        .eq(ChatUser::getUsername, username)
+        );
     }
 
     /**
      * 查找用户（包含已逻辑删除的记录，绕过 @TableLogic）
      */
     public ChatUser findByUserIdIncludeDeleted(String userId) {
-        return chatUserMapper.selectByUserIdIncludeDeleted(userId);
+        return chatUserMapper.selectOne(
+                new LambdaQueryWrapper<ChatUser>()
+                        .eq(ChatUser::getUserId, userId)
+        );
     }
 
     public ChatUser findById(Long id) {

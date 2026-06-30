@@ -12,6 +12,12 @@ import java.util.List;
 /**
  * 项目成果数据访问层
  */
+/**
+ * ProjectAchievementRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class ProjectAchievementRepository {

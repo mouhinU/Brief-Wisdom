@@ -10,6 +10,12 @@ import java.util.List;
 /**
  * 角色视图对象
  */
+/**
+ * RoleDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class RoleDTO implements Serializable {
     private Long id;

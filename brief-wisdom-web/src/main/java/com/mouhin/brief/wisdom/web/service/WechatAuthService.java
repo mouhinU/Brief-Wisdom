@@ -29,6 +29,12 @@ import java.util.UUID;
  *   <li>通过 user_oauth 表查找绑定关系，找到则登录，未找到则自动注册并绑定</li>
  * </ol>
  */
+/**
+ * WechatAuthService
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

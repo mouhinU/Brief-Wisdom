@@ -14,6 +14,12 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 菜单 REST 接口
  */
+/**
+ * MenuController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @RestController
 @RequestMapping("/api/menu")
 @RequiredArgsConstructor

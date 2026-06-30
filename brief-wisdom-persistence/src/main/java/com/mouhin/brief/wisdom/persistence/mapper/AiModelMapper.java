@@ -4,6 +4,12 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Update;
+/**
+ * AiModelMapper 接口
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 
 @Mapper
 public interface AiModelMapper extends BaseMapper<AiModel> {

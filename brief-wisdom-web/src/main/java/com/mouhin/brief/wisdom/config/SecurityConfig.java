@@ -21,6 +21,12 @@ import org.springframework.web.client.RestTemplate;
  *   <li>超级管理员 (super_admin) 拥有所有权限</li>
  * </ul>
  */
+/**
+ * SecurityConfig
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {

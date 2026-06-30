@@ -12,6 +12,12 @@ import java.time.LocalDateTime;
  * 存储用户与各平台（微信/钉钉/QQ/支付宝）的授权绑定关系。
  * 同一用户可绑定多个平台，每个平台只能绑定一次（uk_provider_openid 唯一约束）。
  */
+/**
+ * UserOauth
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("user_oauth")
 public class UserOauth implements Serializable {

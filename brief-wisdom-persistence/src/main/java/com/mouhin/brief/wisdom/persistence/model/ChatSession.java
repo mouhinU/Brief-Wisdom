@@ -8,6 +8,12 @@ import java.time.LocalDateTime;
 /**
  * 会话实体类 - 关联用户
  */
+/**
+ * ChatSession
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("chat_session")
 public class ChatSession {

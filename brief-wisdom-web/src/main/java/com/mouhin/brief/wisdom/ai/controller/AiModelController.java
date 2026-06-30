@@ -13,6 +13,12 @@ import java.util.List;
 /**
  * AI模型管理 REST 接口
  */
+/**
+ * AiModelController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @RestController
 @RequestMapping("/api/ai/models")
 @RequiredArgsConstructor

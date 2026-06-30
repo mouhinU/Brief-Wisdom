@@ -13,6 +13,12 @@ import java.util.List;
 /**
  * 用户管理 Controller - 系统设置页面使用
  */
+/**
+ * UserController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor

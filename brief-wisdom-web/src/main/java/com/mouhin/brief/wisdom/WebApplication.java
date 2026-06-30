@@ -13,6 +13,12 @@ import org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfigura
                 AnthropicChatAutoConfiguration.class     // Anthropic 由 ChatModelRegistry 手动管理
         }
 )
+/**
+ * WebApplication
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @MapperScan("com.mouhin.brief.wisdom.persistence.mapper")
 public class WebApplication {
 

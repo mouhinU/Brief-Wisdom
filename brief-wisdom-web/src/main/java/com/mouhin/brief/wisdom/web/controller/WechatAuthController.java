@@ -29,6 +29,12 @@ import java.util.stream.Collectors;
 /**
  * 微信扫码登录 + 认证状态 Controller
  */
+/**
+ * WechatAuthController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @RestController
 @RequiredArgsConstructor

@@ -23,6 +23,9 @@ import java.lang.annotation.*;
  * {@code @RequiresPermission("system:settings")}
  * public class SystemController { ... }
  * </pre>
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

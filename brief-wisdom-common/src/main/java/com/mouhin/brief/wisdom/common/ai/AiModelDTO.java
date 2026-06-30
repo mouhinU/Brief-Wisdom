@@ -8,6 +8,12 @@ import java.time.LocalDateTime;
 /**
  * AI模型 DTO
  */
+/**
+ * AiModelDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class AiModelDTO implements Serializable {
     private Long id;

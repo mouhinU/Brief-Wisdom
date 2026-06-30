@@ -19,6 +19,12 @@ import org.springframework.web.servlet.HandlerMapping;
  * 统一捕获 Controller 层抛出的异常，转换为标准 Result 格式返回，
  * Controller 无需再写 try-catch 块。
  */
+/**
+ * GlobalExceptionHandler
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {

@@ -8,6 +8,12 @@ import java.time.LocalDateTime;
 /**
  * 会话元数据
  */
+/**
+ * SessionMetaDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class SessionMetaDTO implements Serializable {
     private String sessionId;

@@ -19,6 +19,12 @@ import org.springframework.stereotype.Component;
  *       max-size: 200
  * </pre>
  */
+/**
+ * PaginationProperties
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @Component
 @ConfigurationProperties(prefix = "app.pagination")

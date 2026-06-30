@@ -5,6 +5,12 @@ import lombok.Data;
 /**
  * 统一响应封装
  */
+/**
+ * Result
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class Result<T> {
 

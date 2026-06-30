@@ -13,6 +13,12 @@ import java.time.LocalDateTime;
 /**
  * MyBatis-Plus 配置类
  */
+/**
+ * MybatisPlusConfig
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Configuration
 public class MybatisPlusConfig implements MetaObjectHandler {
 

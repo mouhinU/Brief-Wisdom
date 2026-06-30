@@ -12,6 +12,12 @@ import java.util.List;
 /**
  * 聊天会话数据访问层
  */
+/**
+ * ChatSessionRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class ChatSessionRepository {
@@ -19,7 +25,11 @@ public class ChatSessionRepository {
     private final ChatSessionMapper chatSessionMapper;
 
     public List<ChatSession> findByUserIdOrderByUpdateTimeDesc(String userId) {
-        return chatSessionMapper.selectByUserIdOrderByUpdateTimeDesc(userId);
+        return chatSessionMapper.selectList(
+                new LambdaQueryWrapper<ChatSession>()
+                        .eq(ChatSession::getUserId, userId)
+                        .orderByDesc(ChatSession::getUpdateTime)
+        );
     }
 
     public Page<ChatSession> findByUserIdOrderByUpdateTimeDesc(String userId, int page, int size) {
@@ -39,7 +49,10 @@ public class ChatSessionRepository {
     }
 
     public long countByUserId(String userId) {
-        return chatSessionMapper.countByUserId(userId);
+        return chatSessionMapper.selectCount(
+                new LambdaQueryWrapper<ChatSession>()
+                        .eq(ChatSession::getUserId, userId)
+        );
     }
 
     public ChatSession findBySessionId(String sessionId) {

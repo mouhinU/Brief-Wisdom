@@ -23,6 +23,12 @@ import java.security.NoSuchAlgorithmException;
  * 所有 Controller 都可以注入此组件获取当前登录用户信息。
  * 未登录时基于客户端 IP 生成唯一访客指纹作为 userId。
  */
+/**
+ * UserContextHelper
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Component
 public class UserContextHelper {

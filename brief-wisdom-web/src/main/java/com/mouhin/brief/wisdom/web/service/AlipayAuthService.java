@@ -40,6 +40,12 @@ import java.util.*;
  *   <li>通过 user_oauth 表查找绑定关系</li>
  * </ol>
  */
+/**
+ * AlipayAuthService
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

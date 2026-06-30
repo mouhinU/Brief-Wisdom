@@ -13,6 +13,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  *   <li>{@link PermissionInterceptor} - 基于 @RequiresPermission 注解的 API 权限校验</li>
  * </ul>
  */
+/**
+ * WebMvcConfig
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Configuration
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {

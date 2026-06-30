@@ -14,6 +14,7 @@ import com.mouhin.brief.wisdom.persistence.repository.ProjectRepository;
 import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceRepository;
 import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceStackRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +23,11 @@ import java.util.List;
 
 /**
  * 简历数据管理服务（CRUD）
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ResumeManageService {

@@ -24,6 +24,12 @@ import java.lang.reflect.Method;
  * 拦截 {@link DistributedLock} 注解标注的方法，自动加锁/释放。
  * 支持 SpEL 表达式动态解析锁的 Key。
  */
+/**
+ * DistributedLockAspect
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Aspect
 @Component

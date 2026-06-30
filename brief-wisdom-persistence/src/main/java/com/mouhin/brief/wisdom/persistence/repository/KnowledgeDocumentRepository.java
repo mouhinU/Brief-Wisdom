@@ -12,6 +12,12 @@ import java.util.List;
 /**
  * 知识文档数据访问层
  */
+/**
+ * KnowledgeDocumentRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class KnowledgeDocumentRepository {

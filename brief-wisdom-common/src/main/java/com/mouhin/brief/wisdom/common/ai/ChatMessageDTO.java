@@ -8,6 +8,12 @@ import java.time.LocalDateTime;
 /**
  * 聊天消息 DTO
  */
+/**
+ * ChatMessageDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class ChatMessageDTO implements Serializable {
     private Long id;

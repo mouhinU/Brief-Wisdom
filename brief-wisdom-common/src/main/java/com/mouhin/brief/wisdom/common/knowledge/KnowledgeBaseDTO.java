@@ -8,6 +8,12 @@ import java.util.List;
 /**
  * 知识库 DTO
  */
+/**
+ * KnowledgeBaseDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class KnowledgeBaseDTO {
 

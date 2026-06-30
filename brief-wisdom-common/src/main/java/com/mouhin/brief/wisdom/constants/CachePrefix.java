@@ -34,6 +34,12 @@ import java.util.Map;
  *   <li>bw:session:{id} — 用户会话</li>
  * </ul>
  */
+/**
+ * CachePrefix
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Configuration
 @EnableCaching
 public class CachePrefix {

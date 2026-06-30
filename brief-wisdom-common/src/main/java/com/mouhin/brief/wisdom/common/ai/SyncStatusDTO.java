@@ -10,6 +10,12 @@ import java.util.Map;
  * <p>
  * 轻量级同步指纹，前端通过对比此对象判断是否需要刷新数据。
  */
+/**
+ * SyncStatusDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class SyncStatusDTO implements Serializable {
 

@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 系统菜单实体类
  */
+/**
+ * SysMenu
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("sys_menu")
 public class SysMenu implements Serializable {

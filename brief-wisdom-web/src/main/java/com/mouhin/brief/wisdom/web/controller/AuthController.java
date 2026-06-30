@@ -27,6 +27,12 @@ import java.util.stream.Stream;
 /**
  * 用户名/密码 注册与登录 Controller
  */
+/**
+ * AuthController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")

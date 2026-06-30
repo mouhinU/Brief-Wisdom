@@ -3,6 +3,12 @@ package com.mouhin.brief.wisdom.exception;
 
 import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
 import lombok.Getter;
+/**
+ * BizException
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 
 @Getter
 public class BizException extends RuntimeException {

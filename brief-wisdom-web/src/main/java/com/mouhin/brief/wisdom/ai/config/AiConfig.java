@@ -12,6 +12,12 @@ import org.springframework.context.annotation.Configuration;
  * ChatModel 实例由 ChatModelRegistry 根据 provider 字段动态创建和缓存，
  * 支持 OpenAI 兼容协议（DashScope、OpenAI、DeepSeek）和 Anthropic（Claude）。
  */
+/**
+ * AiConfig
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Configuration
 @EnableConfigurationProperties(AiProviderProperties.class)
 public class AiConfig {

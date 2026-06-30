@@ -23,6 +23,12 @@ import java.util.Objects;
 /**
  * 角色管理服务
  */
+/**
+ * RoleService
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

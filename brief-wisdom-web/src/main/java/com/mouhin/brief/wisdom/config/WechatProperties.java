@@ -16,6 +16,12 @@ import org.springframework.stereotype.Component;
  *     redirect-uri: ${WECHAT_REDIRECT_URI}
  * </pre>
  */
+/**
+ * WechatProperties
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @Component
 @ConfigurationProperties(prefix = "wechat.open")

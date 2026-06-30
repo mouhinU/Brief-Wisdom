@@ -11,6 +11,7 @@ import com.mouhin.brief.wisdom.persistence.repository.ChatMessageRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatSessionRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +21,11 @@ import java.util.stream.Collectors;
 
 /**
  * AI助手管理服务 - 按用户级别查询会话历史
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiManageService {

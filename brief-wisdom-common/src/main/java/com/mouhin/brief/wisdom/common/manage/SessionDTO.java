@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 会话信息 DTO
  */
+/**
+ * SessionDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class SessionDTO implements Serializable {
     private String sessionId;

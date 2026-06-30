@@ -20,6 +20,12 @@ import java.util.List;
 /**
  * 知识库管理业务层
  */
+/**
+ * KnowledgeService
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

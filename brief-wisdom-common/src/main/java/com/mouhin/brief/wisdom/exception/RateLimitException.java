@@ -2,6 +2,9 @@ package com.mouhin.brief.wisdom.exception;
 
 /**
  * 限流异常（请求超频时抛出）
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
  */
 public class RateLimitException extends AIException {
 

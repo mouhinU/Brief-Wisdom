@@ -22,6 +22,9 @@ import java.util.concurrent.TimeUnit;
  * &#64;DistributedLock(key = "payment", waitTime = 5, leaseTime = 60)
  * public void processPayment() { ... }
  * </pre>
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

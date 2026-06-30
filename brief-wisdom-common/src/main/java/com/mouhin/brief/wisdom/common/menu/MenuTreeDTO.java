@@ -8,6 +8,12 @@ import java.util.List;
 /**
  * 菜单树形视图对象
  */
+/**
+ * MenuTreeDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class MenuTreeDTO implements Serializable {
     private Long id;

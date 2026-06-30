@@ -15,6 +15,12 @@ import java.util.List;
 /**
  * 知识库管理 REST 接口
  */
+/**
+ * KnowledgeController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @RestController
 @RequestMapping("/api/knowledge")
 @RequiredArgsConstructor

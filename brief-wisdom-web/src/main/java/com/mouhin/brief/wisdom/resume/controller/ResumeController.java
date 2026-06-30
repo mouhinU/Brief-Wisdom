@@ -15,6 +15,12 @@ import java.util.List;
 /**
  * 简历数据 REST 接口
  */
+/**
+ * ResumeController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @RestController
 @RequestMapping("/api/resume")
 @RequiredArgsConstructor

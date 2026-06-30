@@ -11,6 +11,12 @@ import java.util.List;
 /**
  * 角色-菜单关联数据访问层
  */
+/**
+ * RoleMenuRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class RoleMenuRepository {

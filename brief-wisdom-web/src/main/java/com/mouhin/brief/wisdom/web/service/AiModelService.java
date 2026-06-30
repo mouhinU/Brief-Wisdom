@@ -5,6 +5,7 @@ import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
 import com.mouhin.brief.wisdom.persistence.repository.AiModelRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -15,7 +16,11 @@ import java.util.List;
 
 /**
  * AI模型配置管理服务
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiModelService {

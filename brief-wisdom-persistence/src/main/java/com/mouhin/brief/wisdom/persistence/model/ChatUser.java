@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 用户实体类
  */
+/**
+ * ChatUser
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("chat_user")
 public class ChatUser implements Serializable {

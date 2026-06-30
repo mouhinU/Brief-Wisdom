@@ -12,6 +12,12 @@ import java.util.List;
 /**
  * 工作经历技术栈数据访问层
  */
+/**
+ * WorkExperienceStackRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class WorkExperienceStackRepository {

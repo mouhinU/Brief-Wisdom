@@ -12,6 +12,7 @@ import com.mouhin.brief.wisdom.persistence.repository.WorkExperienceStackReposit
 import com.mouhin.brief.wisdom.resume.dto.ProjectVO;
 import com.mouhin.brief.wisdom.resume.dto.WorkExperienceVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,11 @@ import java.util.stream.Collectors;
  * 简历数据服务
  * <p>
  * 从数据库查询工作经历、项目、成果、技术栈，组装为前端所需的 VO 结构。
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ResumeService {

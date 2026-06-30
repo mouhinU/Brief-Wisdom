@@ -7,6 +7,12 @@ import java.time.LocalDateTime;
 /**
  * 知识文档 DTO
  */
+/**
+ * KnowledgeDocumentDTO
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 public class KnowledgeDocumentDTO {
 

@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 项目成果实体类
  */
+/**
+ * ProjectAchievement
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Data
 @TableName("project_achievement")
 public class ProjectAchievement implements Serializable {

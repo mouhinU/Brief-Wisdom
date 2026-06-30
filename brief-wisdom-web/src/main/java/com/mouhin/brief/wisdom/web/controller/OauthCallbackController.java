@@ -32,6 +32,12 @@ import java.util.stream.Collectors;
  * 提供发起登录和回调处理接口，
  * 回调成功后写入 Session + Spring Security 上下文，重定向到 about.html。
  */
+/**
+ * OauthCallbackController
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Slf4j
 @RestController
 @RequiredArgsConstructor

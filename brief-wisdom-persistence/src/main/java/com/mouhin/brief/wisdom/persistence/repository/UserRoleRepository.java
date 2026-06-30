@@ -11,6 +11,12 @@ import java.util.List;
 /**
  * 用户-角色关联数据访问层
  */
+/**
+ * UserRoleRepository
+ *
+ * @author Brief-Wisdom
+ * @date 2026-06-30
+ */
 @Repository
 @RequiredArgsConstructor
 public class UserRoleRepository {
