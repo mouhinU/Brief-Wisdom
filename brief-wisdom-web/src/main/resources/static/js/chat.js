@@ -56,10 +56,14 @@ let paginationConfig = {
     messageHistory: { defaultSize: 20, maxSize: 200 }
 };
 
-// 多端同步状态（SSE 实时推送）
-let syncEventSource = null;
+// 多端同步状态（支持 SSE / WebSocket 双模式）
+let syncTransport = null;          // 'sse' 或 'websocket'，首次连接时从后端获取
+let syncEventSource = null;        // SSE 模式下的 EventSource 实例
+let syncWebSocket = null;          // WebSocket 模式下的 WebSocket 实例
 let syncReconnectTimer = null;
+let syncPingTimer = null;          // WebSocket 心跳定时器
 const SYNC_RECONNECT_DELAY = 3000; // 断线后 3 秒重连
+const SYNC_PING_INTERVAL = 30000;  // WebSocket 心跳间隔 30 秒
 
 // 加载分页配置（页面初始化时调用一次）
 async function loadPaginationConfig() {
@@ -152,13 +156,13 @@ async function toggleChat() {
         await ensureChatDataLoaded();
         // 初始化聊天：加载会话列表，若无会话则自动创建
         await ensureChatInitialized();
-        connectSyncSSE();
+        connectSync();
         setTimeout(() => {
             const input = getEl('chatInput');
             if (input) input.focus();
         }, 300);
     } else {
-        disconnectSyncSSE();
+        disconnectSync();
     }
 }
 
@@ -994,29 +998,77 @@ document.addEventListener('scroll', function(e) {
     }
 }, true);
 
-// ========== 多端同步（SSE 实时推送） ==========
+// ========== 多端同步（SSE / WebSocket 双模式） ==========
 
-// 连接 SSE
-function connectSyncSSE() {
-    // 先关闭旧的 EventSource（不发 DELETE，由关闭聊天窗口时统一清理）
+// 统一连接入口：自动探测传输方式并建立连接
+async function connectSync() {
+    // 清理旧连接和重连定时器
+    cleanupAllSyncConnections();
+
+    // 首次连接时从后端获取传输方式
+    if (!syncTransport) {
+        try {
+            const resp = await fetch('/api/ai/sync/transport');
+            const data = await resp.json();
+            syncTransport = (data.success && data.data && data.data.transport) ? data.data.transport : 'sse';
+            console.log('[Sync] 传输方式:', syncTransport);
+        } catch (e) {
+            console.warn('[Sync] 获取传输方式失败，降级为 SSE:', e);
+            syncTransport = 'sse';
+        }
+    }
+
+    if (syncTransport === 'websocket') {
+        connectSyncWebSocket();
+    } else {
+        connectSyncSSE();
+    }
+}
+
+// 统一断开入口
+function disconnectSync() {
     if (syncReconnectTimer) {
         clearTimeout(syncReconnectTimer);
         syncReconnectTimer = null;
+    }
+    if (syncTransport === 'websocket') {
+        disconnectSyncWebSocket();
+    } else {
+        disconnectSyncSSE();
+    }
+}
+
+// 清理所有连接（切换模式或重连前调用）
+function cleanupAllSyncConnections() {
+    if (syncReconnectTimer) {
+        clearTimeout(syncReconnectTimer);
+        syncReconnectTimer = null;
+    }
+    if (syncPingTimer) {
+        clearInterval(syncPingTimer);
+        syncPingTimer = null;
     }
     if (syncEventSource) {
         syncEventSource.close();
         syncEventSource = null;
     }
+    if (syncWebSocket) {
+        syncWebSocket.close();
+        syncWebSocket = null;
+    }
+}
 
+// ---------- SSE 模式 ----------
+
+// 连接 SSE
+function connectSyncSSE() {
     try {
         syncEventSource = new EventSource('/api/ai/sync/events');
 
-        // 连接成功
         syncEventSource.addEventListener('connected', function(e) {
             console.log('[SSE] 连接已建立');
         });
 
-        // 收到同步事件
         syncEventSource.addEventListener('sync', function(e) {
             try {
                 const event = JSON.parse(e.data);
@@ -1027,10 +1079,8 @@ function connectSyncSSE() {
             }
         });
 
-        // 连接出错（自动重连由浏览器 EventSource 处理）
         syncEventSource.onerror = function() {
             console.warn('[SSE] 连接断开，将自动重连...');
-            // EventSource 会自动尝试重连，但如果.readyState === CLOSED 则需手动重连
             if (syncEventSource && syncEventSource.readyState === EventSource.CLOSED) {
                 scheduleReconnect();
             }
@@ -1043,10 +1093,6 @@ function connectSyncSSE() {
 
 // 断开 SSE
 function disconnectSyncSSE() {
-    if (syncReconnectTimer) {
-        clearTimeout(syncReconnectTimer);
-        syncReconnectTimer = null;
-    }
     if (syncEventSource) {
         syncEventSource.close();
         syncEventSource = null;
@@ -1054,6 +1100,90 @@ function disconnectSyncSSE() {
     // 通知服务端清理 SSE 连接资源
     fetch('/api/ai/sync/events', { method: 'DELETE' }).catch(() => {});
 }
+
+// ---------- WebSocket 模式 ----------
+
+// 连接 WebSocket
+function connectSyncWebSocket() {
+    try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = protocol + '//' + window.location.host + '/ws/sync';
+        syncWebSocket = new WebSocket(wsUrl);
+
+        syncWebSocket.onopen = function() {
+            console.log('[WebSocket] 连接已建立');
+            // 启动心跳保活
+            startWebSocketPing();
+        };
+
+        syncWebSocket.onmessage = function(e) {
+            try {
+                const msg = JSON.parse(e.data);
+                console.log('[WebSocket] 收到消息:', msg);
+
+                // 连接确认消息，无需处理
+                if (msg.type === 'connected') {
+                    console.log('[WebSocket] 服务端确认连接');
+                    return;
+                }
+                // 心跳响应，忽略
+                if (msg.type === 'pong') {
+                    return;
+                }
+                // 同步事件（服务端推送的 sync 消息包含 type 和 sessionId）
+                handleSyncEvent(msg);
+            } catch (err) {
+                console.warn('[WebSocket] 解析消息失败:', err);
+            }
+        };
+
+        syncWebSocket.onerror = function(error) {
+            console.warn('[WebSocket] 连接出错:', error);
+        };
+
+        syncWebSocket.onclose = function(event) {
+            console.warn('[WebSocket] 连接关闭 (code: ' + event.code + ')');
+            stopWebSocketPing();
+            // 非主动关闭时尝试重连
+            if (event.code !== 1000) {
+                scheduleReconnect();
+            }
+        };
+    } catch (error) {
+        console.warn('[WebSocket] 创建连接失败:', error);
+        scheduleReconnect();
+    }
+}
+
+// 断开 WebSocket
+function disconnectSyncWebSocket() {
+    stopWebSocketPing();
+    if (syncWebSocket) {
+        // code 1000 = 正常关闭，不会触发重连
+        syncWebSocket.close(1000);
+        syncWebSocket = null;
+    }
+}
+
+// 启动 WebSocket 心跳
+function startWebSocketPing() {
+    stopWebSocketPing();
+    syncPingTimer = setInterval(() => {
+        if (syncWebSocket && syncWebSocket.readyState === WebSocket.OPEN) {
+            syncWebSocket.send(JSON.stringify({ type: 'ping' }));
+        }
+    }, SYNC_PING_INTERVAL);
+}
+
+// 停止 WebSocket 心跳
+function stopWebSocketPing() {
+    if (syncPingTimer) {
+        clearInterval(syncPingTimer);
+        syncPingTimer = null;
+    }
+}
+
+// ---------- 公共逻辑 ----------
 
 // 延迟重连
 function scheduleReconnect() {
@@ -1063,32 +1193,30 @@ function scheduleReconnect() {
         // 仅在聊天窗口仍然打开时重连
         const chatPopup = getEl('chatPopup');
         if (chatPopup && chatPopup.classList.contains('show')) {
-            connectSyncSSE();
+            if (syncTransport === 'websocket') {
+                connectSyncWebSocket();
+            } else {
+                connectSyncSSE();
+            }
         }
     }, SYNC_RECONNECT_DELAY);
 }
 
-// 处理同步事件
+// 处理同步事件（SSE 和 WebSocket 共用）
 async function handleSyncEvent(event) {
     const type = event.type;
     const sessionId = event.sessionId;
 
-    // 如果是当前设备自己触发的操作（发送消息后），服务端会推送事件，
-    // 但由于当前设备已经更新了 UI，这里只需刷新会话列表即可
     if (type === 'session_created' || type === 'session_deleted') {
-        // 会话列表变化，刷新会话列表
         await loadSessions();
-        // 如果删除的是当前会话，清空聊天窗口
         if (type === 'session_deleted' && sessionId === currentSessionId) {
             currentSessionId = null;
             clearChatMessages();
-            // 自动选中第一个会话
             if (allSessions.length > 0) {
                 await selectSession(allSessions[0].sessionId);
             }
         }
     } else if (type === 'message_added') {
-        // 消息变化，刷新会话列表和当前会话消息
         await loadSessions();
         if (sessionId && sessionId === currentSessionId) {
             await loadSessionHistory(sessionId);

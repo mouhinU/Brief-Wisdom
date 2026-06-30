@@ -74,8 +74,13 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
-# 分页配置 - 按业务维度配置每页查询条数
+# 实时同步配置
 app:
+  sync:
+    # transport: sse    # 同步传输方式：sse（Server-Sent Events）或 websocket（双向通信）
+    transport: websocket    # 同步传输方式：sse（Server-Sent Events）或 websocket（双向通信）
+
+# 分页配置 - 按业务维度配置每页查询条数
   pagination:
     session-list:
       default-size: 20    # 会话列表默认每页条数

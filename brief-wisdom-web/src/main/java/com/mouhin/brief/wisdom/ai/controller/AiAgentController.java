@@ -5,7 +5,6 @@ import com.mouhin.brief.wisdom.ai.req.ChatWithPromptRequest;
 import com.mouhin.brief.wisdom.ai.req.QuestionRequest;
 import com.mouhin.brief.wisdom.ai.req.SessionCreateRequest;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService;
-import com.mouhin.brief.wisdom.ai.service.ChatSyncService;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
@@ -14,8 +13,8 @@ import com.mouhin.brief.wisdom.config.PaginationProperties;
 import com.mouhin.brief.wisdom.web.service.UserContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
@@ -29,7 +28,9 @@ public class AiAgentController {
     private final AiAgentService aiAgentService;
     private final PaginationProperties paginationProperties;
     private final UserContextHelper userContextHelper;
-    private final ChatSyncService chatSyncService;
+
+    @Value("${app.sync.transport:sse}")
+    private String syncTransport;
 
     /**
      * 简单聊天接口（无上下文）
@@ -163,31 +164,13 @@ public class AiAgentController {
     }
 
     /**
-     * SSE 实时同步事件流
+     * 获取当前同步传输方式
      * <p>
-     * 前端通过 EventSource 连接此端点，当数据发生变更（创建/删除会话、发送消息）时，
-     * 服务端实时推送 sync 事件，前端收到后按需拉取最新数据。
-     * <p>
-     * 支持多端同时连接，同一用户的所有设备都会收到通知。
+     * 前端根据此接口返回值决定使用 SSE（EventSource）还是 WebSocket 进行实时同步连接。
+     * 返回值为 "sse" 或 "websocket"。
      */
-    @GetMapping(value = "/sync/events", produces = "text/event-stream")
-    public SseEmitter syncEvents() {
-        String userId = userContextHelper.getCurrentUserId();
-
-        log.info("[SSE] 用户 {} 请求建立 SSE 连接", userId);
-        return chatSyncService.createConnection(userId);
-    }
-
-    /**
-     * 断开 SSE 连接
-     * <p>
-     * 前端关闭聊天窗口时调用，主动清理服务端的 SSE 连接资源。
-     */
-    @DeleteMapping("/sync/events")
-    public Boolean disconnectSync() {
-        String userId = userContextHelper.getCurrentUserId();
-        chatSyncService.disconnectUser(userId);
-        log.info("[SSE] 用户 {} 主动断开 SSE 连接", userId);
-        return true;
+    @GetMapping("/sync/transport")
+    public Map<String, String> getSyncTransport() {
+        return Map.of("transport", syncTransport);
     }
 }

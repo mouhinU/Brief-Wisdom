@@ -42,6 +42,8 @@ public class SecurityConfig {
                         .requestMatchers("/ai-manage.html").hasAnyRole("admin", "super_admin")
                         // AI 聊天接口全部公开（含会话管理、同步、配置）
                         .requestMatchers("/api/ai/**").permitAll()
+                        // WebSocket 同步端点公开
+                        .requestMatchers("/ws/**").permitAll()
                         // 简历数据接口公开
                         .requestMatchers("/api/resume/experiences/**").permitAll()
                         // 菜单接口公开
