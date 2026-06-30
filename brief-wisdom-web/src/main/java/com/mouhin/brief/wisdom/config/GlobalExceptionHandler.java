@@ -1,8 +1,8 @@
  package com.mouhin.brief.wisdom.config;
 
-import com.mouhin.brief.wisdom.ai.service.AiAgentService.ContentSecurityException;
-import com.mouhin.brief.wisdom.ai.service.AiAgentService.RateLimitException;
 import com.mouhin.brief.wisdom.common.Result;
+import com.mouhin.brief.wisdom.exception.ContentSecurityException;
+import com.mouhin.brief.wisdom.exception.RateLimitException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

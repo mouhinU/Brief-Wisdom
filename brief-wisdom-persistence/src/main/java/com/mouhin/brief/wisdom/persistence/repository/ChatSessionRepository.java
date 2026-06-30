@@ -49,6 +49,23 @@ public class ChatSessionRepository {
         );
     }
 
+    /**
+     * 查找用户在指定页面上下文下的最近会话（按更新时间倒序）
+     *
+     * @param userId      用户ID
+     * @param pageContext 页面上下文（如 /about.html）
+     * @param limit       最多返回的会话数量
+     * @return 会话列表（按更新时间倒序）
+     */
+    public List<ChatSession> findRecentByUserIdAndPageContext(String userId, String pageContext, int limit) {
+        LambdaQueryWrapper<ChatSession> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ChatSession::getUserId, userId)
+                .eq(ChatSession::getPageContext, pageContext)
+                .orderByDesc(ChatSession::getUpdateTime)
+                .last("LIMIT " + limit);
+        return chatSessionMapper.selectList(queryWrapper);
+    }
+
     public void save(ChatSession session) {
         chatSessionMapper.insert(session);
     }

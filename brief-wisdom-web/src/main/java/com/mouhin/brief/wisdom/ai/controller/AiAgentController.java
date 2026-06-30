@@ -46,8 +46,8 @@ public class AiAgentController {
     @PostMapping("/chat/session/{sessionId}")
     public String chatWithSession(@PathVariable String sessionId, @RequestBody ChatRequest request) {
         String userId = userContextHelper.getCurrentUserId();
-        log.info("收到聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}", sessionId, userId, request.getMessage(), request.getModel());
-        return aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel());
+        log.info("收到聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}, pageContext: {}", sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext());
+        return aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext());
     }
 
     /**
@@ -69,6 +69,16 @@ public class AiAgentController {
     @DeleteMapping("/session/{sessionId}")
     public Boolean deleteSession(@PathVariable String sessionId) {
         aiAgentService.deleteSession(sessionId);
+        return true;
+    }
+
+    /**
+     * 重命名会话标题
+     */
+    @PutMapping("/session/{sessionId}/title")
+    public Boolean renameSession(@PathVariable String sessionId, @RequestBody Map<String, String> body) {
+        String newTitle = body.get("title");
+        aiAgentService.renameSession(sessionId, newTitle);
         return true;
     }
 

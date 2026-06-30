@@ -22,25 +22,32 @@ CREATE TABLE ai_model (
     output_price_per_million DOUBLE COMMENT '每百万输出token价格(元)',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
-    INDEX idx_model_name (model_name),
-    INDEX idx_is_active (is_active),
-    INDEX idx_is_enabled (is_enabled),
-    INDEX idx_is_deleted (is_deleted)
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI模型配置表';
 
 -- ============================================
 -- 2. 初始化数据
 -- ============================================
 INSERT INTO ai_model (model_name, display_name, provider, description, is_active, is_enabled, sort_order, input_price_per_million, output_price_per_million) VALUES
+-- DashScope（通义千问）
 ('qwen-max', '通义千问 Max', 'dashscope', '最强模型，适合复杂任务', 0, 1, 1, 20.0, 60.0),
 ('qwen-plus', '通义千问 Plus', 'dashscope', '均衡模型，性价比高', 1, 1, 2, 4.0, 12.0),
 ('qwen-turbo', '通义千问 Turbo', 'dashscope', '快速模型，响应最快', 0, 1, 3, 2.0, 6.0),
-('qwen3.7-plus', 'Qwen3.7-Plus', 'dashscope', 'Qwen3.7 Plus，新一代增强模型', 0, 1, 4, 4.0, 12.0);
+('qwen3.7-plus', 'Qwen3.7-Plus', 'dashscope', 'Qwen3.7 Plus，新一代增强模型', 0, 1, 4, 4.0, 12.0),
+-- OpenAI
+('gpt-4o', 'GPT-4o', 'openai', 'OpenAI 旗舰模型，多模态能力强', 0, 1, 10, 17.5, 69.9),
+('gpt-4o-mini', 'GPT-4o Mini', 'openai', 'OpenAI 轻量模型，成本低速度快', 0, 1, 11, 1.05, 4.2),
+-- Anthropic (Claude)
+('claude-sonnet-4-20250514', 'Claude Sonnet 4', 'anthropic', 'Anthropic 均衡模型', 0, 1, 20, 21.0, 105.0),
+('claude-haiku-3-5-20241022', 'Claude 3.5 Haiku', 'anthropic', 'Anthropic 快速模型', 0, 1, 21, 5.6, 28.0),
+-- DeepSeek
+('deepseek-chat', 'DeepSeek V3', 'deepseek', '深度求索，高性价比', 0, 1, 30, 1.0, 2.0),
+('deepseek-v3-flash', 'DeepSeek V3 Flash', 'deepseek', 'V3 快速模型，极致性价比', 0, 1, 31, 0.5, 1.0),
+('deepseek-v3-pro', 'DeepSeek V3 Pro', 'deepseek', 'V3 增强模型，能力更全面', 0, 1, 32, 2.0, 8.0);
 
 -- 确保只有一个激活模型
 UPDATE ai_model SET is_active = 0;
-UPDATE ai_model SET is_active = 1 WHERE model_name = 'qwen-plus';
+UPDATE ai_model SET is_active = 1 WHERE model_name = 'qwen-turbo';
 
 -- ============================================
 -- 3. 验证

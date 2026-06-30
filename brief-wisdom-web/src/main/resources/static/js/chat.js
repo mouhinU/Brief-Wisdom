@@ -383,14 +383,21 @@ function appendSessionItems(sessions) {
         sessionItem.innerHTML = `
             <div class="session-title-row">
                 ${pageLabelHtml}
-                <div class="session-title">${escapeHtml(session.title)}</div>
+                <div class="session-title" title="双击编辑标题">${escapeHtml(session.title)}</div>
             </div>
             <div class="session-time">${timeStr}</div>
             <button class="delete-session-btn" onclick="deleteSession(event, '${session.sessionId}')">×</button>
         `;
         
+        // 双击标题进入编辑模式
+        const titleEl = sessionItem.querySelector('.session-title');
+        titleEl.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            startEditSessionTitle(titleEl, session.sessionId, session.title);
+        });
+        
         sessionItem.onclick = (e) => {
-            if (!e.target.classList.contains('delete-session-btn')) {
+            if (!e.target.classList.contains('delete-session-btn') && !e.target.classList.contains('session-title-input')) {
                 selectSession(session.sessionId);
             }
         };
@@ -501,6 +508,78 @@ async function deleteSession(event, sessionId) {
     } catch (error) {
         console.error('删除会话失败:', error);
     }
+}
+
+// 开始编辑会话标题（双击进入编辑模式）
+function startEditSessionTitle(titleEl, sessionId, currentTitle) {
+    // 如果已经在编辑中，忽略
+    if (titleEl.querySelector('.session-title-input')) {
+        return;
+    }
+    
+    const originalTitle = currentTitle;
+    
+    // 创建输入框
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'session-title-input';
+    input.value = currentTitle;
+    
+    // 保存原始标题
+    titleEl.dataset.originalTitle = originalTitle;
+    titleEl.textContent = '';
+    titleEl.appendChild(input);
+    
+    // 聚焦并选中文本
+    input.focus();
+    input.select();
+    
+    // 保存标题
+    const saveTitle = async () => {
+        const newTitle = input.value.trim();
+        
+        // 如果标题没变，恢复原状
+        if (newTitle === originalTitle || newTitle === '') {
+            titleEl.textContent = originalTitle;
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/ai/session/${sessionId}/title`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: newTitle })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                titleEl.textContent = newTitle;
+                console.log('会话标题已更新:', newTitle);
+            } else {
+                titleEl.textContent = originalTitle;
+                console.error('更新标题失败:', data);
+            }
+        } catch (error) {
+            titleEl.textContent = originalTitle;
+            console.error('更新标题失败:', error);
+        }
+    };
+    
+    // 回车保存
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveTitle();
+        } else if (e.key === 'Escape') {
+            // Esc 取消编辑
+            titleEl.textContent = originalTitle;
+        }
+    });
+    
+    // 失焦保存
+    input.addEventListener('blur', () => {
+        saveTitle();
+    });
 }
 
 // 显示聊天区域加载中提示
@@ -810,7 +889,8 @@ async function sendMessage() {
             },
             body: JSON.stringify({
                 message: message,
-                model: currentModel
+                model: currentModel,
+                pageContext: getCurrentPageContext()
             })
         });
 

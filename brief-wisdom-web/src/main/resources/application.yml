@@ -27,13 +27,6 @@ spring:
         cachecontrol:
           no-cache: true
           must-revalidate: true
-  ai:
-    openai:
-      api-key: sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg
-      base-url: https://dashscope.aliyuncs.com/compatible-mode
-      chat:
-        options:
-          model: qwen-max
   # Redis 配置（Redisson 自动读取此配置）
   data:
     redis:
@@ -76,6 +69,30 @@ mybatis-plus:
 
 # 实时同步配置
 app:
+  # AI 多提供商统一配置（ChatModelRegistry 根据 ai_model.provider 字段路由）
+  ai:
+    default-provider: dashscope    # 默认提供商
+    providers:
+      dashscope:
+        type: openai               # DashScope 走 OpenAI 兼容协议
+        api-key: sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg
+        base-url: https://dashscope.aliyuncs.com/compatible-mode
+        model: qwen-max
+#      openai:
+#        type: openai
+#        api-key: ${OPENAI_API_KEY:your-openai-api-key}
+#        base-url: https://api.openai.com
+#        model: gpt-4o
+#      anthropic:
+#        type: anthropic
+#        api-key: ${ANTHROPIC_API_KEY:your-anthropic-api-key}
+#        base-url: https://api.anthropic.com
+#        model: claude-sonnet-4-20250514
+      deepseek:
+        type: openai
+        api-key: sk-026f1b97c4a5430f947b8259d2f5ebd8
+        base-url: https://api.deepseek.com
+        model: deepseek-chat
   sync:
     # transport: sse    # 同步传输方式：sse（Server-Sent Events）或 websocket（双向通信）
     transport: websocket    # 同步传输方式：sse（Server-Sent Events）或 websocket（双向通信）

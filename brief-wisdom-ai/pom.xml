@@ -16,6 +16,11 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
+        <!-- Spring AI Anthropic (Claude 系列模型) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-anthropic</artifactId>
+        </dependency>
 
         <!-- Persistence Module -->
         <dependency>

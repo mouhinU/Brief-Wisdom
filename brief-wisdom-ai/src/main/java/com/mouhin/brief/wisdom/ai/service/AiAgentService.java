@@ -6,6 +6,8 @@ import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
 import com.mouhin.brief.wisdom.common.ai.SyncStatusDTO;
+import com.mouhin.brief.wisdom.exception.ContentSecurityException;
+import com.mouhin.brief.wisdom.exception.RateLimitException;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
 import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
 import com.mouhin.brief.wisdom.persistence.model.ChatSession;
@@ -15,9 +17,14 @@ import com.mouhin.brief.wisdom.persistence.repository.ChatMessageRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatSessionRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.anthropic.AnthropicChatOptions;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.prompt.ChatOptions;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +41,7 @@ public class AiAgentService {
     private static final String DEFAULT_USER_ID = "default-user";
     // 单条消息最大长度
     private static final int MAX_MESSAGE_LENGTH = 10000;
-    private final ChatClient chatClient;
+    private final ChatModelRegistry chatModelRegistry;
     private final ChatSessionRepository sessionRepository;
     private final ChatMessageRepository messageRepository;
     private final ChatUserRepository userRepository;
@@ -43,7 +50,7 @@ public class AiAgentService {
     private final ContentFilterService contentFilterService;
     private final RateLimitService rateLimitService;
 
-    public AiAgentService(ChatClient chatClient,
+    public AiAgentService(ChatModelRegistry chatModelRegistry,
                           ChatSessionRepository sessionRepository,
                           ChatMessageRepository messageRepository,
                           ChatUserRepository userRepository,
@@ -51,7 +58,7 @@ public class AiAgentService {
                           ChatSyncService chatSyncService,
                           ContentFilterService contentFilterService,
                           RateLimitService rateLimitService) {
-        this.chatClient = chatClient;
+        this.chatModelRegistry = chatModelRegistry;
         this.sessionRepository = sessionRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
@@ -160,6 +167,25 @@ public class AiAgentService {
         // SSE 通知其他设备：会话已删除
         // 删除时无法确定 userId，广播给所有已连接用户
         chatSyncService.broadcastToAll("session_deleted", sessionId);
+    }
+
+    /**
+     * 重命名会话标题
+     *
+     * @param sessionId 会话ID
+     * @param newTitle  新标题
+     */
+    public void renameSession(String sessionId, String newTitle) {
+        ChatSession session = sessionRepository.findBySessionId(sessionId);
+        if (session == null) {
+            throw new IllegalArgumentException("会话不存在: " + sessionId);
+        }
+        if (newTitle == null || newTitle.isBlank()) {
+            throw new IllegalArgumentException("标题不能为空");
+        }
+        session.setTitle(newTitle.trim());
+        sessionRepository.update(session);
+        log.info("重命名会话: {} -> {}", sessionId, newTitle);
     }
 
     /**
@@ -372,9 +398,31 @@ public class AiAgentService {
     }
 
     /**
-     * 构建带模型选项的 OpenAiChatOptions
+     * 根据模型名称查询对应的提供商
+     *
+     * @param modelName 模型名称
+     * @return 提供商标识（dashscope / openai / anthropic / deepseek 等）
      */
-    private OpenAiChatOptions buildModelOptions(String modelName) {
+    private String resolveProvider(String modelName) {
+        AiModel aiModel = aiModelRepository.findByModelName(modelName);
+        return (aiModel != null && aiModel.getProvider() != null)
+                ? aiModel.getProvider() : "dashscope";
+    }
+
+    /**
+     * 根据提供商构建对应的 ChatOptions
+     *
+     * @param provider  提供商标识
+     * @param modelName 模型名称
+     * @return 提供商匹配的 ChatOptions
+     */
+    private ChatOptions buildChatOptions(String provider, String modelName) {
+        if ("anthropic".equals(provider)) {
+            return AnthropicChatOptions.builder()
+                    .model(modelName)
+                    .build();
+        }
+        // OpenAI 兼容协议（dashscope / openai / deepseek）
         return OpenAiChatOptions.builder()
                 .model(modelName)
                 .build();
@@ -400,17 +448,20 @@ public class AiAgentService {
 
         log.info("收到用户消息: {}, 模型: {}", message, modelName);
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
+        String provider = resolveProvider(model);
 
-        String response = chatClient.prompt()
-                .system(SystemPrompts.BASE_SYSTEM_PROMPT)
-                .options(buildModelOptions(model))
-                .user(message)
-                .call()
-                .content();
+        ChatModel chatModel = chatModelRegistry.getChatModel(provider);
+        Prompt prompt = new Prompt(
+                List.of(new SystemMessage(SystemPrompts.BASE_SYSTEM_PROMPT), new UserMessage(message)),
+                buildChatOptions(provider, model)
+        );
+        ChatResponse chatResponse = chatModel.call(prompt);
+
+        String response = chatResponse.getResult().getOutput().getText();
 
         // 输出过滤
         response = contentFilterService.filterOutput(response);
-        log.info("AI 回复(模型: {}): {}", model, response);
+        log.info("AI 回复(模型: {}, 提供商: {}): {}", model, provider, response);
         return response;
     }
 
@@ -423,7 +474,7 @@ public class AiAgentService {
      */
     @Transactional
     public String chatWithSession(String sessionId, String message) {
-        return chatWithSession(sessionId, DEFAULT_USER_ID, message, null);
+        return chatWithSession(sessionId, DEFAULT_USER_ID, message, null, null);
     }
 
     /**
@@ -431,13 +482,29 @@ public class AiAgentService {
      */
     @Transactional
     public String chatWithSession(String sessionId, String userId, String message, String modelName) {
+        return chatWithSession(sessionId, userId, message, modelName, null);
+    }
+
+    /**
+     * 带上下文的聊天对话（指定用户、模型和当前页面上下文）
+     * <p>
+     * 会根据当前页面上下文查找同页面的其他会话，获取最近消息作为额外上下文，
+     * 使 AI 能够更好地理解用户在该页面的历史交互。
+     *
+     * @param sessionId   会话ID
+     * @param userId      用户ID
+     * @param message     用户消息
+     * @param modelName   模型名称（可选）
+     * @param pageContext 当前页面上下文（可选，如 /about.html）
+     * @return AI 回复
+     */
+    @Transactional
+    public String chatWithSession(String sessionId, String userId, String message, String modelName, String pageContext) {
         log.info("========== 开始处理聊天请求 ==========");
-        log.info("sessionId: {}, userId: {}, model: {}", sessionId, userId, modelName);
+        log.info("sessionId: {}, userId: {}, model: {}, pageContext: {}", sessionId, userId, modelName, pageContext);
 
         // 输入校验
         validateInput(message);
-        // 限流检查
-        checkRateLimit(userId);
         // 输入预过滤
         checkInputSafety(message);
 
@@ -466,26 +533,54 @@ public class AiAgentService {
         userMsg.setMessageType("text");
         messageRepository.save(userMsg);
 
-        // 获取最近10条消息作为上下文
+        // 获取当前会话最近10条消息作为上下文
         List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, 10);
         Collections.reverse(recentMessages);  // 反转为正序
 
-        // 构建上下文
+        // 构建当前会话上下文
         StringBuilder context = new StringBuilder();
+        context.append("## 当前会话的最近消息\n");
         for (ChatMessage msg : recentMessages) {
             context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
         }
 
+        // 根据当前页面上下文，获取同页面其他会话的最近消息作为额外上下文
+        String effectivePageContext = (pageContext != null && !pageContext.isBlank()) ? pageContext : session.getPageContext();
+        if (effectivePageContext != null && !effectivePageContext.isBlank()) {
+            List<ChatSession> relatedSessions = sessionRepository.findRecentByUserIdAndPageContext(userId, effectivePageContext, 3);
+            // 过滤掉当前会话
+            relatedSessions = relatedSessions.stream()
+                    .filter(s -> !s.getSessionId().equals(sessionId))
+                    .toList();
+
+            if (!relatedSessions.isEmpty()) {
+                context.append("\n## 同页面（").append(getPageContextName(effectivePageContext)).append("）的其他最近会话\n");
+                for (ChatSession relatedSession : relatedSessions) {
+                    List<ChatMessage> relatedMessages = messageRepository.findRecentMessages(relatedSession.getSessionId(), 5);
+                    Collections.reverse(relatedMessages);
+                    if (!relatedMessages.isEmpty()) {
+                        context.append("\n### 会话: ").append(relatedSession.getTitle()).append("\n");
+                        for (ChatMessage msg : relatedMessages) {
+                            context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
+                        }
+                    }
+                }
+            }
+        }
+
         // 根据会话的页面上下文构建增强的系统提示词
-        String systemPrompt = SystemPrompts.getSystemPromptWithContext(session.getPageContext());
+        String systemPrompt = SystemPrompts.getSystemPromptWithContext(effectivePageContext);
+
+        // 根据模型查询提供商，路由到对应的 ChatModel
+        String provider = resolveProvider(model);
+        ChatModel chatModel = chatModelRegistry.getChatModel(provider);
 
         // 调用 AI，获取完整响应（包含 token 用量）
-        ChatResponse chatResponse = chatClient.prompt()
-                .system(systemPrompt)
-                .options(buildModelOptions(model))
-                .user(context.toString())
-                .call()
-                .chatResponse();
+        Prompt prompt = new Prompt(
+                List.of(new SystemMessage(systemPrompt), new UserMessage(context.toString())),
+                buildChatOptions(provider, model)
+        );
+        ChatResponse chatResponse = chatModel.call(prompt);
 
         // 提取回复内容
         assert chatResponse != null;
@@ -543,6 +638,21 @@ public class AiAgentService {
     }
 
     /**
+     * 获取页面上下文的中文名称
+     */
+    private String getPageContextName(String pageContext) {
+        if (pageContext == null) return "未知页面";
+        return switch (pageContext) {
+            case "/" -> "首页";
+            case "/about.html" -> "个人简历";
+            case "/resume-manage.html" -> "简历维护";
+            case "/system-settings.html" -> "系统设置";
+            case "/ai-manage.html" -> "AI管理";
+            default -> pageContext;
+        };
+    }
+
+    /**
      * 带系统提示的对话
      *
      * @param systemPrompt 系统提示词
@@ -553,12 +663,13 @@ public class AiAgentService {
         log.info("系统提示: {}", systemPrompt);
         log.info("用户消息: {}", userMessage);
 
-        String response = chatClient.prompt()
-                .system(systemPrompt)
-                .user(userMessage)
-                .call()
-                .content();
+        ChatModel chatModel = chatModelRegistry.getDefaultChatModel();
+        Prompt prompt = new Prompt(
+                List.of(new SystemMessage(systemPrompt), new UserMessage(userMessage))
+        );
+        ChatResponse chatResponse = chatModel.call(prompt);
 
+        String response = chatResponse.getResult().getOutput().getText();
         log.info("AI 回复: {}", response);
         return response;
     }
@@ -603,7 +714,7 @@ public class AiAgentService {
     }
 
     /**
-     * 限流检查
+     * 限流检查（AI 聊天不调用此方法，其他功能可按需调用）
      *
      * @param userId 用户ID
      */
@@ -653,23 +764,5 @@ public class AiAgentService {
         syncStatus.setFingerprint(Integer.toHexString(raw.hashCode()));
 
         return syncStatus;
-    }
-
-    /**
-     * 内容安全异常（输入违规时抛出）
-     */
-    public static class ContentSecurityException extends RuntimeException {
-        public ContentSecurityException(String message) {
-            super(message);
-        }
-    }
-
-    /**
-     * 限流异常（请求超频时抛出）
-     */
-    public static class RateLimitException extends RuntimeException {
-        public RateLimitException(String message) {
-            super(message);
-        }
     }
 }

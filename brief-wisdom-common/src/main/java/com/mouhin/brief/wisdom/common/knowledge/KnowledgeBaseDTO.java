@@ -1,0 +1,33 @@
+package com.mouhin.brief.wisdom.common.knowledge;
+
+import lombok.Data;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * 知识库 DTO
+ */
+@Data
+public class KnowledgeBaseDTO {
+
+    private Long id;
+    private String name;
+    private String description;
+    private String icon;
+    private Long parentId;
+    private Integer sortOrder;
+    private Integer isPublic;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
+
+    /**
+     * 文档数量（非数据库字段，用于展示）
+     */
+    private Long documentCount;
+
+    /**
+     * 子知识库列表（树形结构用）
+     */
+    private List<KnowledgeBaseDTO> children;
+}
