@@ -200,9 +200,9 @@
      * 显示错误信息
      */
     function showError(message) {
-        const listPanel = document.getElementById('editor-list-panel');
-        if (listPanel) {
-            listPanel.innerHTML = `<div class="editor-empty" style="color: #dc3545;">${message}</div>`;
+        const listBody = document.getElementById('editor-list-body');
+        if (listBody) {
+            listBody.innerHTML = `<div class="editor-empty" style="color: #dc3545;">${message}</div>`;
         }
     }
 
@@ -313,18 +313,18 @@
         
         formPanel.innerHTML = `
             <div class="editor-form">
-                <h3>工作经历详情</h3>
+                <h3 class="editor-form-title">工作经历详情</h3>
                 <div class="editor-form-group">
                     <label>公司名称</label>
-                    <input type="text" id="editor-field-title" class="form-control" value="${escapeAttr(exp.title || '')}">
+                    <input type="text" id="editor-field-title" value="${escapeAttr(exp.title || '')}">
                 </div>
                 <div class="editor-form-group">
                     <label>职位</label>
-                    <input type="text" id="editor-field-job" class="form-control" value="${escapeAttr(exp.job || '')}">
+                    <input type="text" id="editor-field-job" value="${escapeAttr(exp.job || '')}">
                 </div>
                 <div class="editor-form-group">
                     <label>描述</label>
-                    <textarea id="editor-field-description" class="form-control" rows="4">${escapeHtml(exp.description || '')}</textarea>
+                    <textarea id="editor-field-description" rows="4">${escapeHtml(exp.description || '')}</textarea>
                 </div>
                 <div class="editor-form-group">
                     <label>包含项目 (${projectCount}个)</label>
@@ -381,22 +381,22 @@
         
         formPanel.innerHTML = `
             <div class="editor-form">
-                <h3>项目详情</h3>
+                <h3 class="editor-form-title">项目详情</h3>
                 <div class="editor-form-group">
                     <label>项目名称</label>
-                    <input type="text" id="editor-proj-name" class="form-control" value="${escapeAttr(proj.name || '')}">
+                    <input type="text" id="editor-proj-name" value="${escapeAttr(proj.name || '')}">
                 </div>
                 <div class="editor-form-group">
                     <label>项目周期</label>
-                    <input type="text" id="editor-proj-lifecycle" class="form-control" value="${escapeAttr(proj.lifecycle || '')}">
+                    <input type="text" id="editor-proj-lifecycle" value="${escapeAttr(proj.lifecycle || '')}">
                 </div>
                 <div class="editor-form-group">
                     <label>项目背景</label>
-                    <textarea id="editor-proj-background" class="form-control" rows="3">${escapeHtml(proj.background || '')}</textarea>
+                    <textarea id="editor-proj-background" rows="3">${escapeHtml(proj.background || '')}</textarea>
                 </div>
                 <div class="editor-form-group">
                     <label>个人职责</label>
-                    <textarea id="editor-proj-duty" class="form-control" rows="3">${escapeHtml(proj.duty || '')}</textarea>
+                    <textarea id="editor-proj-duty" rows="3">${escapeHtml(proj.duty || '')}</textarea>
                 </div>
                 <div class="editor-form-group">
                     <label>项目成果 (${achievementCount}项)</label>
@@ -784,11 +784,25 @@
 
         if (!titleEl || !jobEl || !descEl) return;
 
+        const newTitle = titleEl.value.trim();
+        const newJob = jobEl.value.trim();
+        const newDesc = descEl.value.trim();
+
+        if (!newTitle) {
+            alert('公司名称不能为空');
+            return;
+        }
+
+        // 先用表单值更新缓存，确保内容不丢失
+        exp.title = newTitle;
+        exp.job = newJob;
+        exp.description = newDesc;
+
         try {
             const payload = {
-                title: titleEl.value.trim(),
-                job: jobEl.value.trim(),
-                description: descEl.value.trim()
+                title: newTitle,
+                job: newJob,
+                description: newDesc
             };
 
             const res = await fetch('/api/resume/manage/experiences/' + exp.id, {
@@ -799,20 +813,92 @@
 
             if (!res.ok) throw new Error('保存失败: ' + res.status);
 
-            const updated = await res.json();
-            // 更新缓存
-            exp.title = updated.title;
-            exp.job = updated.job;
-            exp.description = updated.description;
-
+            // 重新渲染（从缓存读取，内容已在上面更新）
             renderExperiencePanel();
             selectExperience(selectedExperienceIndex);
-            alert('保存成功');
             console.log('[OnlineEditor] 工作经历更新成功');
         } catch (error) {
             console.error('[OnlineEditor] 更新工作经历失败:', error);
             alert('保存失败: ' + error.message);
+            // 保存失败也重新渲染，确保缓存和视图一致
+            renderExperiencePanel();
+            selectExperience(selectedExperienceIndex);
         }
+    }
+
+    /**
+     * 保存项目表单编辑
+     */
+    async function saveProjectForm() {
+        if (selectedProjectIndex < 0 || selectedProjectIndex >= dataCache.projects.length) return;
+        const proj = dataCache.projects[selectedProjectIndex];
+
+        const nameEl = document.getElementById('editor-proj-name');
+        const lifecycleEl = document.getElementById('editor-proj-lifecycle');
+        const backgroundEl = document.getElementById('editor-proj-background');
+        const dutyEl = document.getElementById('editor-proj-duty');
+
+        if (!nameEl) return;
+
+        const newName = nameEl.value.trim();
+        const newLifecycle = lifecycleEl ? lifecycleEl.value.trim() : '';
+        const newBackground = backgroundEl ? backgroundEl.value.trim() : '';
+        const newDuty = dutyEl ? dutyEl.value.trim() : '';
+
+        if (!newName) {
+            alert('项目名称不能为空');
+            return;
+        }
+
+        // 先用表单值更新缓存
+        proj.name = newName;
+        proj.lifecycle = newLifecycle;
+        proj.background = newBackground;
+        proj.duty = newDuty;
+
+        try {
+            const payload = {
+                name: newName,
+                lifecycle: newLifecycle,
+                background: newBackground,
+                duty: newDuty
+            };
+
+            const res = await fetch('/api/resume/manage/projects/' + proj.id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error('保存失败: ' + res.status);
+
+            renderProjectPanel();
+            selectProject(selectedProjectIndex);
+            console.log('[OnlineEditor] 项目更新成功');
+        } catch (error) {
+            console.error('[OnlineEditor] 更新项目失败:', error);
+            alert('保存失败: ' + error.message);
+            renderProjectPanel();
+            selectProject(selectedProjectIndex);
+        }
+    }
+
+    /**
+     * HTML 转义
+     */
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    /**
+     * 属性转义
+     */
+    function escapeAttr(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     /**
@@ -843,7 +929,8 @@
         addTechStack,
         deleteExperience,
         deleteProject,
-        saveExperienceForm
+        saveExperienceForm,
+        saveProjectForm
     };
 
     // 注册组件
