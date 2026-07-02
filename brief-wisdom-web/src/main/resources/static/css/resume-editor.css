@@ -589,6 +589,50 @@
   margin-bottom: 12px;
 }
 
+/* ========== 在线编辑组件样式（系统设置页面使用） ========== */
+
+/* 子项目列表 */
+.sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sub-item {
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-left: 3px solid #667eea;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #495057;
+  line-height: 1.5;
+}
+
+/* 技术栈标签 */
+.tech-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tech-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.tech-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 @media (max-width: 768px) {
   .resume-preview-body {
     padding: 20px 16px;

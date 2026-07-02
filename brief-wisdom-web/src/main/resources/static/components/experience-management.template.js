@@ -13,9 +13,9 @@
             <section class="settings-section">
                 <div class="section-header">
                     <h2>工作经历管理</h2>
-                    <button class="btn btn-primary" onclick="ExperienceManagement.showExperienceForm()">+ 新增工作经历</button>
+                    <button class="btn btn-primary" onclick="window.experienceManagement.showExperienceForm()">+ 新增工作经历</button>
                 </div>
-                <div id="experiences-list" class="data-list"></div>
+                <div id="exp-list" class="data-list"></div>
             </section>
         `;
     }

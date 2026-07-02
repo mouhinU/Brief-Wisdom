@@ -13,15 +13,15 @@
             <section class="settings-section">
                 <div class="section-header">
                     <h2>项目管理</h2>
-                    <button class="btn btn-primary" onclick="ProjectManagement.showProjectForm()">+ 新增项目</button>
+                    <button class="btn btn-primary" onclick="window.projectManagement.showProjectForm()">+ 新增项目</button>
                 </div>
                 <div class="filter-bar">
                     <label>筛选工作经历：</label>
-                    <select id="project-experience-filter" onchange="ProjectManagement.loadProjects()">
+                    <select id="proj-experience-filter" onchange="window.projectManagement.loadData()">
                         <option value="">全部</option>
                     </select>
                 </div>
-                <div id="projects-list" class="data-list"></div>
+                <div id="proj-list" class="data-list"></div>
             </section>
         `;
     }

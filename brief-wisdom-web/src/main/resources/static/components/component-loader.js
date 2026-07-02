@@ -80,6 +80,7 @@ function loadComponentScript(componentName) {
         // 检查是否已加载
         const scriptId = `component-${componentName}`;
         if (document.getElementById(scriptId)) {
+            console.log(`[Component] 脚本 "${componentName}" 已存在`);
             resolve();
             return;
         }

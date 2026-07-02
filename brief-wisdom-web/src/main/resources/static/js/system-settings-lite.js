@@ -13,7 +13,12 @@ const COMPONENT_NAME_MAP = {
     '角色管理': 'role-management',
     '知识库': 'knowledge-management',
     '模型管理': 'model-management',
-    '会话历史': 'session-history'
+    '会话历史': 'session-history',
+    '在线编辑': 'online-editor',
+    '工作经历': 'experience-management',
+    '项目经历': 'project-management',
+    '项目成果': 'achievement-management',
+    '技术栈': 'tech-stack-management'
 };
 
 // Tab ID 映射表（菜单名称 → Tab 内容容器 ID）
@@ -23,7 +28,12 @@ const TAB_ID_MAP = {
     '角色管理': 'role-tab-content',
     '知识库': 'knowledge-tab-content',
     '模型管理': 'models-tab-content',
-    '会话历史': 'sessions-tab-content'
+    '会话历史': 'sessions-tab-content',
+    '在线编辑': 'online-editor-tab-content',
+    '工作经历': 'experience-tab-content',
+    '项目经历': 'project-tab-content',
+    '项目成果': 'achievement-tab-content',
+    '技术栈': 'tech-stack-tab-content'
 };
 
 /**
@@ -52,6 +62,31 @@ async function loadComponentForTab(child) {
     }
     
     console.log(`[SystemSettings] 加载组件: ${componentName}`);
+    
+    // 1. 先加载模板文件（如果存在）
+    const templateScriptId = `component-template-${componentName}`;
+    if (!document.getElementById(templateScriptId)) {
+        try {
+            await new Promise((resolve, reject) => {
+                const templateScript = document.createElement('script');
+                templateScript.id = templateScriptId;
+                templateScript.src = `components/${componentName}.template.js?v=${Date.now()}`;
+                templateScript.onload = () => {
+                    console.log(`[SystemSettings] 模板加载成功: ${componentName}.template.js`);
+                    resolve();
+                };
+                templateScript.onerror = () => {
+                    console.warn(`[SystemSettings] 模板加载失败: ${componentName}.template.js`);
+                    resolve(); // 即使失败也继续，有些组件可能没有模板
+                };
+                document.head.appendChild(templateScript);
+            });
+        } catch (err) {
+            console.error(`[SystemSettings] 加载模板异常:`, err);
+        }
+    }
+    
+    // 2. 再加载组件逻辑文件
     await loadAndInitComponents([{ name: componentName }]);
 }
 

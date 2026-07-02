@@ -7,6 +7,8 @@ const API_BASE = '/api/resume/manage';
 // 缓存数据
 let experiencesCache = [];
 let projectsCache = [];
+let achievementsCache = [];
+let stacksCache = [];
 
 // ===== 初始化 =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -48,8 +50,18 @@ async function apiRequest(url, method = 'GET', body = null) {
     };
     if (body) options.body = JSON.stringify(body);
     const res = await fetch(API_BASE + url, options);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
     const data = await res.json();
-    if (!data.success) throw new Error(data.error || '请求失败');
+    console.log('[resume-manage] API响应:', data);
+    
+    if (!data.success) {
+      throw new Error(data.msg || '请求失败');
+    }
+    
     return data.data;
   } catch (err) {
     console.error('API请求失败:', err);
@@ -110,23 +122,23 @@ function showExperienceForm(data = null) {
   openModal(isEdit ? '编辑工作经历' : '新增工作经历', `
     <div class="form-group">
       <label>职位标题 *</label>
-      <input type="text" id="f-title" value="${escapeAttr(data?.title || '')}" required>
+      <input type="text" name="title" id="f-title" value="${escapeAttr(data?.title || '')}" required>
     </div>
     <div class="form-group">
       <label>岗位角色 *</label>
-      <input type="text" id="f-job" value="${escapeAttr(data?.job || '')}" required>
+      <input type="text" name="job" id="f-job" value="${escapeAttr(data?.job || '')}" required>
     </div>
     <div class="form-group">
       <label>整体描述</label>
-      <textarea id="f-description" rows="4">${escapeHtml(data?.description || '')}</textarea>
+      <textarea name="description" id="f-description" rows="4">${escapeHtml(data?.description || '')}</textarea>
     </div>
     <div class="form-group">
       <label>排序序号</label>
-      <input type="number" id="f-sortOrder" value="${data?.sortOrder ?? 0}">
+      <input type="number" name="sortOrder" id="f-sortOrder" value="${data?.sortOrder ?? 0}">
     </div>
     <div class="form-group">
       <label>是否显示</label>
-      <select id="f-isVisible">
+      <select name="isVisible" id="f-isVisible">
         <option value="1" ${data?.isVisible === 1 ? 'selected' : ''}>显示</option>
         <option value="0" ${data?.isVisible === 0 ? 'selected' : ''}>隐藏</option>
       </select>
@@ -135,22 +147,7 @@ function showExperienceForm(data = null) {
       <button type="button" class="btn btn-cancel" onclick="closeModal()">取消</button>
       <button type="submit" class="btn btn-primary">${isEdit ? '保存' : '创建'}</button>
     </div>
-  `, async (formData) => {
-    const payload = {
-      title: formData.get('title'),
-      job: formData.get('job'),
-      description: formData.get('description'),
-      sortOrder: parseInt(formData.get('sortOrder')) || 0,
-      isVisible: parseInt(formData.get('isVisible'))
-    };
-    if (isEdit) {
-      await apiRequest(`/experiences/${data.id}`, 'PUT', payload);
-    } else {
-      await apiRequest('/experiences', 'POST', payload);
-    }
-    closeModal();
-    loadExperiences();
-  });
+  `);
 
   document.getElementById('modal-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -173,7 +170,7 @@ function showExperienceForm(data = null) {
 }
 
 function editExperience(id) {
-  const exp = experiencesCache.find(e => e.id === id);
+  const exp = experiencesCache.find(e => e.id == id);
   if (exp) showExperienceForm(exp);
 }
 
@@ -238,27 +235,27 @@ async function showProjectForm(data = null) {
   openModal(isEdit ? '编辑项目' : '新增项目', `
     <div class="form-group">
       <label>关联工作经历 *</label>
-      <select id="f-experienceId" required>${expOptions}</select>
+      <select name="experienceId" id="f-experienceId" required>${expOptions}</select>
     </div>
     <div class="form-group">
       <label>项目名称 *</label>
-      <input type="text" id="f-name" value="${escapeAttr(data?.name || '')}" required>
+      <input type="text" name="name" id="f-name" value="${escapeAttr(data?.name || '')}" required>
     </div>
     <div class="form-group">
       <label>项目周期</label>
-      <input type="text" id="f-lifecycle" value="${escapeAttr(data?.lifecycle || '')}" placeholder="如: 2024.12 - 2025.10">
+      <input type="text" name="lifecycle" id="f-lifecycle" value="${escapeAttr(data?.lifecycle || '')}" placeholder="如: 2024.12 - 2025.10">
     </div>
     <div class="form-group">
       <label>项目背景</label>
-      <textarea id="f-background" rows="3">${escapeHtml(data?.background || '')}</textarea>
+      <textarea name="background" id="f-background" rows="3">${escapeHtml(data?.background || '')}</textarea>
     </div>
     <div class="form-group">
       <label>职责描述</label>
-      <textarea id="f-duty" rows="3">${escapeHtml(data?.duty || '')}</textarea>
+      <textarea name="duty" id="f-duty" rows="3">${escapeHtml(data?.duty || '')}</textarea>
     </div>
     <div class="form-group">
       <label>排序序号</label>
-      <input type="number" id="f-sortOrder" value="${data?.sortOrder ?? 0}">
+      <input type="number" name="sortOrder" id="f-sortOrder" value="${data?.sortOrder ?? 0}">
     </div>
     <div class="form-actions">
       <button type="button" class="btn btn-cancel" onclick="closeModal()">取消</button>
@@ -288,7 +285,7 @@ async function showProjectForm(data = null) {
 }
 
 function editProject(id) {
-  const p = projectsCache.find(e => e.id === id);
+  const p = projectsCache.find(e => e.id == id);
   if (p) showProjectForm(p);
 }
 
@@ -306,6 +303,7 @@ async function loadAchievements() {
   try {
     const url = projectId ? `/achievements?projectId=${projectId}` : '/achievements';
     const data = await apiRequest(url);
+    achievementsCache = data;
     renderAchievements(data);
   } catch (e) {
     container.innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
@@ -347,15 +345,15 @@ async function showAchievementForm(data = null) {
   openModal(isEdit ? '编辑项目成果' : '新增项目成果', `
     <div class="form-group">
       <label>关联项目 *</label>
-      <select id="f-projectId" required>${projOptions}</select>
+      <select name="projectId" id="f-projectId" required>${projOptions}</select>
     </div>
     <div class="form-group">
       <label>成果内容 *</label>
-      <textarea id="f-content" rows="3" required>${escapeHtml(data?.content || '')}</textarea>
+      <textarea name="content" id="f-content" rows="3" required>${escapeHtml(data?.content || '')}</textarea>
     </div>
     <div class="form-group">
       <label>排序序号</label>
-      <input type="number" id="f-sortOrder" value="${data?.sortOrder ?? 0}">
+      <input type="number" name="sortOrder" id="f-sortOrder" value="${data?.sortOrder ?? 0}">
     </div>
     <div class="form-actions">
       <button type="button" class="btn btn-cancel" onclick="closeModal()">取消</button>
@@ -381,11 +379,9 @@ async function showAchievementForm(data = null) {
   };
 }
 
-async function editAchievement(id) {
-  try {
-    const data = await apiRequest(`/achievements/${id}`);
-    showAchievementForm(data);
-  } catch (e) { /* error handled */ }
+function editAchievement(id) {
+  const a = achievementsCache.find(e => e.id == id);
+  if (a) showAchievementForm(a);
 }
 
 async function deleteAchievement(id) {
@@ -402,6 +398,7 @@ async function loadStacks() {
   try {
     const url = expId ? `/stacks?experienceId=${expId}` : '/stacks';
     const data = await apiRequest(url);
+    stacksCache = data;
     renderStacks(data);
   } catch (e) {
     container.innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
@@ -443,15 +440,15 @@ async function showStackForm(data = null) {
   openModal(isEdit ? '编辑技术栈' : '新增技术栈', `
     <div class="form-group">
       <label>关联工作经历 *</label>
-      <select id="f-experienceId" required>${expOptions}</select>
+      <select name="experienceId" id="f-experienceId" required>${expOptions}</select>
     </div>
     <div class="form-group">
       <label>技术名称 *</label>
-      <input type="text" id="f-techName" value="${escapeAttr(data?.techName || '')}" required>
+      <input type="text" name="techName" id="f-techName" value="${escapeAttr(data?.techName || '')}" required>
     </div>
     <div class="form-group">
       <label>排序序号</label>
-      <input type="number" id="f-sortOrder" value="${data?.sortOrder ?? 0}">
+      <input type="number" name="sortOrder" id="f-sortOrder" value="${data?.sortOrder ?? 0}">
     </div>
     <div class="form-actions">
       <button type="button" class="btn btn-cancel" onclick="closeModal()">取消</button>
@@ -477,11 +474,9 @@ async function showStackForm(data = null) {
   };
 }
 
-async function editStack(id) {
-  try {
-    const data = await apiRequest(`/stacks/${id}`);
-    showStackForm(data);
-  } catch (e) { /* error handled */ }
+function editStack(id) {
+  const s = stacksCache.find(e => e.id == id);
+  if (s) showStackForm(s);
 }
 
 async function deleteStack(id) {

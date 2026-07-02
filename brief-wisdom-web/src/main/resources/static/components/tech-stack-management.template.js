@@ -13,15 +13,9 @@
             <section class="settings-section">
                 <div class="section-header">
                     <h2>技术栈管理</h2>
-                    <button class="btn btn-primary" onclick="TechStackManagement.showStackForm()">+ 新增技术栈</button>
+                    <button class="btn btn-primary" onclick="window.techStackManagement.showTechStackForm()">+ 新增技术栈</button>
                 </div>
-                <div class="filter-bar">
-                    <label>筛选工作经历：</label>
-                    <select id="stack-experience-filter" onchange="TechStackManagement.loadStacks()">
-                        <option value="">全部</option>
-                    </select>
-                </div>
-                <div id="stacks-list" class="data-list"></div>
+                <div id="stack-list" class="data-list"></div>
             </section>
         `;
     }
