@@ -1,10 +1,8 @@
-package com.mouhin.brief.wisdom.web.service;
+package com.mouhin.brief.wisdom.system.service;
 
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
-import com.mouhin.brief.wisdom.web.controller.WechatAuthController;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,6 +10,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -32,6 +31,11 @@ import java.security.NoSuchAlgorithmException;
 @Slf4j
 @Component
 public class UserContextHelper {
+
+    /**
+     * Session 中存储用户信息的 Key
+     */
+    public static final String SESSION_USER_KEY = "SESSION_USER";
 
     /**
      * 访客用户ID前缀
@@ -69,7 +73,7 @@ public class UserContextHelper {
         // 1. 优先从 Session 获取（已登录用户）
         HttpSession session = httpRequest.getSession(false);
         if (session != null) {
-            ChatUser user = (ChatUser) session.getAttribute(WechatAuthController.SESSION_USER_KEY);
+            ChatUser user = (ChatUser) session.getAttribute(SESSION_USER_KEY);
             if (user != null && user.getUserId() != null) {
                 return user.getUserId();
             }
@@ -112,7 +116,7 @@ public class UserContextHelper {
     public ChatUser getCurrentUser(HttpServletRequest httpRequest) {
         HttpSession session = httpRequest.getSession(false);
         if (session != null) {
-            ChatUser user = (ChatUser) session.getAttribute(WechatAuthController.SESSION_USER_KEY);
+            ChatUser user = (ChatUser) session.getAttribute(SESSION_USER_KEY);
             if (user != null) {
                 return user;
             }
@@ -152,12 +156,6 @@ public class UserContextHelper {
 
     /**
      * 基于客户端 IP + 浏览器类型 + 设备类型 生成唯一访客ID
-     * <p>
-     * 同一设备（同一 IP）+ 同一浏览器 + 同一设备类型 → 相同的指纹 → 相同的 userId，
-     * 保证未登录访客的会话数据隔离与连续性。
-     *
-     * @param request HTTP 请求
-     * @return 格式为 "guest-{SHA256前16位}" 的访客ID
      */
     private String generateGuestId(HttpServletRequest request) {
         String ip = getClientIp(request);
@@ -166,11 +164,9 @@ public class UserContextHelper {
             userAgent = "";
         }
 
-        // IP + 浏览器类型 + 设备类型组合作为指纹因子
         String browserType = extractBrowserType(userAgent);
         String deviceType = extractDeviceType(userAgent);
         String hash = sha256Hex(ip + browserType + deviceType);
-        // 取前 16 位作为指纹，足够唯一且不会过长
         String fingerprint = hash.substring(0, 16);
 
         String guestId = GUEST_PREFIX + fingerprint;
@@ -179,15 +175,12 @@ public class UserContextHelper {
     }
 
     /**
-     * 从 User-Agent 中提取浏览器类型（如 Chrome、Firefox、Safari、Edge 等）
-     * <p>
-     * 只取浏览器内核标识，忽略版本号，避免浏览器升级后访客ID变化。
+     * 从 User-Agent 中提取浏览器类型
      */
     private String extractBrowserType(String userAgent) {
         if (userAgent == null || userAgent.isEmpty()) {
             return "unknown";
         }
-        // 按优先级匹配（注意：Edge 的 UA 也包含 Chrome，需先判断 Edge）
         String ua = userAgent.toLowerCase();
         if (ua.contains("edg/")) return "edge";
         if (ua.contains("chrome")) return "chrome";
@@ -205,16 +198,14 @@ public class UserContextHelper {
             return "unknown";
         }
         String ua = userAgent.toLowerCase();
-        // 平板优先判断（部分平板 UA 同时包含 mobile 和 tablet）
         if (ua.contains("tablet") || ua.contains("ipad")) return "tablet";
-        // 移动端特征
         if (ua.contains("mobile") || ua.contains("android") && !ua.contains("tablet")
                 || ua.contains("iphone") || ua.contains("ipod")) return "mobile";
         return "pc";
     }
 
     /**
-     * 无 request 时的回退方案（基于当前时间戳生成随机访客ID）
+     * 无 request 时的回退方案
      */
     private String generateFallbackGuestId() {
         return GUEST_PREFIX + "fallback-" + Thread.currentThread().getId();
@@ -226,7 +217,6 @@ public class UserContextHelper {
     private String getClientIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-            // X-Forwarded-For 可能包含多个 IP，取第一个（客户端真实 IP）
             return ip.split(",")[0].trim();
         }
         ip = request.getHeader("X-Real-IP");
@@ -257,7 +247,6 @@ public class UserContextHelper {
             }
             return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
-            // SHA-256 是 Java 标准库必支持的，不会走到这里
             throw new RuntimeException("SHA-256 算法不可用", e);
         }
     }

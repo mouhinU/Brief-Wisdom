@@ -4,9 +4,9 @@ import com.mouhin.brief.wisdom.common.menu.MenuDTO;
 import com.mouhin.brief.wisdom.common.menu.MenuTreeDTO;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
-import com.mouhin.brief.wisdom.web.service.MenuService;
-import com.mouhin.brief.wisdom.web.service.RoleService;
-import com.mouhin.brief.wisdom.web.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.MenuService;
+import com.mouhin.brief.wisdom.system.service.RoleService;
+import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -51,7 +51,7 @@ public class MenuController {
         jakarta.servlet.http.HttpSession session = request.getSession(false);
         if (session != null) {
             com.mouhin.brief.wisdom.persistence.model.ChatUser user =
-                (com.mouhin.brief.wisdom.persistence.model.ChatUser) session.getAttribute(WechatAuthController.SESSION_USER_KEY);
+                (com.mouhin.brief.wisdom.persistence.model.ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY);
             if (user != null) {
                 // 已登录：基于角色过滤菜单
                 java.util.List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());

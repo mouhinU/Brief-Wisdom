@@ -1,6 +1,5 @@
-package com.mouhin.brief.wisdom.web.service;
+package com.mouhin.brief.wisdom.system.service.impl;
 
-import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.common.role.RoleDTO;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import com.mouhin.brief.wisdom.persistence.model.SysRole;
@@ -9,6 +8,7 @@ import com.mouhin.brief.wisdom.persistence.repository.RoleMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysRoleRepository;
 import com.mouhin.brief.wisdom.persistence.repository.UserRoleRepository;
+import com.mouhin.brief.wisdom.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -17,22 +17,21 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mouhin.brief.wisdom.constants.CachePrefix;
+
 import java.util.List;
 import java.util.Objects;
 
 /**
- * 角色管理服务
- */
-/**
- * RoleService
+ * 角色管理服务实现
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-01
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RoleService {
+public class RoleServiceImpl implements RoleService {
 
     private final SysRoleRepository sysRoleRepository;
     private final UserRoleRepository userRoleRepository;
@@ -42,6 +41,7 @@ public class RoleService {
     /**
      * 获取所有角色
      */
+    @Override
     @Cacheable(value = CachePrefix.USER_ROLE_LIST_CACHE, key = "'all'")
     public List<RoleDTO> listRoles() {
         return sysRoleRepository.findAll().stream().map(this::toRoleDTO).toList();
@@ -50,6 +50,7 @@ public class RoleService {
     /**
      * 获取所有启用的角色
      */
+    @Override
     public List<RoleDTO> listEnabledRoles() {
         return sysRoleRepository.findAllEnabled().stream().map(this::toRoleDTO).toList();
     }
@@ -57,6 +58,7 @@ public class RoleService {
     /**
      * 根据 ID 查询角色
      */
+    @Override
     public RoleDTO getRoleById(Long id) {
         SysRole role = sysRoleRepository.findById(id);
         if (role == null) {
@@ -68,6 +70,7 @@ public class RoleService {
     /**
      * 根据 roleKey 查询角色
      */
+    @Override
     @Cacheable(value = CachePrefix.USER_ROLE_CACHE, key = "#roleKey", unless = "#result == null")
     public SysRole getRoleByKey(String roleKey) {
         return sysRoleRepository.findByRoleKey(roleKey);
@@ -76,12 +79,12 @@ public class RoleService {
     /**
      * 创建角色
      */
+    @Override
     @Caching(evict = {
             @CacheEvict(value = CachePrefix.USER_ROLE_CACHE, allEntries = true),
             @CacheEvict(value = CachePrefix.USER_ROLE_LIST_CACHE, allEntries = true)
     })
     public void createRole(RoleDTO roleDTO) {
-        // 检查 roleKey 是否已存在
         SysRole existing = sysRoleRepository.findByRoleKey(roleDTO.getRoleKey());
         if (existing != null) {
             throw new IllegalArgumentException("角色标识已存在: " + roleDTO.getRoleKey());
@@ -99,6 +102,7 @@ public class RoleService {
     /**
      * 更新角色
      */
+    @Override
     @Caching(evict = {
             @CacheEvict(value = CachePrefix.USER_ROLE_CACHE, key = "#roleDTO.roleKey"),
             @CacheEvict(value = CachePrefix.USER_PERMS_CACHE, allEntries = true),
@@ -125,11 +129,8 @@ public class RoleService {
 
     /**
      * 删除角色
-     * <p>
-     * 规则：
-     * 1. 系统预置角色（super_admin, admin, normal）不可删除
-     * 2. 已有用户使用的角色不可删除
      */
+    @Override
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = CachePrefix.USER_ROLES_CACHE, allEntries = true),
@@ -143,20 +144,16 @@ public class RoleService {
             throw new IllegalArgumentException("角色不存在");
         }
 
-        // 1. 检查是否为系统预置角色
         if (SYSTEM_ROLE_KEYS.contains(role.getRoleKey())) {
             throw new IllegalArgumentException("系统预置角色【" + role.getRoleName() + "】不可删除");
         }
 
-        // 2. 检查是否有用户正在使用该角色
         long userCount = userRoleRepository.countByRoleId(id);
         if (userCount > 0) {
             throw new IllegalArgumentException("角色【" + role.getRoleName() + "】正在被 " + userCount + " 个用户使用，无法删除");
         }
 
-        // 3. 删除角色-菜单关联
         roleMenuRepository.deleteByRoleId(id);
-        // 4. 删除角色
         sysRoleRepository.deleteById(id);
         log.info("删除角色: id={}, roleKey={}", id, role.getRoleKey());
     }
@@ -164,6 +161,7 @@ public class RoleService {
     /**
      * 分配角色菜单权限
      */
+    @Override
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = CachePrefix.USER_PERMS_CACHE, allEntries = true),
@@ -176,9 +174,7 @@ public class RoleService {
             throw new IllegalArgumentException("角色不存在");
         }
 
-        // 先删除原有菜单关联
         roleMenuRepository.deleteByRoleId(roleId);
-        // 添加新的菜单关联
         if (menuIds != null && !menuIds.isEmpty()) {
             for (Long menuId : menuIds) {
                 roleMenuRepository.save(roleId, menuId);
@@ -190,6 +186,7 @@ public class RoleService {
     /**
      * 获取用户的角色列表
      */
+    @Override
     public List<SysRole> getUserRoles(String userId) {
         List<UserRole> userRoles = userRoleRepository.findByUserId(userId);
         if (userRoles.isEmpty()) {
@@ -204,6 +201,7 @@ public class RoleService {
     /**
      * 获取用户的角色 Key 列表
      */
+    @Override
     @Cacheable(value = CachePrefix.USER_ROLES_CACHE, key = "#userId")
     public List<String> getUserRoleKeys(String userId) {
         return getUserRoles(userId).stream().map(SysRole::getRoleKey).toList();
@@ -212,6 +210,7 @@ public class RoleService {
     /**
      * 为用户分配角色
      */
+    @Override
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = CachePrefix.USER_ROLES_CACHE, key = "#userId"),
@@ -219,9 +218,7 @@ public class RoleService {
             @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true)
     })
     public void assignUserRoles(String userId, List<Long> roleIds) {
-        // 先删除原有角色
         userRoleRepository.deleteByUserId(userId);
-        // 添加新角色
         if (roleIds != null && !roleIds.isEmpty()) {
             for (Long roleId : roleIds) {
                 userRoleRepository.save(userId, roleId);
@@ -233,6 +230,7 @@ public class RoleService {
     /**
      * 为用户分配默认角色（normal 普通用户）
      */
+    @Override
     @Transactional
     public void assignDefaultRole(String userId) {
         SysRole normalRole = sysRoleRepository.findByRoleKey("normal");
@@ -247,19 +245,15 @@ public class RoleService {
     /**
      * 获取角色的菜单 ID 列表
      */
+    @Override
     public List<Long> getRoleMenuIds(Long roleId) {
         return roleMenuRepository.findMenuIdsByRoleId(roleId);
     }
 
     /**
-     * 获取用户拥有的所有权限标识（基于角色的菜单 permission 字段）
-     * <p>
-     * super_admin 返回 null（表示拥有所有权限，无需检查）
-     * 其他角色返回其关联菜单中非空的 permission 集合
-     *
-     * @param userId 用户ID
-     * @return 权限标识列表，super_admin 返回 null
+     * 获取用户拥有的所有权限标识
      */
+    @Override
     @Cacheable(value = CachePrefix.USER_PERMS_CACHE, key = "#userId", unless = "#result == null")
     public List<String> getUserPermissions(String userId) {
         List<String> roleKeys = getUserRoleKeys(userId);
@@ -268,17 +262,14 @@ public class RoleService {
 
     /**
      * 根据角色 Key 列表获取所有权限标识
-     *
-     * @param roleKeys 角色 Key 列表
-     * @return 权限标识列表，super_admin 返回 null
      */
+    @Override
     @Cacheable(value = CachePrefix.USER_PERMS_CACHE, key = "#roleKeys.toString()", unless = "#result == null")
     public List<String> getPermissionsByRoleKeys(List<String> roleKeys) {
         if (roleKeys.contains("super_admin")) {
-            return null; // super_admin 拥有所有权限
+            return null;
         }
 
-        // 获取所有角色关联的菜单 ID
         List<Long> menuIds = roleKeys.stream()
                 .map(sysRoleRepository::findByRoleKey)
                 .filter(Objects::nonNull)
@@ -290,7 +281,6 @@ public class RoleService {
             return List.of();
         }
 
-        // 获取菜单中非空的 permission 字段
         List<SysMenu> menus = sysMenuRepository.findByIds(menuIds);
         return menus.stream()
                 .map(SysMenu::getPermission)

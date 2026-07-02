@@ -4,7 +4,7 @@ import com.mouhin.brief.wisdom.common.manage.MessageDTO;
 import com.mouhin.brief.wisdom.common.manage.SessionDTO;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
-import com.mouhin.brief.wisdom.web.service.AiManageService;
+import com.mouhin.brief.wisdom.ai.service.AiManageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

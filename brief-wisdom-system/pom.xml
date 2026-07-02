@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.mouhin</groupId>
+        <artifactId>Brief-Wisdom</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <artifactId>brief-wisdom-system</artifactId>
+    <name>brief-wisdom-system</name>
+    <description>System Module - 用户/菜单/角色/认证等系统能力</description>
+
+    <dependencies>
+        <!-- Persistence Module -->
+        <dependency>
+            <groupId>com.mouhin</groupId>
+            <artifactId>brief-wisdom-persistence</artifactId>
+        </dependency>
+
+        <!-- Common Module -->
+        <dependency>
+            <groupId>com.mouhin</groupId>
+            <artifactId>brief-wisdom-common</artifactId>
+        </dependency>
+
+        <!-- Web (RestTemplate, Jackson, Servlet API - OAuth服务 & UserContextHelper 需要) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Security (PasswordEncoder, SecurityContext) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- Spring Session Redis (for HttpSession) -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+        </dependency>
+    </dependencies>
+</project>

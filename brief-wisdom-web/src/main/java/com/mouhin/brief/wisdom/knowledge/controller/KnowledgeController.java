@@ -5,7 +5,7 @@ import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseRequest;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentRequest;
-import com.mouhin.brief.wisdom.knowledge.service.KnowledgeService;
+import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

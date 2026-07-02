@@ -1,8 +1,10 @@
-package com.mouhin.brief.wisdom.web.service;
+package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
+import com.mouhin.brief.wisdom.system.service.AuthService;
+import com.mouhin.brief.wisdom.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,18 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 /**
- * 用户名/密码 注册与登录服务
- */
-/**
- * AuthService
+ * 用户名/密码 注册与登录服务实现
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-01
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthServiceImpl implements AuthService {
 
     private final ChatUserRepository chatUserRepository;
     private final PasswordEncoder passwordEncoder;
@@ -31,15 +30,10 @@ public class AuthService {
 
     /**
      * 用户注册
-     *
-     * @param username 用户名（唯一）
-     * @param password 明文密码
-     * @param nickname 昵称（可选）
-     * @return 注册后的用户信息
      */
+    @Override
     @Transactional
     public UserDTO register(String username, String password, String nickname) {
-        // 检查用户名是否已存在
         ChatUser existing = chatUserRepository.findByUsername(username);
         if (existing != null) {
             throw new RuntimeException("用户名已存在");
@@ -64,11 +58,8 @@ public class AuthService {
 
     /**
      * 用户登录（验证用户名和密码）
-     *
-     * @param username 用户名
-     * @param password 明文密码
-     * @return 登录成功的用户信息
      */
+    @Override
     public UserDTO login(String username, String password) {
         ChatUser user = chatUserRepository.findByUsername(username);
         if (user == null) {

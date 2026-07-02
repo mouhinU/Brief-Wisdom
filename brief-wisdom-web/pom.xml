@@ -28,6 +28,10 @@
         </dependency>
         <dependency>
             <groupId>com.mouhin</groupId>
+            <artifactId>brief-wisdom-system</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mouhin</groupId>
             <artifactId>brief-wisdom-resume</artifactId>
         </dependency>
         <dependency>

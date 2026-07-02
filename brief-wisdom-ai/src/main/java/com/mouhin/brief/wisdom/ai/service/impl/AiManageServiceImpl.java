@@ -1,5 +1,6 @@
-package com.mouhin.brief.wisdom.web.service;
+package com.mouhin.brief.wisdom.ai.service.impl;
 
+import com.mouhin.brief.wisdom.ai.service.AiManageService;
 import com.mouhin.brief.wisdom.common.manage.MessageDTO;
 import com.mouhin.brief.wisdom.common.manage.SessionDTO;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
@@ -20,15 +21,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * AI助手管理服务 - 按用户级别查询会话历史
+ * AI助手管理服务实现 - 按用户级别查询会话历史
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-01
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiManageService {
+public class AiManageServiceImpl implements AiManageService {
 
     private final ChatUserRepository chatUserRepository;
     private final ChatSessionRepository chatSessionRepository;
@@ -37,6 +38,7 @@ public class AiManageService {
     /**
      * 获取所有用户（含级别信息）
      */
+    @Override
     public List<UserDTO> listUsers() {
         List<ChatUser> users = chatUserRepository.findAllOrderByCreateTimeDesc();
         return users.stream().map(this::toUserDTO).collect(Collectors.toList());
@@ -45,6 +47,7 @@ public class AiManageService {
     /**
      * 按用户级别查询用户列表
      */
+    @Override
     public List<UserDTO> listUsersByLevel(String userLevel) {
         List<ChatUser> users = chatUserRepository.findByUserLevelOrderByCreateTimeDesc(userLevel);
         return users.stream().map(this::toUserDTO).collect(Collectors.toList());
@@ -53,6 +56,7 @@ public class AiManageService {
     /**
      * 获取所有可用的用户级别
      */
+    @Override
     public List<String> listUserLevels() {
         return List.of("admin", "vip", "normal");
     }
@@ -60,6 +64,7 @@ public class AiManageService {
     /**
      * 查询指定用户的会话列表
      */
+    @Override
     @Cacheable(value = CachePrefix.AI_SESSION_CACHE, key = "'user:' + #userId")
     public List<SessionDTO> listSessionsByUserId(String userId) {
         List<ChatSession> sessions = chatSessionRepository.findByUserIdOrderByUpdateTimeDesc(userId);
@@ -69,6 +74,7 @@ public class AiManageService {
     /**
      * 按用户级别查询会话列表（查询该级别下所有用户的会话）
      */
+    @Override
     @Cacheable(value = CachePrefix.AI_SESSION_CACHE, key = "'level:' + #userLevel")
     public List<SessionDTO> listSessionsByUserLevel(String userLevel) {
         // 先查出该级别的所有用户
@@ -86,6 +92,7 @@ public class AiManageService {
     /**
      * 获取会话的消息历史
      */
+    @Override
     public List<MessageDTO> getSessionMessages(String sessionId) {
         List<ChatMessage> messages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
         return messages.stream().map(this::toMessageDTO).collect(Collectors.toList());

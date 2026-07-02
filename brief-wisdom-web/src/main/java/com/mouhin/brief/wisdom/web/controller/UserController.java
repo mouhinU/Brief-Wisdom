@@ -4,7 +4,7 @@ import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.web.req.UpdateLevelRequest;
-import com.mouhin.brief.wisdom.web.service.UserService;
+import com.mouhin.brief.wisdom.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

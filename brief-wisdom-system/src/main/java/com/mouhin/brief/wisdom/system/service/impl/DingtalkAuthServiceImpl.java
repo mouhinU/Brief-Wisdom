@@ -1,12 +1,14 @@
-package com.mouhin.brief.wisdom.web.service;
+package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mouhin.brief.wisdom.config.DingtalkProperties;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.UserOauth;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import com.mouhin.brief.wisdom.persistence.repository.UserOauthRepository;
+import com.mouhin.brief.wisdom.system.config.DingtalkProperties;
+import com.mouhin.brief.wisdom.system.service.DingtalkAuthService;
+import com.mouhin.brief.wisdom.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -23,27 +25,15 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 钉钉扫码登录服务
- * <p>
- * 使用钉钉新版 OAuth2.0 协议：
- * <ol>
- *   <li>生成授权 URL，前端跳转</li>
- *   <li>用户扫码授权后，钉钉回调带 authCode</li>
- *   <li>用 authCode 换取 access_token</li>
- *   <li>用 access_token 获取用户信息</li>
- *   <li>通过 user_oauth 表查找绑定关系，找到则登录，未找到则自动注册并绑定</li>
- * </ol>
- */
-/**
- * DingtalkAuthService
+ * 钉钉扫码登录服务实现
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-01
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DingtalkAuthService {
+public class DingtalkAuthServiceImpl implements DingtalkAuthService {
 
     public static final String PROVIDER_DINGTALK = "dingtalk";
 
@@ -56,10 +46,8 @@ public class DingtalkAuthService {
 
     /**
      * 生成钉钉扫码授权 URL
-     *
-     * @param state 防 CSRF 随机字符串
-     * @return 钉钉授权页面完整 URL
      */
+    @Override
     public String buildAuthorizeUrl(String state) {
         String url = dingtalkProperties.getAuthorizeUrl()
                 + "?client_id=" + dingtalkProperties.getAppKey()
@@ -74,10 +62,8 @@ public class DingtalkAuthService {
 
     /**
      * 处理钉钉回调：authCode → access_token → 用户信息 → 本地用户
-     *
-     * @param authCode 钉钉授权码
-     * @return 本地 ChatUser（已持久化）
      */
+    @Override
     @Transactional
     public ChatUser handleDingtalkCallback(String authCode) {
         // 1. authCode 换 access_token
@@ -97,7 +83,6 @@ public class DingtalkAuthService {
         UserOauth oauth = userOauthRepository.findByProviderAndOpenid(PROVIDER_DINGTALK, openid);
 
         if (oauth != null) {
-            // 已绑定：直接登录
             ChatUser user = chatUserRepository.findByUserId(oauth.getUserId());
             if (user == null) {
                 throw new RuntimeException("[钉钉登录] 用户不存在，请联系管理员");
@@ -116,7 +101,6 @@ public class DingtalkAuthService {
             log.info("[钉钉登录] 老用户登录成功: userId={}, nickname={}", user.getUserId(), user.getNickname());
             return user;
         } else {
-            // 未绑定：自动注册新用户
             String userId = UUID.randomUUID().toString();
 
             ChatUser user = new ChatUser();
@@ -143,9 +127,6 @@ public class DingtalkAuthService {
         }
     }
 
-    /**
-     * 用 authCode 换取 access_token
-     */
     private JsonNode fetchAccessToken(String authCode) {
         String url = dingtalkProperties.getTokenUrl();
         try {
@@ -171,9 +152,6 @@ public class DingtalkAuthService {
         }
     }
 
-    /**
-     * 用 access_token 获取钉钉用户信息
-     */
     private JsonNode fetchUserInfo(String accessToken) {
         String url = dingtalkProperties.getUserinfoUrl();
         try {

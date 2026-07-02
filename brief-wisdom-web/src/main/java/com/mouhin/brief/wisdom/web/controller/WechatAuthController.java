@@ -1,8 +1,9 @@
 package com.mouhin.brief.wisdom.web.controller;
 
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
-import com.mouhin.brief.wisdom.web.service.RoleService;
-import com.mouhin.brief.wisdom.web.service.WechatAuthService;
+import com.mouhin.brief.wisdom.system.service.RoleService;
+import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.WechatAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -40,10 +41,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class WechatAuthController {
 
-    /**
-     * Session 中存储用户的 Key
-     */
-    public static final String SESSION_USER_KEY = "AUTH_USER";
     /**
      * Spring Security 上下文存储到 Session 的 Key
      */
@@ -91,7 +88,7 @@ public class WechatAuthController {
 
             // 2. 写入 HTTP Session
             HttpSession session = request.getSession(true);
-            session.setAttribute(SESSION_USER_KEY, user);
+            session.setAttribute(UserContextHelper.SESSION_USER_KEY, user);
 
             // 3. 加载用户角色，转换为 Spring Security 权限
             List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
@@ -138,7 +135,7 @@ public class WechatAuthController {
         Map<String, Object> result = new HashMap<>();
         HttpSession session = request.getSession(false);
         if (session != null) {
-            ChatUser user = (ChatUser) session.getAttribute(SESSION_USER_KEY);
+            ChatUser user = (ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY);
             if (user != null) {
                 result.put("loggedIn", true);
                 Map<String, String> userInfo = new HashMap<>();
@@ -168,7 +165,7 @@ public class WechatAuthController {
     @GetMapping("/api/auth/user")
     public ResponseEntity<Map<String, Object>> currentUser(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
-        ChatUser user = session != null ? (ChatUser) session.getAttribute(SESSION_USER_KEY) : null;
+        ChatUser user = session != null ? (ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY) : null;
         if (user == null) {
             return ResponseEntity.status(401).body(Map.of("success", false, "error", "未登录"));
         }

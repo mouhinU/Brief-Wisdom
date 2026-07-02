@@ -1,12 +1,14 @@
-package com.mouhin.brief.wisdom.web.service;
+package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mouhin.brief.wisdom.config.AlipayProperties;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.UserOauth;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import com.mouhin.brief.wisdom.persistence.repository.UserOauthRepository;
+import com.mouhin.brief.wisdom.system.config.AlipayProperties;
+import com.mouhin.brief.wisdom.system.service.AlipayAuthService;
+import com.mouhin.brief.wisdom.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -29,27 +31,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * 支付宝扫码登录服务
- * <p>
- * 使用支付宝网关接口（RSA2 签名）：
- * <ol>
- *   <li>生成授权 URL，前端跳转</li>
- *   <li>用户扫码授权后，支付宝回调带 auth_code</li>
- *   <li>用 auth_code 调用 alipay.system.oauth.token 获取 access_token + user_id</li>
- *   <li>用 access_token 调用 alipay.user.info.share 获取用户信息</li>
- *   <li>通过 user_oauth 表查找绑定关系</li>
- * </ol>
- */
-/**
- * AlipayAuthService
+ * 支付宝扫码登录服务实现
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-01
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AlipayAuthService {
+public class AlipayAuthServiceImpl implements AlipayAuthService {
 
     public static final String PROVIDER_ALIPAY = "alipay";
     private static final String SIGN_TYPE = "RSA2";
@@ -64,10 +54,8 @@ public class AlipayAuthService {
 
     /**
      * 生成支付宝扫码授权 URL
-     *
-     * @param state 防 CSRF 随机字符串
-     * @return 支付宝授权页面完整 URL
      */
+    @Override
     public String buildAuthorizeUrl(String state) {
         String url = alipayProperties.getGatewayUrl()
                 + "?" + "app_id=" + alipayProperties.getAppId()
@@ -80,10 +68,8 @@ public class AlipayAuthService {
 
     /**
      * 处理支付宝回调：auth_code → access_token → 用户信息 → 本地用户
-     *
-     * @param authCode 支付宝授权码
-     * @return 本地 ChatUser（已持久化）
      */
+    @Override
     @Transactional
     public ChatUser handleAlipayCallback(String authCode) {
         // 1. auth_code 换取 access_token
@@ -94,7 +80,7 @@ public class AlipayAuthService {
 
         // 2. access_token 获取支付宝用户信息
         JsonNode userInfo = fetchUserInfo(accessToken);
-        String openid = userId; // 支付宝用 user_id 作为唯一标识
+        String openid = userId;
         String nickname = userInfo.has("nick_name") ? userInfo.get("nick_name").asText() : null;
         String avatar = userInfo.has("avatar") ? userInfo.get("avatar").asText() : null;
         log.info("[支付宝登录] 获取到用户信息: nickname={}", nickname);
@@ -145,9 +131,6 @@ public class AlipayAuthService {
         }
     }
 
-    /**
-     * 用 auth_code 换取 access_token（alipay.system.oauth.token）
-     */
     private JsonNode fetchAccessToken(String authCode) {
         try {
             Map<String, String> params = buildCommonParams("alipay.system.oauth.token");
@@ -173,9 +156,6 @@ public class AlipayAuthService {
         }
     }
 
-    /**
-     * 用 access_token 获取支付宝用户信息（alipay.user.info.share）
-     */
     private JsonNode fetchUserInfo(String accessToken) {
         try {
             Map<String, String> params = buildCommonParams("alipay.user.info.share");
@@ -200,9 +180,6 @@ public class AlipayAuthService {
         }
     }
 
-    /**
-     * 构建支付宝网关公共参数
-     */
     private Map<String, String> buildCommonParams(String method) {
         Map<String, String> params = new LinkedHashMap<>();
         params.put("app_id", alipayProperties.getAppId());
@@ -215,9 +192,6 @@ public class AlipayAuthService {
         return params;
     }
 
-    /**
-     * 构建待签名字符串（按 key 字母排序拼接）
-     */
     private String buildSignContent(Map<String, String> params) {
         TreeMap<String, String> sorted = new TreeMap<>(params);
         StringBuilder sb = new StringBuilder();
@@ -230,13 +204,9 @@ public class AlipayAuthService {
         return sb.toString();
     }
 
-    /**
-     * RSA2 (SHA256withRSA) 签名
-     */
     private String rsaSign(String content) {
         try {
             String privateKeyStr = alipayProperties.getPrivateKey();
-            // 去除 PEM 头尾和换行
             privateKeyStr = privateKeyStr
                     .replace("-----BEGIN PRIVATE KEY-----", "")
                     .replace("-----END PRIVATE KEY-----", "")
@@ -258,9 +228,6 @@ public class AlipayAuthService {
         }
     }
 
-    /**
-     * 调用支付宝网关
-     */
     private String callGateway(Map<String, String> params) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         params.forEach(formData::add);

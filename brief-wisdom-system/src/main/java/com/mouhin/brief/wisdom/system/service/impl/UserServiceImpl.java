@@ -1,4 +1,4 @@
-package com.mouhin.brief.wisdom.web.service;
+package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -7,6 +7,8 @@ import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.SysRole;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
+import com.mouhin.brief.wisdom.system.service.RoleService;
+import com.mouhin.brief.wisdom.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,18 +17,15 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 用户管理服务
- */
-/**
- * UserService
+ * 用户管理服务实现
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-01
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserServiceImpl implements UserService {
 
     private final ChatUserRepository chatUserRepository;
     private final RoleService roleService;
@@ -35,6 +34,7 @@ public class UserService {
     /**
      * 分页获取用户列表（支持按级别、关键词筛选）
      */
+    @Override
     public PageResult<UserDTO> listUsersPaged(int page, int size, String level, String keyword) {
         LambdaQueryWrapper<ChatUser> query = new LambdaQueryWrapper<>();
 
@@ -64,13 +64,15 @@ public class UserService {
     /**
      * 获取所有用户级别选项
      */
-    public java.util.List<String> listUserLevels() {
-        return java.util.List.of("admin", "vip", "normal");
+    @Override
+    public List<String> listUserLevels() {
+        return List.of("admin", "vip", "normal");
     }
 
     /**
      * 修改用户级别
      */
+    @Override
     public void updateLevel(Long id, String level) {
         ChatUser user = chatUserRepository.findById(id);
         if (user == null) {
@@ -84,6 +86,7 @@ public class UserService {
     /**
      * 删除用户（逻辑删除）
      */
+    @Override
     public void deleteUser(Long id) {
         ChatUser user = chatUserRepository.findById(id);
         if (user == null) {
@@ -96,6 +99,7 @@ public class UserService {
     /**
      * 重置用户密码为 123456
      */
+    @Override
     public void resetPassword(Long id) {
         ChatUser user = chatUserRepository.findById(id);
         if (user == null) {

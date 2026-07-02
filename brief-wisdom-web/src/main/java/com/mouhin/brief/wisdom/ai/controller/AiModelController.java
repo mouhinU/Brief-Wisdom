@@ -3,7 +3,7 @@ package com.mouhin.brief.wisdom.ai.controller;
 import com.mouhin.brief.wisdom.common.ai.AiModelDTO;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
-import com.mouhin.brief.wisdom.web.service.AiModelService;
+import com.mouhin.brief.wisdom.ai.service.AiModelService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

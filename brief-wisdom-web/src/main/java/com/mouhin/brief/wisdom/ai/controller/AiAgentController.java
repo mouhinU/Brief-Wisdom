@@ -10,7 +10,7 @@ import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
 import com.mouhin.brief.wisdom.common.ai.SyncStatusDTO;
 import com.mouhin.brief.wisdom.config.PaginationProperties;
-import com.mouhin.brief.wisdom.web.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

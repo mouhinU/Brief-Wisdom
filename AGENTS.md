@@ -348,19 +348,25 @@ private static final Logger logger = LoggerFactory.getLogger(XxxService.class);
 ### 14.1 本项目分层架构
 
 ```
-brief-wisdom-web        → Web 层 + 开放接口层（Controller、配置、静态资源）
-brief-wisdom-ai         → AI 服务层（Spring AI 集成、对话、内容过滤、限流）
+brief-wisdom-web        → Web 层（Controller、全局配置、拦截器、静态资源）
+brief-wisdom-ai         → AI 领域模块（对话、知识库、模型管理、会话历史、内容过滤、限流）
+brief-wisdom-system     → 系统领域模块（用户管理、菜单管理、角色管理、登录认证、OAuth 三方登录）
+brief-wisdom-resume     → 简历领域模块（简历展示 + CRUD 管理）
 brief-wisdom-api        → API 层（对外接口 Controller + DTO）
-brief-wisdom-service    → Service 层（业务逻辑）
+brief-wisdom-service    → Service 层（通用业务逻辑，已逐步迁移至领域模块）
 brief-wisdom-persistence→ DAO 层（MyBatis-Plus Mapper + JPA Repository + Entity）
-brief-wisdom-resume     → 简历业务模块（ResumeService + VO）
 brief-wisdom-common     → 公共模块（DTO、Result、常量、注解）
 ```
+
+各业务模块统一采用 **接口 + impl** 分层模式：
+- 接口定义在 `{module}.service` 包（如 `ai.service.KnowledgeService`）
+- 实现类在 `{module}.service.impl` 包（如 `ai.service.impl.KnowledgeServiceImpl`）
+- Controller 注入接口类型，Spring 自动匹配实现
 
 ### 14.2 分层依赖规则
 
 - 上层依赖下层，不允许反向依赖。
-- `web` → `ai` / `resume` / `api` → `service` → `persistence` → `common`。
+- `web` → `ai` / `system` / `resume` / `api` → `service` → `persistence` → `common`。
 - `common` 模块不依赖任何业务模块。
 
 ### 14.3 分层异常处理

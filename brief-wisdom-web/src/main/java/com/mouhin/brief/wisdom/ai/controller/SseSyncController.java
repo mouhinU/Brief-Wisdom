@@ -1,7 +1,7 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
 import com.mouhin.brief.wisdom.ai.service.SseChatSyncService;
-import com.mouhin.brief.wisdom.web.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

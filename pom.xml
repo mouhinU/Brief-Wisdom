@@ -16,13 +16,14 @@
     <description>Brief Wisdom Multi-Module Project</description>
 
     <modules>
+        <module>brief-wisdom-common</module>
+        <module>brief-wisdom-persistence</module>
         <module>brief-wisdom-service</module>
         <module>brief-wisdom-api</module>
-        <module>brief-wisdom-web</module>
         <module>brief-wisdom-ai</module>
-        <module>brief-wisdom-persistence</module>
+        <module>brief-wisdom-system</module>
         <module>brief-wisdom-resume</module>
-        <module>brief-wisdom-common</module>
+        <module>brief-wisdom-web</module>
     </modules>
     <url/>
     <licenses>
@@ -80,6 +81,11 @@
             <dependency>
                 <groupId>com.mouhin</groupId>
                 <artifactId>brief-wisdom-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mouhin</groupId>
+                <artifactId>brief-wisdom-system</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

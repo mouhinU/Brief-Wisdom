@@ -1,4 +1,4 @@
-package com.mouhin.brief.wisdom.config;
+package com.mouhin.brief.wisdom.system.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

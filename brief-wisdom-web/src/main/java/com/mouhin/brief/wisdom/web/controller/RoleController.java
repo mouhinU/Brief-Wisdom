@@ -3,7 +3,7 @@ package com.mouhin.brief.wisdom.web.controller;
 import com.mouhin.brief.wisdom.common.role.RoleDTO;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.SysRole;
-import com.mouhin.brief.wisdom.web.service.RoleService;
+import com.mouhin.brief.wisdom.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

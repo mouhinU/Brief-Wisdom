@@ -1,12 +1,13 @@
-package com.mouhin.brief.wisdom.web.service;
+package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mouhin.brief.wisdom.config.WechatProperties;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.UserOauth;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import com.mouhin.brief.wisdom.persistence.repository.UserOauthRepository;
+import com.mouhin.brief.wisdom.system.config.WechatProperties;
+import com.mouhin.brief.wisdom.system.service.WechatAuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,27 +19,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
- * 微信开放平台扫码登录服务
- * <p>
- * 流程：
- * <ol>
- *   <li>生成微信授权 URL，前端跳转</li>
- *   <li>用户扫码授权后，微信回调带 code</li>
- *   <li>用 code 换取 access_token + openid</li>
- *   <li>用 access_token + openid 获取用户信息</li>
- *   <li>通过 user_oauth 表查找绑定关系，找到则登录，未找到则自动注册并绑定</li>
- * </ol>
- */
-/**
- * WechatAuthService
+ * 微信开放平台扫码登录服务实现
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-01
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class WechatAuthService {
+public class WechatAuthServiceImpl implements WechatAuthService {
 
     public static final String PROVIDER_WECHAT = "wechat";
 
@@ -50,10 +39,8 @@ public class WechatAuthService {
 
     /**
      * 生成微信开放平台扫码授权 URL
-     *
-     * @param state 防 CSRF 随机字符串
-     * @return 微信授权页面完整 URL
      */
+    @Override
     public String buildAuthorizeUrl(String state) {
         String url = wechatProperties.getAuthorizeUrl()
                 + "?appid=" + wechatProperties.getAppId()
@@ -68,10 +55,8 @@ public class WechatAuthService {
 
     /**
      * 处理微信回调：code → access_token → 用户信息 → 本地用户
-     *
-     * @param code 微信授权码
-     * @return 本地 ChatUser（已持久化）
      */
+    @Override
     @Transactional
     public ChatUser handleWechatCallback(String code) {
         // 1. code 换 access_token
@@ -91,17 +76,14 @@ public class WechatAuthService {
         UserOauth oauth = userOauthRepository.findByProviderAndOpenid(PROVIDER_WECHAT, openid);
 
         if (oauth != null) {
-            // 已绑定：直接登录，更新 OAuth 记录
             ChatUser user = chatUserRepository.findByUserId(oauth.getUserId());
             if (user == null) {
                 throw new RuntimeException("[微信登录] 用户不存在，请联系管理员");
             }
-            // 更新 OAuth 绑定信息
             oauth.setNickname(wxNickname);
             oauth.setAvatar(wxAvatar);
             oauth.setUnionid(unionid);
             userOauthRepository.update(oauth);
-            // 若 chat_user 没有昵称/头像，用 OAuth 信息补全
             if (user.getNickname() == null || user.getNickname().isEmpty()) {
                 user.setNickname(wxNickname);
             }
@@ -112,7 +94,6 @@ public class WechatAuthService {
             log.info("[微信登录] 老用户登录成功: userId={}, nickname={}", user.getUserId(), user.getNickname());
             return user;
         } else {
-            // 未绑定：自动注册新用户 + 写入 OAuth 绑定
             String userId = UUID.randomUUID().toString();
 
             ChatUser user = new ChatUser();
@@ -136,9 +117,6 @@ public class WechatAuthService {
         }
     }
 
-    /**
-     * 用 code 换取 access_token
-     */
     private JsonNode fetchAccessToken(String code) {
         String url = wechatProperties.getTokenUrl()
                 + "?appid=" + wechatProperties.getAppId()
@@ -158,9 +136,6 @@ public class WechatAuthService {
         }
     }
 
-    /**
-     * 用 access_token + openid 获取微信用户信息
-     */
     private JsonNode fetchUserInfo(String accessToken, String openid) {
         String url = wechatProperties.getUserinfoUrl()
                 + "?access_token=" + accessToken

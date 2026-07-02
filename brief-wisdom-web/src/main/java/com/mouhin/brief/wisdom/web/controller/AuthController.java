@@ -4,8 +4,9 @@ import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.web.req.LoginRequest;
 import com.mouhin.brief.wisdom.web.req.RegisterRequest;
-import com.mouhin.brief.wisdom.web.service.AuthService;
-import com.mouhin.brief.wisdom.web.service.RoleService;
+import com.mouhin.brief.wisdom.system.service.AuthService;
+import com.mouhin.brief.wisdom.system.service.RoleService;
+import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -74,7 +75,7 @@ public class AuthController {
         UserDTO user = authService.login(request.getUsername(), request.getPassword());
         // 写入 Session（与微信登录保持一致的认证方式）
         HttpSession session = httpRequest.getSession(true);
-        session.setAttribute(WechatAuthController.SESSION_USER_KEY, buildChatUserStub(user));
+        session.setAttribute(UserContextHelper.SESSION_USER_KEY, buildChatUserStub(user));
 
         // 加载用户角色，转换为 Spring Security 权限
         List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());

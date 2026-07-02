@@ -1,6 +1,7 @@
-package com.mouhin.brief.wisdom.knowledge.service;
+package com.mouhin.brief.wisdom.ai.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseRequest;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentDTO;
@@ -18,18 +19,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 知识库管理业务层
- */
-/**
- * KnowledgeService
+ * 知识库管理服务实现
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-01
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class KnowledgeService {
+public class KnowledgeServiceImpl implements KnowledgeService {
 
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
@@ -39,6 +37,7 @@ public class KnowledgeService {
     /**
      * 获取所有知识库（树形结构）
      */
+    @Override
     public List<KnowledgeBaseDTO> listBasesTree() {
         List<KnowledgeBase> allBases = knowledgeBaseRepository.findAll();
         return buildTree(allBases, 0L);
@@ -47,6 +46,7 @@ public class KnowledgeService {
     /**
      * 获取所有知识库（平铺列表，含文档数量）
      */
+    @Override
     public List<KnowledgeBaseDTO> listBases() {
         List<KnowledgeBase> allBases = knowledgeBaseRepository.findAll();
         return allBases.stream().map(this::toBaseDTO).toList();
@@ -55,6 +55,7 @@ public class KnowledgeService {
     /**
      * 分页查询顶级知识库
      */
+    @Override
     public Page<KnowledgeBaseDTO> listTopBasesPaged(int page, int size) {
         Page<KnowledgeBase> basePage = knowledgeBaseRepository.findTopLevelPaged(page, size);
         Page<KnowledgeBaseDTO> dtoPage = new Page<>(basePage.getCurrent(), basePage.getSize(), basePage.getTotal());
@@ -65,6 +66,7 @@ public class KnowledgeService {
     /**
      * 获取子知识库
      */
+    @Override
     public List<KnowledgeBaseDTO> listChildBases(Long parentId) {
         List<KnowledgeBase> bases = knowledgeBaseRepository.findByParentId(parentId);
         return bases.stream().map(this::toBaseDTO).toList();
@@ -73,6 +75,7 @@ public class KnowledgeService {
     /**
      * 创建知识库
      */
+    @Override
     public KnowledgeBaseDTO createBase(KnowledgeBaseRequest request) {
         KnowledgeBase base = new KnowledgeBase();
         base.setName(request.getName());
@@ -88,17 +91,18 @@ public class KnowledgeService {
     /**
      * 更新知识库
      */
+    @Override
     public KnowledgeBaseDTO updateBase(Long id, KnowledgeBaseRequest request) {
         KnowledgeBase base = knowledgeBaseRepository.findById(id);
         if (base == null) {
             throw new IllegalArgumentException("知识库不存在: " + id);
         }
-        if (request.getName() != null) base.setName(request.getName());
-        if (request.getDescription() != null) base.setDescription(request.getDescription());
-        if (request.getIcon() != null) base.setIcon(request.getIcon());
-        if (request.getParentId() != null) base.setParentId(request.getParentId());
-        if (request.getSortOrder() != null) base.setSortOrder(request.getSortOrder());
-        if (request.getIsPublic() != null) base.setIsPublic(request.getIsPublic());
+        if (request.getName() != null) { base.setName(request.getName()); }
+        if (request.getDescription() != null) { base.setDescription(request.getDescription()); }
+        if (request.getIcon() != null) { base.setIcon(request.getIcon()); }
+        if (request.getParentId() != null) { base.setParentId(request.getParentId()); }
+        if (request.getSortOrder() != null) { base.setSortOrder(request.getSortOrder()); }
+        if (request.getIsPublic() != null) { base.setIsPublic(request.getIsPublic()); }
         knowledgeBaseRepository.update(base);
         return toBaseDTO(base);
     }
@@ -106,6 +110,7 @@ public class KnowledgeService {
     /**
      * 删除知识库（同时删除其下所有文档）
      */
+    @Override
     @Transactional
     public void deleteBase(Long id) {
         KnowledgeBase base = knowledgeBaseRepository.findById(id);
@@ -130,6 +135,7 @@ public class KnowledgeService {
     /**
      * 获取知识库下的文档列表（分页）
      */
+    @Override
     public Page<KnowledgeDocumentDTO> listDocuments(Long baseId, String docType, int page, int size) {
         Page<KnowledgeDocument> docPage;
         if (docType != null && !docType.isBlank()) {
@@ -146,6 +152,7 @@ public class KnowledgeService {
     /**
      * 获取文档详情
      */
+    @Override
     public KnowledgeDocumentDTO getDocument(Long id) {
         KnowledgeDocument doc = knowledgeDocumentRepository.findById(id);
         if (doc == null) {
@@ -159,6 +166,7 @@ public class KnowledgeService {
     /**
      * 创建文档
      */
+    @Override
     public KnowledgeDocumentDTO createDocument(KnowledgeDocumentRequest request) {
         KnowledgeDocument doc = new KnowledgeDocument();
         copyRequestToDoc(request, doc);
@@ -170,6 +178,7 @@ public class KnowledgeService {
     /**
      * 更新文档
      */
+    @Override
     public KnowledgeDocumentDTO updateDocument(Long id, KnowledgeDocumentRequest request) {
         KnowledgeDocument doc = knowledgeDocumentRepository.findById(id);
         if (doc == null) {
@@ -183,6 +192,7 @@ public class KnowledgeService {
     /**
      * 删除文档
      */
+    @Override
     public void deleteDocument(Long id) {
         KnowledgeDocument doc = knowledgeDocumentRepository.findById(id);
         if (doc == null) {
@@ -194,6 +204,7 @@ public class KnowledgeService {
     /**
      * 搜索文档
      */
+    @Override
     public Page<KnowledgeDocumentDTO> searchDocuments(String keyword, int page, int size) {
         Page<KnowledgeDocument> docPage = knowledgeDocumentRepository.searchByTitle(keyword, page, size);
         Page<KnowledgeDocumentDTO> dtoPage = new Page<>(docPage.getCurrent(), docPage.getSize(), docPage.getTotal());
@@ -264,9 +275,9 @@ public class KnowledgeService {
     }
 
     private void copyRequestToDoc(KnowledgeDocumentRequest request, KnowledgeDocument doc) {
-        if (request.getBaseId() != null) doc.setBaseId(request.getBaseId());
-        if (request.getTitle() != null) doc.setTitle(request.getTitle());
-        if (request.getDocType() != null) doc.setDocType(request.getDocType());
+        if (request.getBaseId() != null) { doc.setBaseId(request.getBaseId()); }
+        if (request.getTitle() != null) { doc.setTitle(request.getTitle()); }
+        if (request.getDocType() != null) { doc.setDocType(request.getDocType()); }
         doc.setContent(request.getContent());
         doc.setFileUrl(request.getFileUrl());
         doc.setFileName(request.getFileName());
@@ -275,7 +286,7 @@ public class KnowledgeService {
         doc.setLinkUrl(request.getLinkUrl());
         doc.setLinkDesc(request.getLinkDesc());
         doc.setTags(request.getTags());
-        if (request.getSortOrder() != null) doc.setSortOrder(request.getSortOrder());
-        if (request.getStatus() != null) doc.setStatus(request.getStatus());
+        if (request.getSortOrder() != null) { doc.setSortOrder(request.getSortOrder()); }
+        if (request.getStatus() != null) { doc.setStatus(request.getStatus()); }
     }
 }

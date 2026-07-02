@@ -1,4 +1,4 @@
-package com.mouhin.brief.wisdom.web.service;
+package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.common.menu.MenuDTO;
@@ -7,6 +7,7 @@ import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import com.mouhin.brief.wisdom.persistence.repository.RoleMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysRoleRepository;
+import com.mouhin.brief.wisdom.system.service.MenuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -22,15 +23,15 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * 菜单服务
+ * 菜单服务实现
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-01
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MenuService {
+public class MenuServiceImpl implements MenuService {
 
     private final SysMenuRepository sysMenuRepository;
     private final RoleMenuRepository roleMenuRepository;
@@ -39,6 +40,7 @@ public class MenuService {
     /**
      * 获取所有可见菜单（扁平列表），按 sort_order 排序
      */
+    @Override
     @Cacheable(value = CachePrefix.MENU_PUBLIC_CACHE, key = "'flat'")
     public List<MenuDTO> listVisibleMenus() {
         return sysMenuRepository.findVisibleOrderBySortOrderAsc().stream().map(this::toMenuDTO).toList();
@@ -47,10 +49,10 @@ public class MenuService {
     /**
      * 获取所有可见菜单（树形结构，含隐藏子项用于页面 Tab 渲染）
      */
+    @Override
     @Cacheable(value = CachePrefix.MENU_PUBLIC_CACHE, key = "'tree'")
     public List<MenuTreeDTO> listVisibleMenuTree() {
         List<SysMenu> menus = new ArrayList<>(sysMenuRepository.findVisibleOrderBySortOrderAsc());
-        // 补充隐藏的子项（用于页面 Tab 渲染）
         List<Long> visibleMenuIds = menus.stream().map(SysMenu::getId).toList();
         List<SysMenu> hiddenChildren = sysMenuRepository.findHiddenChildrenByParentIds(visibleMenuIds);
         menus.addAll(hiddenChildren);
@@ -59,30 +61,20 @@ public class MenuService {
 
     /**
      * 根据用户角色获取可见菜单（树形结构）
-     * <p>
-     * 规则：
-     * - 超级管理员：返回所有可见菜单 + 隐藏的子项（用于页面 Tab 渲染）
-     * - 其他用户：角色分配的菜单 + 公开菜单 + 隐藏的子项
-     * <p>
-     * 隐藏子项（is_visible=0）虽然不在导航栏显示，但会作为 children 返回，
-     * 供页面动态渲染 Tab 导航。
      */
+    @Override
     @Cacheable(value = CachePrefix.MENU_TREE_CACHE, key = "#roleKeys.toString()")
     public List<MenuTreeDTO> getMenuTreeByRoles(List<String> roleKeys) {
         List<SysMenu> menus;
 
-        // 超级管理员拥有所有权限
         if (roleKeys.contains("super_admin")) {
             menus = new ArrayList<>(sysMenuRepository.findVisibleOrderBySortOrderAsc());
         } else {
-            // 获取用户所有角色的菜单 ID
             List<Long> menuIds = getRoleMenuIds(roleKeys);
 
-            // 始终包含无需权限控制的公开菜单（首页、简历、AI助手等）
             List<SysMenu> publicMenus = sysMenuRepository.findPublicVisibleMenus();
             List<Long> publicMenuIds = publicMenus.stream().map(SysMenu::getId).toList();
 
-            // 合并去重
             List<Long> allMenuIds = new ArrayList<>(menuIds);
             for (Long id : publicMenuIds) {
                 if (!allMenuIds.contains(id)) {
@@ -96,7 +88,6 @@ public class MenuService {
             menus = new ArrayList<>(sysMenuRepository.findByIds(allMenuIds));
         }
 
-        // 补充隐藏的子项（用于页面 Tab 渲染，不在导航栏显示）
         List<Long> visibleMenuIds = menus.stream().map(SysMenu::getId).toList();
         List<SysMenu> hiddenChildren = sysMenuRepository.findHiddenChildrenByParentIds(visibleMenuIds);
         menus.addAll(hiddenChildren);
@@ -107,6 +98,7 @@ public class MenuService {
     /**
      * 获取所有菜单（含隐藏，管理页面用）
      */
+    @Override
     @Cacheable(value = CachePrefix.MENU_ALL_CACHE, key = "'flat'")
     public List<MenuDTO> listAllMenus() {
         return sysMenuRepository.findAllOrderBySortOrderAsc().stream().map(this::toMenuDTO).toList();
@@ -115,6 +107,7 @@ public class MenuService {
     /**
      * 获取所有菜单（树形结构，管理页面用）
      */
+    @Override
     @Cacheable(value = CachePrefix.MENU_ALL_CACHE, key = "'tree'")
     public List<MenuTreeDTO> listAllMenuTree() {
         List<SysMenu> menus = sysMenuRepository.findAllOrderBySortOrderAsc();
@@ -124,6 +117,7 @@ public class MenuService {
     /**
      * 根据 ID 查询菜单
      */
+    @Override
     public SysMenu getMenuById(Long id) {
         return sysMenuRepository.findById(id);
     }
@@ -131,6 +125,7 @@ public class MenuService {
     /**
      * 新增菜单
      */
+    @Override
     @Caching(evict = {
             @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
             @CacheEvict(value = CachePrefix.MENU_PUBLIC_CACHE, allEntries = true),
@@ -143,6 +138,7 @@ public class MenuService {
     /**
      * 更新菜单
      */
+    @Override
     @Caching(evict = {
             @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
             @CacheEvict(value = CachePrefix.MENU_PUBLIC_CACHE, allEntries = true),
@@ -155,6 +151,7 @@ public class MenuService {
     /**
      * 删除菜单（逻辑删除）
      */
+    @Override
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
@@ -162,15 +159,14 @@ public class MenuService {
             @CacheEvict(value = CachePrefix.MENU_ALL_CACHE, allEntries = true)
     })
     public void deleteMenu(Long id) {
-        // 删除角色-菜单关联
         roleMenuRepository.deleteByMenuId(id);
-        // 删除菜单
         sysMenuRepository.deleteById(id);
     }
 
     /**
      * 切换菜单显示/隐藏状态
      */
+    @Override
     @Caching(evict = {
             @CacheEvict(value = CachePrefix.MENU_TREE_CACHE, allEntries = true),
             @CacheEvict(value = CachePrefix.MENU_PUBLIC_CACHE, allEntries = true),
@@ -200,20 +196,16 @@ public class MenuService {
      * 构建菜单树
      */
     private List<MenuTreeDTO> buildTree(List<SysMenu> menus) {
-        // 转换为 DTO
         List<MenuTreeDTO> dtos = menus.stream().map(this::toMenuTreeDTO).toList();
 
-        // 按 parentId 分组
         Map<Long, List<MenuTreeDTO>> parentMap = dtos.stream()
                 .collect(Collectors.groupingBy(dto -> dto.getParentId() != null ? dto.getParentId() : 0L));
 
-        // 设置子节点
         dtos.forEach(dto -> {
             List<MenuTreeDTO> children = parentMap.get(dto.getId());
             dto.setChildren(children != null ? children : new ArrayList<>());
         });
 
-        // 返回顶级菜单（parentId 为 0 或 null）
         return dtos.stream()
                 .filter(dto -> dto.getParentId() == null || dto.getParentId() == 0L)
                 .toList();
