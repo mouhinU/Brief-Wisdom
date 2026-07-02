@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 简知</title>
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+<div class="login-container">
+    <!-- 左侧品牌区域 -->
+    <div class="login-brand-section">
+        <div class="brand-content">
+            <h1 class="brand-title">简知</h1>
+            <p class="brand-subtitle">AI 智能助手平台</p>
+            <div class="brand-features">
+                <div class="feature-item">
+                    <span class="feature-icon">🤖</span>
+                    <span class="feature-text">智能对话</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📝</span>
+                    <span class="feature-text">简历管理</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">💡</span>
+                    <span class="feature-text">知识问答</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧登录/注册表单区域 -->
+    <div class="login-form-section">
+        <div class="form-container">
+            <!-- Tab 切换 -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">登录</button>
+                <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">注册</button>
+            </div>
+
+            <!-- 登录表单 -->
+            <div class="auth-form-area" id="loginForm">
+                <h2 class="form-title">欢迎回来</h2>
+                <input type="text" class="auth-input" id="loginUsername" placeholder="用户名" autocomplete="username">
+                <input type="password" class="auth-input" id="loginPassword" placeholder="密码" autocomplete="current-password">
+                <div class="auth-error" id="loginError" style="display:none;"></div>
+                <button class="auth-submit" onclick="doLogin()">登 录</button>
+                
+                <div class="auth-divider"><span>或通过第三方扫码登录</span></div>
+                <div class="auth-oauth-buttons">
+                    <button class="auth-wechat-btn" onclick="startWechatLogin()"><span>💬</span> 微信</button>
+                    <button class="auth-dingtalk-btn" onclick="startDingtalkLogin()"><span>📌</span> 钉钉</button>
+                    <button class="auth-alipay-btn" onclick="startAlipayLogin()"><span>💰</span> 支付宝</button>
+                </div>
+            </div>
+
+            <!-- 注册表单 -->
+            <div class="auth-form-area" id="registerForm" style="display:none;">
+                <h2 class="form-title">创建账号</h2>
+                <input type="text" class="auth-input" id="regUsername" placeholder="用户名（至少3位）" autocomplete="username">
+                <input type="text" class="auth-input" id="regNickname" placeholder="昵称（可选）">
+                <input type="password" class="auth-input" id="regPassword" placeholder="密码（至少6位）" autocomplete="new-password">
+                <input type="password" class="auth-input" id="regPassword2" placeholder="确认密码" autocomplete="new-password">
+                <div class="auth-error" id="regError" style="display:none;"></div>
+                <button class="auth-submit" onclick="doRegister()">注 册</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/auth-page.js"></script>
+</body>
+</html>

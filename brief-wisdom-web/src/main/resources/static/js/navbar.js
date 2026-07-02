@@ -32,10 +32,6 @@ window.fetch = async function(...args) {
 };
 
 async function initNavbar() {
-  // 立即注入登录弹窗和脚本（不等待 API 请求，确保用户点击登录时立即可用）
-  injectAuthOverlay();
-  loadAuthScriptIfNeeded();
-
   try {
     // 1. 先检查登录状态，确定用户角色
     await checkLoginStatus();
@@ -206,10 +202,10 @@ function renderNavbar(menus) {
   const authArea = document.createElement('div');
   authArea.className = 'navbar-auth';
   authArea.id = 'navbarAuth';
-  // 先渲染未登录状态，auth.js 加载后会更新
+  // 先渲染未登录状态
   authArea.innerHTML = `
-    <button class="auth-btn auth-login-btn" onclick="showAuthModal('login')">登录</button>
-    <button class="auth-btn auth-register-btn" onclick="showAuthModal('register')">注册</button>
+    <button class="auth-btn auth-login-btn" onclick="window.location.href='/login.html?tab=login'">登录</button>
+    <button class="auth-btn auth-register-btn" onclick="window.location.href='/login.html?tab=register'">注册</button>
   `;
   navbar.appendChild(authArea);
 
@@ -228,97 +224,7 @@ function renderNavbar(menus) {
   updateAuthArea();
 }
 
-/**
- * 动态注入登录/注册弹窗 HTML
- * 如果页面中已存在 authOverlay 则跳过
- */
-function injectAuthOverlay() {
-  if (document.getElementById('authOverlay')) return;
-  const overlay = document.createElement('div');
-  overlay.className = 'auth-overlay';
-  overlay.id = 'authOverlay';
-  overlay.style.display = 'none';
-  overlay.innerHTML = `
-    <div class="auth-modal">
-      <button class="auth-modal-close" onclick="closeAuthModal()">&times;</button>
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">登录</button>
-        <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">注册</button>
-      </div>
-      <div class="auth-form-area" id="loginForm">
-        <input type="text" class="auth-input" id="loginUsername" placeholder="用户名" autocomplete="username">
-        <input type="password" class="auth-input" id="loginPassword" placeholder="密码" autocomplete="current-password">
-        <div class="auth-error" id="loginError" style="display:none;"></div>
-        <button class="auth-submit" onclick="doLogin()">登 录</button>
-        <div class="auth-divider"><span>或通过第三方扫码登录</span></div>
-        <div class="auth-oauth-buttons">
-          <button class="auth-wechat-btn" onclick="startWechatLogin()"><span>💬</span> 微信</button>
-          <button class="auth-dingtalk-btn" onclick="startDingtalkLogin()"><span>📌</span> 钉钉</button>
-          <button class="auth-alipay-btn" onclick="startAlipayLogin()"><span>💰</span> 支付宝</button>
-        </div>
-      </div>
-      <div class="auth-form-area" id="registerForm" style="display:none;">
-        <input type="text" class="auth-input" id="regUsername" placeholder="用户名（至少3位）" autocomplete="username">
-        <input type="text" class="auth-input" id="regNickname" placeholder="昵称（可选）">
-        <input type="password" class="auth-input" id="regPassword" placeholder="密码（至少6位）" autocomplete="new-password">
-        <input type="password" class="auth-input" id="regPassword2" placeholder="确认密码" autocomplete="new-password">
-        <div class="auth-error" id="regError" style="display:none;"></div>
-        <button class="auth-submit" onclick="doRegister()">注 册</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-}
 
-/**
- * 登录弹窗控制（直接定义在 navbar.js 中，确保 auth.js 加载前即可使用）
- * auth.js 加载后会覆盖这些函数，提供更完整的实现
- */
-if (typeof showAuthModal !== 'function') {
-  window.showAuthModal = function(tab) {
-    const overlay = document.getElementById('authOverlay');
-    if (!overlay) return;
-    overlay.style.display = 'flex';
-    if (typeof switchAuthTab === 'function') switchAuthTab(tab || 'login');
-  };
-}
-if (typeof closeAuthModal !== 'function') {
-  window.closeAuthModal = function() {
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.style.display = 'none';
-  };
-}
-if (typeof switchAuthTab !== 'function') {
-  window.switchAuthTab = function(tab) {
-    const tabLogin = document.getElementById('tabLogin');
-    const tabRegister = document.getElementById('tabRegister');
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    if (!tabLogin) return;
-    if (tab === 'login') {
-      tabLogin.classList.add('active');
-      tabRegister.classList.remove('active');
-      loginForm.style.display = 'flex';
-      registerForm.style.display = 'none';
-    } else {
-      tabRegister.classList.add('active');
-      tabLogin.classList.remove('active');
-      registerForm.style.display = 'flex';
-      loginForm.style.display = 'none';
-    }
-  };
-}
-
-/**
- * 动态加载 auth.js（如果页面未引入）
- */
-function loadAuthScriptIfNeeded() {
-  // 检查 auth.js 是否已加载
-  if (typeof showAuthModal === 'function') return;
-  const script = document.createElement('script');
-  script.src = 'js/auth.js?v=7';
-  document.head.appendChild(script);
-}
 
 /**
  * 动态注入 AI 智能助手悬浮按钮和聊天窗口 HTML
@@ -542,8 +448,8 @@ function updateAuthArea() {
     `;
   } else {
     authArea.innerHTML = `
-      <button class="auth-btn auth-login-btn" onclick="showAuthModal('login')">登录</button>
-      <button class="auth-btn auth-register-btn" onclick="showAuthModal('register')">注册</button>
+      <button class="auth-btn auth-login-btn" onclick="window.location.href='/login.html?tab=login'">登录</button>
+      <button class="auth-btn auth-register-btn" onclick="window.location.href='/login.html?tab=register'">注册</button>
     `;
   }
 }
@@ -631,7 +537,7 @@ function showGlobalToast(message, type) {
   const icon = type === 'login' ? '⚠️' : '🔒';
   let actionBtn = '';
   if (type === 'login') {
-    actionBtn = `<button class="toast-login-btn" onclick="closeGlobalToast();showAuthModal('login')">去登录</button>`;
+    actionBtn = `<button class="toast-login-btn" onclick="closeGlobalToast();window.location.href='/login.html?tab=login'">去登录</button>`;
   }
 
   toast.innerHTML = `

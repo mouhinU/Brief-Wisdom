@@ -1,0 +1,406 @@
+/* ===== 登录/注册独立页面样式 ===== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh;
+    background: #f5f7fa;
+}
+
+.login-container {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* ===== 左侧品牌区域 ===== */
+.login-brand-section {
+    flex: 1;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-brand-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: moveBackground 20s linear infinite;
+}
+
+@keyframes moveBackground {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+}
+
+.brand-content {
+    color: white;
+    text-align: center;
+    z-index: 1;
+    max-width: 500px;
+}
+
+.brand-title {
+    font-size: 48px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+}
+
+.brand-subtitle {
+    font-size: 20px;
+    opacity: 0.9;
+    margin-bottom: 60px;
+}
+
+.brand-features {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.feature-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.feature-icon {
+    font-size: 40px;
+    display: block;
+}
+
+.feature-text {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* ===== 右侧表单区域 ===== */
+.login-form-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: white;
+}
+
+.form-container {
+    width: 100%;
+    max-width: 420px;
+}
+
+/* Tab 切换 */
+.auth-tabs {
+    display: flex;
+    margin-bottom: 32px;
+    background: #f5f7fa;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 12px 0;
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 10px;
+}
+
+.auth-tab.active {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.auth-tab:hover:not(.active) {
+    color: #333;
+}
+
+/* 表单标题 */
+.form-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+/* 表单区域 */
+.auth-form-area {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+    background: #fafafa;
+}
+
+.auth-input:focus {
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.auth-input::placeholder {
+    color: #aaa;
+}
+
+.auth-submit {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 8px;
+}
+
+.auth-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.auth-submit:active {
+    transform: translateY(0);
+}
+
+.auth-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.auth-error {
+    background: #fff2f0;
+    border: 1px solid #ffccc7;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #ff4d4f;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* 分隔线 */
+.auth-divider {
+    text-align: center;
+    position: relative;
+    color: #999;
+    font-size: 13px;
+    margin: 20px 0 16px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 35%;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+.auth-divider::before {
+    left: 0;
+}
+
+.auth-divider::after {
+    right: 0;
+}
+
+/* OAuth 按钮 */
+.auth-oauth-buttons {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.auth-wechat-btn,
+.auth-dingtalk-btn,
+.auth-alipay-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    background: white;
+}
+
+.auth-wechat-btn {
+    color: #07c160;
+    border-color: #07c160;
+}
+
+.auth-wechat-btn:hover {
+    background: #07c160;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(7, 193, 96, 0.3);
+}
+
+.auth-dingtalk-btn {
+    color: #0089ff;
+    border-color: #0089ff;
+}
+
+.auth-dingtalk-btn:hover {
+    background: #0089ff;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 137, 255, 0.3);
+}
+
+.auth-alipay-btn {
+    color: #1677ff;
+    border-color: #1677ff;
+}
+
+.auth-alipay-btn:hover {
+    background: #1677ff;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+}
+
+/* ===== 响应式适配 ===== */
+@media (max-width: 1024px) {
+    .login-brand-section {
+        display: none;
+    }
+
+    .login-form-section {
+        flex: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .login-form-section {
+        padding: 24px;
+    }
+
+    .form-container {
+        max-width: 100%;
+    }
+
+    .brand-title {
+        font-size: 36px;
+    }
+
+    .brand-subtitle {
+        font-size: 16px;
+    }
+
+    .feature-icon {
+        font-size: 32px;
+    }
+
+    .feature-text {
+        font-size: 14px;
+    }
+
+    .auth-oauth-buttons {
+        flex-direction: column;
+    }
+}
+
+/* ===== 深色主题支持 ===== */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #1a1a1a;
+    }
+
+    .login-form-section {
+        background: #2a2a2a;
+    }
+
+    .form-title {
+        color: #e0e0e0;
+    }
+
+    .auth-input {
+        background: #333;
+        border-color: #444;
+        color: #e0e0e0;
+    }
+
+    .auth-input:focus {
+        background: #3a3a3a;
+    }
+
+    .auth-input::placeholder {
+        color: #666;
+    }
+
+    .auth-tabs {
+        background: #333;
+    }
+
+    .auth-tab {
+        color: #999;
+    }
+
+    .auth-tab.active {
+        background: #3a3a3a;
+        color: #6aabf0;
+    }
+
+    .auth-tab:hover:not(.active) {
+        color: #ccc;
+    }
+
+    .auth-divider {
+        color: #666;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+        background: #444;
+    }
+
+    .auth-wechat-btn,
+    .auth-dingtalk-btn,
+    .auth-alipay-btn {
+        background: #333;
+        border-color: #444;
+    }
+}
