@@ -233,59 +233,75 @@ function renderNavbar(menus) {
 function injectAiAssistant() {
   if (document.getElementById('aiFab')) return;
 
-  // 悬浮按钮
-  const fab = document.createElement('div');
-  fab.className = 'ai-fab';
-  fab.id = 'aiFab';
-  fab.onclick = function() { toggleChat(); };
-  fab.innerHTML = '<span class="ai-fab-icon">🤖</span>';
-  document.body.appendChild(fab);
+  // 优先使用模板生成器（组件化架构）
+  if (window.AiAssistantTemplate) {
+    console.log('[Navbar] 使用 AiAssistantTemplate 渲染');
+    AiAssistantTemplate.render();
+  } else {
+    // 降级方案：直接创建元素（保持向后兼容）
+    console.log('[Navbar] 模板未加载，使用降级方案');
+    
+    // 悬浮按钮
+    const fab = document.createElement('div');
+    fab.className = 'ai-fab';
+    fab.id = 'aiFab';
+    fab.onclick = function() { toggleChat(); };
+    fab.innerHTML = '<span class="ai-fab-icon">🤖</span>';
+    document.body.appendChild(fab);
 
-  // 聊天弹窗
-  const popup = document.createElement('div');
-  popup.className = 'chat-popup';
-  popup.id = 'chatPopup';
-  popup.innerHTML = `
-    <div class="session-sidebar">
-      <div class="session-header">
-        <h2>💬 会话历史</h2>
+    // 聊天弹窗
+    const popup = document.createElement('div');
+    popup.className = 'chat-popup';
+    popup.id = 'chatPopup';
+    popup.innerHTML = `
+      <div class="session-sidebar">
+        <div class="session-header">
+          <h2>💬 会话历史</h2>
+        </div>
+        <div class="session-list" id="sessionList"></div>
+        <button class="new-session-btn" onclick="createNewSession()">+ 新建会话</button>
       </div>
-      <div class="session-list" id="sessionList"></div>
-      <button class="new-session-btn" onclick="createNewSession()">+ 新建会话</button>
-    </div>
-    <div class="chat-main">
-      <div class="chat-header">
-        <h1>🤖 AI 智能助手</h1>
-        <p>有任何问题都可以问我哦~</p>
-        <button class="close-button" onclick="toggleChat()">×</button>
-      </div>
-      <div class="chat-messages" id="chatMessages">
-        <div class="welcome-message">
-          <p>请输入您的问题,我会尽力为您解答</p>
+      <div class="chat-main">
+        <div class="chat-header">
+          <h1>🤖 AI 智能助手</h1>
+          <p>有任何问题都可以问我哦~</p>
+          <button class="close-button" onclick="toggleChat()">×</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="welcome-message">
+            <p>请输入您的问题,我会尽力为您解答</p>
+          </div>
+        </div>
+        <div class="typing-indicator" id="typingIndicator">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="chat-input-container">
+          <div class="chat-input-wrapper">
+            <select id="modelSelector" class="model-selector-select" onchange="onModelChange()">
+              <option value="">加载中...</option>
+            </select>
+            <input type="text" class="chat-input" id="chatInput"
+                   placeholder="输入您的问题..." autocomplete="off">
+            <button class="send-button" id="sendButton" onclick="sendMessage()">发送</button>
+          </div>
         </div>
       </div>
-      <div class="typing-indicator" id="typingIndicator">
-        <span></span><span></span><span></span>
-      </div>
-      <div class="chat-input-container">
-        <div class="chat-input-wrapper">
-          <select id="modelSelector" class="model-selector-select" onchange="onModelChange()">
-            <option value="">加载中...</option>
-          </select>
-          <input type="text" class="chat-input" id="chatInput"
-                 placeholder="输入您的问题..." autocomplete="off">
-          <button class="send-button" id="sendButton" onclick="sendMessage()">发送</button>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(popup);
+    `;
+    document.body.appendChild(popup);
+  }
 }
 
 /**
  * 动态加载 marked.js 和 chat.js（如果页面未引入）
  */
 function loadChatScriptsIfNeeded() {
+  // 优先加载 AI 助手模板（组件化架构）
+  if (!window.AiAssistantTemplate) {
+    const templateScript = document.createElement('script');
+    templateScript.src = 'components/ai-assistant.template.js?v=1';
+    document.head.appendChild(templateScript);
+  }
+
   // 加载 marked.js（chat.js 依赖它）
   if (typeof marked === 'undefined') {
     const markedScript = document.createElement('script');
@@ -693,7 +709,7 @@ async function initPageTabs(config) {
       if (index === 0) btn.classList.add('active');
       btn.textContent = child.name;
       btn.setAttribute('data-tab-key', child.name);
-      btn.onclick = function() {
+      btn.onclick = async function() {
         // 切换 Tab 按钮激活状态
         tabContainer.querySelectorAll('button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -705,7 +721,7 @@ async function initPageTabs(config) {
           if (target) target.classList.add('active');
         }
         // 回调
-        if (config.onTabSwitch) config.onTabSwitch(child);
+        if (config.onTabSwitch) await config.onTabSwitch(child);
       };
       tabContainer.appendChild(btn);
     });
@@ -718,7 +734,7 @@ async function initPageTabs(config) {
       const target = document.getElementById(firstContentId);
       if (target) target.classList.add('active');
     }
-    if (config.onTabSwitch) config.onTabSwitch(firstChild);
+    if (config.onTabSwitch) await config.onTabSwitch(firstChild);
   } catch (err) {
     console.error('初始化页面Tab失败:', err);
   }

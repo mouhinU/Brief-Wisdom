@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI助手管理</title>
     <link rel="stylesheet" href="css/navbar.css?v=11">
+    <link rel="stylesheet" href="css/system-settings.css?v=8">
     <link rel="stylesheet" href="css/ai-manage.css?v=10">
 </head>
 <body>
@@ -72,6 +73,42 @@
             </div>
         </div>
     </div><!-- /sessions-tab-content -->
+
+    <!-- Tab 1.5: 用户管理 -->
+    <div id="user-tab-content" class="manage-tab-content">
+        <section class="settings-section">
+            <div class="section-header">
+                <h2>用户管理</h2>
+                <div class="user-filter-bar">
+                    <select id="user-level-filter" onchange="UserManagement.loadUsers()">
+                        <option value="">全部级别</option>
+                        <option value="admin">管理员</option>
+                        <option value="vip">会员</option>
+                        <option value="normal">普通用户</option>
+                    </select>
+                    <input type="text" id="user-search-input" placeholder="搜索用户名/昵称"
+                           onkeydown="if(event.key==='Enter')UserManagement.loadUsers()">
+                    <button class="btn btn-primary btn-sm" onclick="UserManagement.loadUsers()">搜索</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>昵称</th>
+                        <th>级别</th>
+                        <th>注册时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="user-table-body"></tbody>
+                </table>
+            </div>
+            <!-- 分页 -->
+            <div class="pagination-bar" id="user-pagination"></div>
+        </section>
+    </div><!-- /user-tab-content -->
 
     <!-- Tab 2: 知识库 -->
     <div id="knowledge-tab-content" class="manage-tab-content">
@@ -347,6 +384,31 @@
             </div>
         </div>
     </div>
+
+    <!-- Tab 3: 角色管理 -->
+    <div id="role-tab-content" class="manage-tab-content">
+        <section class="settings-section">
+            <div class="section-header">
+                <h2>角色管理</h2>
+                <button class="btn btn-primary" onclick="RoleManagement.showRoleForm()">+ 新增角色</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>角色名称</th>
+                        <th>角色标识</th>
+                        <th>描述</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="role-table-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </div><!-- /role-tab-content -->
 </div>
 
 <!-- 详情弹窗 -->
@@ -362,6 +424,8 @@
 
 <!-- 公共导航栏 -->
 <script src="js/navbar.js?v=10"></script>
+<!-- 组件加载器 -->
+<script src="components/component-loader.js"></script>
 <script src="js/knowledge.js?v=6"></script>
 <script src="js/ai-manage.js?v=5"></script>
 </body>

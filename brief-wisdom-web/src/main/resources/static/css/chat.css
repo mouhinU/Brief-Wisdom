@@ -208,4 +208,106 @@ body {
     color: #aaa;
 }
 
+/* ========== AI 智能助手优化样式 ========== */
+
+/* 快捷提问按钮 */
+.quick-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+}
+
+.quick-actions::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.quick-action-btn {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 16px;
+    font-size: 13px;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.quick-action-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.quick-action-btn:active {
+    transform: translateY(0);
+}
+
+/* 输入框提示 */
+.input-hint {
+    font-size: 11px;
+    color: #adb5bd;
+    text-align: center;
+    margin-top: 4px;
+    padding: 0 12px;
+}
+
+/* 消息复制按钮 */
+.message-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.message-copy-btn:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.message-copy-btn.copied {
+    opacity: 1;
+    color: #28a745;
+}
+
+.message-copy-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* 确保消息容器有相对定位 */
+.message.ai {
+    position: relative;
+}
+
+/* 移动端适配优化 */
+@media (max-width: 768px) {
+    .quick-actions {
+        padding: 6px 8px;
+    }
+    
+    .quick-action-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    
+    .input-hint {
+        font-size: 10px;
+    }
+}
+
 

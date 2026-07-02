@@ -1,3 +1,14 @@
+// ========== 常量配置 ==========
+const CHAT_CONFIG = {
+    MAX_SEND_HISTORY: 50,           // 发送历史最大条数
+    SCROLL_THRESHOLD: 30,            // 滚动加载触发阈值(px)
+    AUTO_SCROLL_DELAY: 100,          // 自动滚动延迟(ms)
+    MESSAGE_CACHE_SIZE: 100,         // 消息缓存大小
+    RECONNECT_DELAY: 3000,           // 重连延迟(ms)
+    PING_INTERVAL: 30000,            // WebSocket心跳间隔(ms)
+    DEBOUNCE_DELAY: 300              // 防抖延迟(ms)
+};
+
 // DOM 元素引用（动态注入时可能延迟获取）
 function getEl(id) { return document.getElementById(id); }
 
@@ -62,8 +73,8 @@ let syncEventSource = null;        // SSE 模式下的 EventSource 实例
 let syncWebSocket = null;          // WebSocket 模式下的 WebSocket 实例
 let syncReconnectTimer = null;
 let syncPingTimer = null;          // WebSocket 心跳定时器
-const SYNC_RECONNECT_DELAY = 3000; // 断线后 3 秒重连
-const SYNC_PING_INTERVAL = 30000;  // WebSocket 心跳间隔 30 秒
+const SYNC_RECONNECT_DELAY = CHAT_CONFIG.RECONNECT_DELAY;
+const SYNC_PING_INTERVAL = CHAT_CONFIG.PING_INTERVAL;
 
 // 加载分页配置（页面初始化时调用一次）
 async function loadPaginationConfig() {
@@ -112,11 +123,26 @@ function renderModelSelector() {
 
 // 模型切换事件
 function onModelChange() {
-    const selector = document.getElementById('modelSelector');
+    const selector = getEl('modelSelector');
     if (selector) {
         currentModel = selector.value;
         console.log('切换模型:', currentModel);
     }
+}
+
+/**
+ * 快捷提问功能
+ */
+function quickAsk(question) {
+    const chatInput = getEl('chatInput');
+    if (!chatInput) return;
+    
+    // 填充问题到输入框
+    chatInput.value = question;
+    chatInput.focus();
+    
+    // 自动发送（可选）
+    // sendMessage();
 }
 
 // 配置 marked.js（如果已加载）
@@ -728,6 +754,12 @@ function prependMessages(records) {
             }
         }
 
+        // 添加复制按钮（仅 AI 回复）
+        if (msg.role === 'ai') {
+            const copyBtn = createCopyButton(msg.content);
+            messageDiv.appendChild(copyBtn);
+        }
+
         messageDiv.appendChild(messageContent);
         messages.insertBefore(messageDiv, insertBefore);
     });
@@ -772,6 +804,32 @@ function showHistoryFullyLoaded() {
     const messages = getEl('chatMessages');
     if (!messages) return;
     // 不再显示任何提示，已加载全部
+}
+
+/**
+ * 创建消息复制按钮
+ */
+function createCopyButton(content) {
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'message-copy-btn';
+    copyBtn.title = '复制内容';
+    copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+    
+    copyBtn.onclick = async () => {
+        try {
+            await navigator.clipboard.writeText(content);
+            copyBtn.classList.add('copied');
+            copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+            setTimeout(() => {
+                copyBtn.classList.remove('copied');
+                copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+            }, 2000);
+        } catch (err) {
+            console.error('复制失败:', err);
+        }
+    };
+    
+    return copyBtn;
 }
 
 // 清空聊天消息，显示欢迎界面
@@ -1318,38 +1376,29 @@ document.addEventListener('scroll', function(e) {
 }, true);
 
 // ========== 输入框历史消息（上下键翻页） ==========
-
-// 发送历史：记录用户发送过的消息（最近 50 条）
-const sendHistory = [];
-const SEND_HISTORY_MAX = 50;
-// 当前浏览历史的索引（-1 表示未浏览历史，正在输入新内容）
-let historyIndex = -1;
-// 暂存用户正在输入但还没发送的内容（按上键前输入框的内容）
-let pendingInput = '';
-
-/**
- * 将消息加入发送历史
- */
-function pushSendHistory(message) {
-    if (!message || !message.trim()) return;
-    // 去重：如果和最后一条相同，不重复添加
-    if (sendHistory.length > 0 && sendHistory[sendHistory.length - 1] === message) return;
-    sendHistory.push(message);
-    // 超过上限则移除最早的
-    if (sendHistory.length > SEND_HISTORY_MAX) {
-        sendHistory.shift();
-    }
-    // 重置历史浏览索引
-    historyIndex = -1;
-    pendingInput = '';
-}
-
 /**
  * 输入框键盘事件：上下键浏览历史消息
  */
 document.addEventListener('keydown', function(e) {
     const input = e.target;
     if (!input || input.id !== 'chatInput') return;
+
+    // Ctrl+Enter 换行
+    if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        input.value = input.value.substring(0, start) + '\n' + input.value.substring(end);
+        input.selectionStart = input.selectionEnd = start + 1;
+        return;
+    }
+
+    // Enter 发送消息（无 Shift/Ctrl 修饰键）
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        sendMessage();
+        return;
+    }
 
     if (e.key === 'ArrowUp') {
         // 光标在开头时才触发历史浏览（避免与正常编辑冲突）
@@ -1384,3 +1433,85 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+// ========== 消息缓存系统 ==========
+const messageCache = new Map();
+
+/**
+ * 缓存消息到内存
+ */
+function cacheMessage(sessionId, messages) {
+    if (!sessionId || !messages) return;
+    messageCache.set(sessionId, {
+        data: [...messages],
+        timestamp: Date.now()
+    });
+    // 清理过期缓存（保留最近 N 条）
+    if (messageCache.size > CHAT_CONFIG.MESSAGE_CACHE_SIZE) {
+        const oldestKey = messageCache.keys().next().value;
+        messageCache.delete(oldestKey);
+    }
+}
+
+/**
+ * 从缓存获取消息
+ */
+function getCachedMessages(sessionId, maxAge = 5 * 60 * 1000) {
+    if (!sessionId || !messageCache.has(sessionId)) return null;
+    const cached = messageCache.get(sessionId);
+    // 检查缓存是否过期（默认 5 分钟）
+    if (Date.now() - cached.timestamp > maxAge) {
+        messageCache.delete(sessionId);
+        return null;
+    }
+    return cached.data;
+}
+
+/**
+ * 清空指定会话的缓存
+ */
+function clearMessageCache(sessionId) {
+    if (sessionId) {
+        messageCache.delete(sessionId);
+    } else {
+        messageCache.clear();
+    }
+}
+
+// 发送历史：记录用户发送过的消息（最近 N 条）
+const sendHistory = [];
+const SEND_HISTORY_MAX = CHAT_CONFIG.MAX_SEND_HISTORY;
+// 当前浏览历史的索引（-1 表示未浏览历史，正在输入新内容）
+let historyIndex = -1;
+// 暂存用户正在输入但还没发送的内容（按上键前输入框的内容）
+let pendingInput = '';
+
+/**
+ * 将消息加入发送历史（带防抖）
+ */
+function pushSendHistory(message) {
+    if (!message || !message.trim()) return;
+    // 去重：如果和最后一条相同，不重复添加
+    if (sendHistory.length > 0 && sendHistory[sendHistory.length - 1] === message) return;
+    sendHistory.push(message);
+    // 超过上限则移除最早的
+    if (sendHistory.length > SEND_HISTORY_MAX) {
+        sendHistory.shift();
+    }
+    // 重置历史浏览索引
+    historyIndex = -1;
+    pendingInput = '';
+}
+
+/**
+ * 快捷提问功能
+ */
+function quickAsk(question) {
+    const input = document.getElementById('chatInput');
+    if (input) {
+        input.value = question;
+        input.focus();
+        // 自动发送
+        setTimeout(() => sendMessage(), 100);
+    }
+}

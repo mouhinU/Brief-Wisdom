@@ -17,17 +17,29 @@ document.addEventListener('DOMContentLoaded', () => {
     tabContainerSelector: '.manage-tabs',
     tabContentSelector: '.manage-tab-content',
     getContentId: function(child) {
-      // 知识库 → knowledge-tab-content, 模型管理 → models-tab-content, 会话历史 → sessions-tab-content
-      var nameMap = { '知识库': 'knowledge-tab-content', '模型管理': 'models-tab-content', '会话历史': 'sessions-tab-content' };
+      // 知识库 → knowledge-tab-content, 模型管理 → models-tab-content, 会话历史 → sessions-tab-content, 角色管理 → role-tab-content, 用户管理 → user-tab-content
+      var nameMap = { 
+        '知识库': 'knowledge-tab-content', 
+        '模型管理': 'models-tab-content', 
+        '会话历史': 'sessions-tab-content',
+        '角色管理': 'role-tab-content',
+        '用户管理': 'user-tab-content'
+      };
       return nameMap[child.name];
     },
-    onTabSwitch: function(child) {
+    onTabSwitch: async function(child) {
       if (child.name === '知识库') {
         initKnowledge();
       } else if (child.name === '模型管理') {
         loadManageModels();
       } else if (child.name === '会话历史') {
         loadUsers();
+      } else if (child.name === '角色管理') {
+        // 加载角色管理组件
+        await loadAndInitComponents([{ name: 'role-management' }]);
+      } else if (child.name === '用户管理') {
+        // 加载用户管理组件
+        await loadAndInitComponents([{ name: 'user-management' }]);
       }
     }
   });
