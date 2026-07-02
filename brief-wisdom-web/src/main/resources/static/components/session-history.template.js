@@ -16,9 +16,9 @@
                 <div class="panel panel-users">
                     <div class="panel-header">
                         <h2>用户列表</h2>
-                        <span id="user-count" class="count-badge">0</span>
+                        <span id="sh-user-count" class="count-badge">0</span>
                     </div>
-                    <div id="user-list" class="panel-body">
+                    <div id="sh-user-list" class="panel-body">
                         <div class="empty-hint">加载中...</div>
                     </div>
                 </div>
@@ -26,10 +26,10 @@
                 <!-- 中栏：会话列表 -->
                 <div class="panel panel-sessions">
                     <div class="panel-header">
-                        <h2 id="session-title">会话列表</h2>
-                        <span id="session-count" class="count-badge">0</span>
+                        <h2 id="sh-session-title">会话列表</h2>
+                        <span id="sh-session-count" class="count-badge">0</span>
                     </div>
-                    <div id="session-list" class="panel-body">
+                    <div id="sh-session-list" class="panel-body">
                         <div class="empty-hint">请选择用户查看会话</div>
                     </div>
                 </div>
@@ -37,23 +37,23 @@
                 <!-- 右栏：消息详情 -->
                 <div class="panel panel-messages">
                     <div class="panel-header">
-                        <h2 id="message-title">消息详情</h2>
-                        <span id="message-count" class="count-badge">0</span>
+                        <h2 id="sh-message-title">消息详情</h2>
+                        <span id="sh-message-count" class="count-badge">0</span>
                     </div>
-                    <div id="message-list" class="panel-body">
+                    <div id="sh-message-list" class="panel-body">
                         <div class="empty-hint">请选择会话查看消息</div>
                     </div>
                 </div>
             </div>
 
             <!-- 消息详情弹窗 -->
-            <div id="detail-modal" class="modal" style="display:none;">
+            <div id="sh-detail-modal" class="modal" style="display:none;">
                 <div class="modal-content modal-lg">
                     <div class="modal-header">
-                        <h3 id="detail-modal-title">消息详情</h3>
+                        <h3 id="sh-detail-modal-title">消息详情</h3>
                         <button class="modal-close" onclick="SessionHistory.closeDetailModal()">×</button>
                     </div>
-                    <div id="detail-modal-body" class="modal-form">
+                    <div id="sh-detail-modal-body" class="modal-form">
                         <!-- 动态内容 -->
                     </div>
                 </div>

@@ -146,37 +146,75 @@
                             <label>标题 *</label>
                             <input type="text" id="knowledge-doc-title" required placeholder="文档标题">
                         </div>
+                        <!-- 内部文档字段 -->
                         <div id="knowledge-internal-fields">
                             <div class="knowledge-form-group">
                                 <label>文档内容</label>
                                 <textarea id="knowledge-doc-content" rows="15" class="knowledge-content-editor" placeholder="请输入文档内容（支持HTML）"></textarea>
                             </div>
                         </div>
+                        <!-- 文件类型字段 -->
                         <div id="knowledge-file-fields" style="display:none;">
                             <div class="knowledge-form-group">
                                 <label>文件URL *</label>
                                 <input type="text" id="knowledge-doc-file-url" placeholder="文件存储URL">
                             </div>
+                            <div class="knowledge-form-row">
+                                <div class="knowledge-form-group">
+                                    <label>文件名</label>
+                                    <input type="text" id="knowledge-doc-file-name" placeholder="原始文件名">
+                                </div>
+                                <div class="knowledge-form-group">
+                                    <label>文件大小(字节)</label>
+                                    <input type="number" id="knowledge-doc-file-size" placeholder="文件大小">
+                                </div>
+                            </div>
                             <div class="knowledge-form-group">
-                                <label>文件名</label>
-                                <input type="text" id="knowledge-doc-file-name" placeholder="显示的文件名">
+                                <label>文件类型</label>
+                                <input type="text" id="knowledge-doc-file-type" placeholder="如: application/pdf">
                             </div>
                         </div>
+                        <!-- 外部链接字段 -->
                         <div id="knowledge-link-fields" style="display:none;">
                             <div class="knowledge-form-group">
                                 <label>链接URL *</label>
-                                <input type="url" id="knowledge-doc-link-url" required placeholder="https://example.com/document">
+                                <input type="text" id="knowledge-doc-link-url" placeholder="https://...">
+                            </div>
+                            <div class="knowledge-form-group">
+                                <label>链接描述</label>
+                                <input type="text" id="knowledge-doc-link-desc" placeholder="链接描述">
                             </div>
                         </div>
-                        <div class="knowledge-form-group">
-                            <label>标签</label>
-                            <input type="text" id="knowledge-doc-tags" placeholder="用逗号分隔多个标签">
+                        <div class="knowledge-form-row">
+                            <div class="knowledge-form-group">
+                                <label>标签</label>
+                                <input type="text" id="knowledge-doc-tags" placeholder="标签，逗号分隔">
+                            </div>
+                            <div class="knowledge-form-group">
+                                <label>状态</label>
+                                <select id="knowledge-doc-status">
+                                    <option value="1">已发布</option>
+                                    <option value="0">草稿</option>
+                                    <option value="2">已归档</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="knowledge-form-actions">
                             <button type="button" class="btn btn-secondary" onclick="KnowledgeManagement.closeDocModal()">取消</button>
                             <button type="submit" class="btn btn-primary">保存</button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <!-- 文档详情弹窗 -->
+            <div id="knowledge-doc-detail-modal" class="knowledge-modal" style="display:none;">
+                <div class="knowledge-modal-content knowledge-modal-large">
+                    <div class="knowledge-modal-header">
+                        <h3 id="knowledge-doc-detail-title">文档详情</h3>
+                        <button class="knowledge-modal-close" onclick="KnowledgeManagement.closeDocDetail()">&times;</button>
+                    </div>
+                    <div id="knowledge-doc-detail-body" class="knowledge-doc-detail-body"></div>
                 </div>
             </div>
         `;

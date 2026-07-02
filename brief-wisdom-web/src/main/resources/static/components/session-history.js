@@ -66,13 +66,13 @@
      * 渲染用户列表
      */
     function renderUsers(users) {
-        const container = document.getElementById('user-list');
+        const container = document.getElementById('sh-user-list');
         if (!container) {
-            console.error('[SessionHistory] 找不到 user-list 容器');
+            console.error('[SessionHistory] 找不到 sh-user-list 容器');
             return;
         }
 
-        const countEl = document.getElementById('user-count');
+        const countEl = document.getElementById('sh-user-count');
         if (countEl) countEl.textContent = users.length;
 
         if (!users || users.length === 0) {
@@ -108,7 +108,7 @@
         document.querySelectorAll('.user-item').forEach(e => e.classList.remove('active'));
         if (el) el.classList.add('active');
 
-        const titleEl = document.getElementById('session-title');
+        const titleEl = document.getElementById('sh-session-title');
         if (titleEl) titleEl.textContent = `${userName} 的会话`;
 
         try {
@@ -136,13 +136,13 @@
      * 渲染会话列表
      */
     function renderSessions(sessions) {
-        const container = document.getElementById('session-list');
+        const container = document.getElementById('sh-session-list');
         if (!container) {
-            console.error('[SessionHistory] 找不到 session-list 容器');
+            console.error('[SessionHistory] 找不到 sh-session-list 容器');
             return;
         }
 
-        const countEl = document.getElementById('session-count');
+        const countEl = document.getElementById('sh-session-count');
         if (countEl) countEl.textContent = sessions.length;
 
         if (!sessions || sessions.length === 0) {
@@ -172,7 +172,7 @@
         document.querySelectorAll('.session-item').forEach(e => e.classList.remove('active'));
         if (el) el.classList.add('active');
 
-        const titleEl = document.getElementById('message-title');
+        const titleEl = document.getElementById('sh-message-title');
         if (titleEl) titleEl.textContent = title || '消息详情';
 
         try {
@@ -200,13 +200,13 @@
      */
     function renderMessages(messages) {
         state.currentMessages = messages || [];
-        const container = document.getElementById('message-list');
+        const container = document.getElementById('sh-message-list');
         if (!container) {
-            console.error('[SessionHistory] 找不到 message-list 容器');
+            console.error('[SessionHistory] 找不到 sh-message-list 容器');
             return;
         }
 
-        const countEl = document.getElementById('message-count');
+        const countEl = document.getElementById('sh-message-count');
         if (countEl) countEl.textContent = state.currentMessages.length;
 
         if (!state.currentMessages.length) {
@@ -234,7 +234,7 @@
         if (!m) return;
 
         const roleLabel = m.role === 'user' ? '用户' : 'AI';
-        const modalTitle = document.getElementById('detail-modal-title');
+        const modalTitle = document.getElementById('sh-detail-modal-title');
         if (modalTitle) modalTitle.textContent = `${roleLabel} 消息详情`;
 
         const rows = [
@@ -257,10 +257,10 @@
         html += `<div class="detail-content-body ${fmt.cssClass}">${fmt.html}</div>`;
         html += '</div>';
 
-        const modalBody = document.getElementById('detail-modal-body');
+        const modalBody = document.getElementById('sh-detail-modal-body');
         if (modalBody) modalBody.innerHTML = html;
 
-        const modal = document.getElementById('detail-modal');
+        const modal = document.getElementById('sh-detail-modal');
         if (modal) modal.style.display = 'flex';
     }
 
@@ -269,9 +269,9 @@
      */
     function clearMessages() {
         state.currentMessages = [];
-        const container = document.getElementById('message-list');
+        const container = document.getElementById('sh-message-list');
         if (container) container.innerHTML = '';
-        const countEl = document.getElementById('message-count');
+        const countEl = document.getElementById('sh-message-count');
         if (countEl) countEl.textContent = '0';
     }
 
@@ -279,7 +279,7 @@
      * 关闭详情弹窗
      */
     function closeDetailModal() {
-        const modal = document.getElementById('detail-modal');
+        const modal = document.getElementById('sh-detail-modal');
         if (modal) modal.style.display = 'none';
     }
 

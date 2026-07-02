@@ -1,6 +1,6 @@
 # Brief-Wisdom
 
-> 基于 Spring Boot 3 + Spring AI 的 AI 智能对话平台，支持 RBAC 权限控制、多会话管理、页面上下文感知、多模型管理、多端实时同步、第三方登录、Redis 分布式缓存、简历管理等功能。
+> 基于 Spring Boot 3 + Spring AI 的 AI 智能对话平台，支持 RBAC 权限控制、多会话管理、页面上下文感知、多模型管理、知识库管理、多端实时同步、第三方登录、Redis 分布式缓存、简历管理等功能。
 
 ---
 
@@ -19,6 +19,7 @@
 - [RBAC 权限体系](#rbac-权限体系)
 - [Redis 缓存架构](#redis-缓存架构)
 - [AI 智能体](#ai-智能体)
+- [知识库管理](#知识库管理)
 - [安全与合规](#安全与合规)
 - [会话管理](#会话管理)
 - [API 接口](#api-接口)
@@ -37,12 +38,13 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 - **多会话管理**：支持创建、切换、删除多个会话，分页加载（无限滚动）
 - **页面上下文感知**：AI 助手识别当前页面，提供针对性的对话能力（如简历页提供简历优化建议）
 - **多模型管理**：支持 AI 模型的动态管理（启用/禁用/切换/价格配置），当前支持通义千问系列
+- **知识库管理**：支持文档上传、向量化存储、语义检索，增强 AI 回答准确性
 - **多端实时同步**：基于 SSE 的实时数据同步，支持多设备同时在线
 - **Redis 分布式缓存**：菜单、用户权限、简历数据等低频变动数据的 Redis 缓存，Spring Session 会话持久化
 - **分布式锁**：基于 Redisson 的分布式锁，防止并发操作冲突
 - **用户认证体系**：支持用户名/密码登录、微信扫码登录、钉钉扫码登录、支付宝扫码登录
 - **访客系统**：未登录用户基于 IP + 浏览器 + 设备类型生成唯一指纹，保证会话连续性
-- **个人简历管理**：完整的工作经历、项目经历、项目成果、技术栈的 CRUD 管理
+- **个人简历管理**：完整的工作经历、项目经历、项目成果、技术栈的 CRUD 管理（组件化架构）
 - **系统管理**：用户管理（级别/状态）、角色管理、菜单管理（树形结构 + 动态配置）
 - **AI 管理后台**：按用户级别查看会话历史、消息记录
 - **安全合规**：输入关键词拦截、输出敏感信息过滤、接口限流保护
@@ -147,11 +149,11 @@ brief-wisdom-web (Web入口)
 
 | 模块          | 职责            | 关键类                                                                                                                              |
 |-------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| persistence | 数据存储和访问层      | `ChatUser`, `ChatSession`, `ChatMessage`, `AiModel`, `SysRole`, `SysMenu`, `RoleMenu`, `UserRole`, `WorkExperience`, `Project`, 各 Mapper/Repository |
-| ai          | AI 服务和业务逻辑    | `AiAgentService`, `ChatSyncService`, `ContentFilterService`, `RateLimitService`, `SystemPrompts`                                     |
+| persistence | 数据存储和访问层      | `ChatUser`, `ChatSession`, `ChatMessage`, `AiModel`, `SysRole`, `SysMenu`, `RoleMenu`, `UserRole`, `WorkExperience`, `Project`, `KnowledgeBase`, `KnowledgeDocument`, 各 Mapper/Repository |
+| ai          | AI 服务和业务逻辑    | `AiAgentService`, `ChatSyncService`, `ContentFilterService`, `RateLimitService`, `SystemPrompts`, `KnowledgeService`                                     |
 | web         | Web 入口、配置和前端资源 | `WebApplication`, `AiAgentController`, `AuthController`, `UserController`, `RoleController`, `MenuController`, `SecurityConfig`, `RedisConfig`, `PermissionInterceptor` |
 | resume      | 个人简历展示和管理     | `ResumeController`, `ResumeManageController`, `ResumeService`, `ResumeManageService`                                               |
-| common      | 公共 DTO、常量和注解  | `Result`, `PageResult`, `CachePrefix`, `RequiresPermission`, `SessionMetaDTO`, `ChatMessageDTO`, `AiModelDTO` 等                       |
+| common      | 公共 DTO、常量和注解  | `Result`, `PageResult`, `CachePrefix`, `RequiresPermission`, `SessionMetaDTO`, `ChatMessageDTO`, `AiModelDTO`, `KnowledgeDTO` 等                       |
 | api         | API 接口定义和 DTO | 通用响应封装                                                                                                                             |
 | service     | 通用服务层         | 业务服务类                                                                                                                              |
 
@@ -742,6 +744,70 @@ AI 助手根据当前页面自动切换角色定位：
 
 ---
 
+## 知识库管理
+
+### 功能概述
+
+知识库模块支持文档上传、向量化存储和语义检索，增强 AI 回答的准确性和专业性。
+
+### 核心能力
+
+- **知识库管理**：创建、编辑、删除知识库，设置知识库类型（通用/专业）
+- **文档管理**：支持上传多种格式文档（TXT、MD、PDF、DOCX），自动解析和分块
+- **向量化存储**：将文档内容转换为向量，存入向量数据库，支持语义检索
+- **语义检索**：基于用户问题，从知识库中检索最相关的文档片段，提供给 AI 作为上下文
+- **权限控制**：不同知识库可设置不同的访问权限
+
+### 数据表结构
+
+#### knowledge_base（知识库表）
+
+| 字段          | 类型           | 说明                   |
+|-------------|--------------|----------------------|
+| id          | BIGINT       | 自增主键                 |
+| name        | VARCHAR(200) | 知识库名称               |
+| description | TEXT         | 知识库描述               |
+| type        | VARCHAR(50)  | 知识库类型: general/professional |
+| is_enabled  | TINYINT      | 是否启用: 1-启用, 0-禁用     |
+| sort_order  | INT          | 排序序号                 |
+| create_time | DATETIME     | 创建时间                 |
+| update_time | DATETIME     | 更新时间                 |
+| is_deleted  | TINYINT      | 逻辑删除                 |
+
+#### knowledge_document（知识文档表）
+
+| 字段              | 类型           | 说明                      |
+|-----------------|--------------|-------------------------|
+| id              | BIGINT       | 自增主键                    |
+| kb_id           | BIGINT       | 关联 knowledge_base.id    |
+| title           | VARCHAR(500) | 文档标题                    |
+| content         | LONGTEXT     | 文档内容                    |
+| file_name       | VARCHAR(200) | 原始文件名                   |
+| file_type       | VARCHAR(50)  | 文件类型: txt/md/pdf/docx   |
+| chunk_count     | INT          | 分块数量                    |
+| status          | VARCHAR(20)  | 状态: pending/processing/completed/failed |
+| error_msg       | TEXT         | 错误信息                    |
+| sort_order      | INT          | 排序序号                    |
+| create_time     | DATETIME     | 创建时间                    |
+| update_time     | DATETIME     | 更新时间                    |
+| is_deleted      | TINYINT      | 逻辑删除                    |
+
+### API 接口
+
+| 接口                                  | 方法     | 说明            |
+|-------------------------------------|--------|---------------|
+| `/api/knowledge/bases`              | GET    | 获取知识库列表      |
+| `/api/knowledge/bases`              | POST   | 创建知识库        |
+| `/api/knowledge/bases/{id}`         | PUT    | 更新知识库        |
+| `/api/knowledge/bases/{id}`         | DELETE | 删除知识库        |
+| `/api/knowledge/documents`          | GET    | 获取文档列表       |
+| `/api/knowledge/documents`          | POST   | 上传文档         |
+| `/api/knowledge/documents/{id}`     | PUT    | 更新文档         |
+| `/api/knowledge/documents/{id}`     | DELETE | 删除文档         |
+| `/api/knowledge/search`             | POST   | 语义检索         |
+
+---
+
 ## 安全与合规
 
 ### 三层防线
@@ -1003,6 +1069,8 @@ SSE 通知其他设备同步
 
 ## 前端页面
 
+### 页面列表
+
 | 页面     | 路径                      | 权限要求                  | 说明                         |
 |--------|-------------------------|-----------------------|----------------------------|
 | 主页     | `/` / `index.html`      | 公开                    | AI 聊天助手入口，右下角悬浮按钮打开聊天窗口    |
@@ -1011,6 +1079,42 @@ SSE 通知其他设备同步
 | 系统设置   | `/system-settings.html` | admin/super_admin     | 用户管理、角色管理、菜单管理等系统配置        |
 | AI助手管理 | `/ai-manage.html`       | admin/super_admin     | AI 模型管理、用户会话查看             |
 | 测试页    | `/test-session.html`    | 公开                    | 会话 API 独立测试页面              |
+
+### 组件化架构
+
+系统采用**组件化架构**，将功能模块拆分为独立的 HTML 模板 + JS 逻辑文件：
+
+#### 组件结构
+
+```
+components/
+├── experience-management.template.js  # 工作经历 HTML 模板
+├── experience-management.js           # 工作经历业务逻辑
+├── project-management.template.js     # 项目经历 HTML 模板
+├── project-management.js              # 项目经历业务逻辑
+├── achievement-management.template.js # 项目成果 HTML 模板
+├── achievement-management.js          # 项目成果业务逻辑
+├── tech-stack-management.template.js  # 技术栈 HTML 模板
+└── tech-stack-management.js           # 技术栈业务逻辑
+```
+
+#### 组件特性
+
+- **HTML 与 JS 分离**：模板文件负责生成 HTML，JS 文件负责业务逻辑
+- **动态加载**：通过 `component-loader.js` 统一注册和初始化组件
+- **Tab 切换**：通过 `system-settings-lite.js` 管理 Tab 和内容容器
+- **全局方法暴露**：组件方法暴露到 `window` 对象，供 HTML 事件调用
+- **弹窗管理**：统一的 `openModal/closeModal` 机制，支持动态创建弹窗
+- **API 封装**：统一的 `apiRequest` 函数，处理请求和错误
+
+#### 组件规范
+
+每个组件必须包含：
+1. ✅ HTML 模板文件（`.template.js`）
+2. ✅ JS 逻辑文件（`.js`）
+3. ✅ 在 `system-settings-lite.js` 中配置映射
+4. ✅ 通过 `registerComponent()` 注册
+5. ✅ 暴露必要的全局方法到 `window.xxxManagement`
 
 ---
 
@@ -1132,7 +1236,27 @@ redis-cli KEYS "bw:*" | xargs redis-cli DEL
 | 消息搜索    | 全文搜索历史消息                   |
 | AI 模型扩展 | 支持 OpenAI、Claude 等更多提供商    |
 | 费用统计    | Token 用量和费用报表              |
-| 知识库管理   | 上传文档构建知识库，增强 AI 回答         |
 | 插件系统    | 支持 AI 调用外部工具（如搜索引擎、API 调用） |
 | WebSocket | 替代 SSE 实现双向通信             |
+| 知识库增强  | 支持更多文档格式（Excel、PPT）、图片OCR识别   |
+| 多语言支持  | 国际化支持，多语言切换                |
+| 移动端适配  | 响应式设计优化，移动端 App            |
 
+---
+
+## 贡献指南
+
+欢迎提交 Issue 和 Pull Request！
+
+### 开发规范
+
+- **代码风格**：遵循 AGENTS.md 中的编码规范
+- **提交信息**：使用清晰的 commit message，说明修改内容
+- **分支管理**：feature 分支开发，完成后合并到 main 分支
+- **测试**：新功能需包含单元测试或集成测试
+
+---
+
+## License
+
+MIT License

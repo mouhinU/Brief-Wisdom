@@ -86,8 +86,9 @@ async function loadComponentForTab(child) {
         }
     }
     
-    // 2. 再加载组件逻辑文件
-    await loadAndInitComponents([{ name: componentName }]);
+    // 2. 再加载组件逻辑文件，传递 containerId 选项
+    const containerId = getContentId(child);
+    await loadAndInitComponents([{ name: componentName, options: { containerId: containerId } }]);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -23,22 +23,24 @@
      * 初始化组件
      */
     async function init(options = {}) {
-        console.log('[OnlineEditor] 组件初始化');
+        console.log('[OnlineEditor] 组件初始化', options);
         
         // 加载模板
         if (window.OnlineEditorTemplate) {
-            const container = document.getElementById('online-editor-tab-content');
+            const containerId = options.containerId || 'editor-tab-content';
+            const container = document.getElementById(containerId);
+            
             if (container) {
                 OnlineEditorTemplate.render(container);
                 console.log('[OnlineEditor] 模板渲染完成');
                 
                 // 绑定事件
-                bindEvents();
+                bindEvents(container);
                 
                 // 加载初始数据
                 await loadInitialData();
             } else {
-                console.error('[OnlineEditor] 容器不存在');
+                console.error('[OnlineEditor] 容器不存在:', containerId);
             }
         } else {
             console.error('[OnlineEditor] 模板未加载');
@@ -48,9 +50,9 @@
     /**
      * 绑定事件
      */
-    function bindEvents() {
-        // 步骤切换
-        document.querySelectorAll('.step-btn').forEach(btn => {
+    function bindEvents(container) {
+        // 步骤切换（限定在当前容器内）
+        container.querySelectorAll('.step-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const step = parseInt(this.dataset.step);
                 if (step) {
@@ -67,8 +69,8 @@
         try {
             console.log('[OnlineEditor] 开始加载数据');
             
-            // 从后端加载工作经历数据
-            const response = await fetch('/api/resume/experiences');
+            // 从管理端点加载工作经历数据
+            const response = await fetch('/api/resume/manage/experiences');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -85,52 +87,129 @@
             }
             
             if (experiences.length > 0) {
-                // 缓存数据
+                // 缓存经历数据
                 dataCache.experiences = experiences;
                 
-                // 提取所有项目和技术栈
-                dataCache.projects = [];
-                dataCache.achievements = [];
-                dataCache.techStacks = [];
+                // 并行加载项目、技术栈、成果数据
+                await Promise.all([
+                    loadProjects(),
+                    loadTechStacks(),
+                    loadAchievements()
+                ]);
                 
-                experiences.forEach(exp => {
-                    if (exp.projects) {
-                        dataCache.projects.push(...exp.projects);
-                        exp.projects.forEach(proj => {
-                            if (proj.achievements) {
-                                dataCache.achievements.push(...proj.achievements);
-                            }
-                        });
-                    }
-                    if (exp.stacks) {
-                        dataCache.techStacks.push(...exp.stacks);
-                    }
-                });
+                // 组装嵌套结构
+                assembleNestedData();
                 
-                // 去重技术栈
-                dataCache.techStacks = [...new Set(dataCache.techStacks)];
-                
-                console.log(`[OnlineEditor] 数据解析完成: ${experiences.length}段经历, ${dataCache.projects.length}个项目, ${dataCache.techStacks.length}个技术栈`);
+                console.log(`[OnlineEditor] 数据解析完成: ${dataCache.experiences.length}段经历, ${dataCache.projects.length}个项目, ${dataCache.techStacks.length}个技术栈`);
                 
                 // 渲染第一步的内容
                 renderExperiencePanel();
             } else {
                 console.warn('[OnlineEditor] 没有工作经历数据');
+                showEmptyState();
             }
         } catch (error) {
             console.error('[OnlineEditor] 加载数据失败:', error);
-            // 显示错误提示
-            const listPanel = document.getElementById('editor-list-panel');
-            if (listPanel) {
-                listPanel.innerHTML = '<div class="editor-empty" style="color: #dc3545;">数据加载失败，请刷新重试</div>';
-            }
+            showError('数据加载失败，请刷新重试');
+        }
+    }
+
+    /**
+     * 加载项目数据
+     */
+    async function loadProjects() {
+        try {
+            const response = await fetch('/api/resume/manage/projects');
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            dataCache.projects = Array.isArray(data) ? data : (data.data || []);
+        } catch (error) {
+            console.error('[OnlineEditor] 加载项目失败:', error);
+        }
+    }
+
+    /**
+     * 加载技术栈数据
+     */
+    async function loadTechStacks() {
+        try {
+            const response = await fetch('/api/resume/manage/stacks');
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            dataCache.techStacks = Array.isArray(data) ? data : (data.data || []);
+        } catch (error) {
+            console.error('[OnlineEditor] 加载技术栈失败:', error);
+        }
+    }
+
+    /**
+     * 加载项目成果数据
+     */
+    async function loadAchievements() {
+        try {
+            const response = await fetch('/api/resume/manage/achievements');
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            dataCache.achievements = Array.isArray(data) ? data : (data.data || []);
+        } catch (error) {
+            console.error('[OnlineEditor] 加载成果失败:', error);
+        }
+    }
+
+    /**
+     * 组装嵌套数据结构
+     */
+    function assembleNestedData() {
+        dataCache.experiences.forEach(exp => {
+            // 关联项目
+            exp.projects = dataCache.projects.filter(p => p.experienceId == exp.id);
+            
+            // 关联技术栈
+            exp.stacks = dataCache.techStacks
+                .filter(s => s.experienceId == exp.id)
+                .map(s => s.techName);
+            
+            // 为每个项目关联成果
+            exp.projects.forEach(proj => {
+                proj.achievements = dataCache.achievements
+                    .filter(a => a.projectId == proj.id)
+                    .map(a => a.content);
+            });
+        });
+    }
+
+    /**
+     * 显示空状态
+     */
+    function showEmptyState() {
+        const listBody = document.getElementById('editor-list-body');
+        const formPanel = document.getElementById('editor-form-panel');
+        
+        if (listBody) {
+            listBody.innerHTML = '<div class="editor-empty">暂无工作经历<br><button class="editor-btn editor-btn-add" onclick="OnlineEditor.addItem()" style="margin-top:12px;">+ 新增工作经历</button></div>';
+        }
+        if (formPanel) {
+            formPanel.innerHTML = '<div class="editor-empty">请从左侧选择或新增项目进行编辑</div>';
+        }
+    }
+
+    /**
+     * 显示错误信息
+     */
+    function showError(message) {
+        const listPanel = document.getElementById('editor-list-panel');
+        if (listPanel) {
+            listPanel.innerHTML = `<div class="editor-empty" style="color: #dc3545;">${message}</div>`;
         }
     }
 
     /**
      * 切换到指定步骤
      */
-    window.goToStep = function(step) {
+    function goToStep(step) {
         currentStep = step;
         
         // 更新按钮状态
@@ -152,21 +231,25 @@
         }
         
         console.log(`[OnlineEditor] 切换到步骤 ${step}`);
-    };
+    }
 
     /**
      * 渲染工作经历面板
      */
     function renderExperiencePanel() {
-        const listPanel = document.getElementById('editor-list-panel');
+        const listBody = document.getElementById('editor-list-body');
         const formPanel = document.getElementById('editor-form-panel');
+        const listTitle = document.getElementById('editor-list-title');
         
-        if (!listPanel || !formPanel) return;
+        if (!listBody || !formPanel) return;
+        
+        // 更新列表头部
+        if (listTitle) listTitle.textContent = '工作经历';
         
         // 渲染左侧列表
         if (dataCache.experiences.length === 0) {
-            listPanel.innerHTML = '<div class="editor-empty">暂无工作经历</div>';
-            formPanel.innerHTML = '<div class="editor-empty">点击“新增”按钮添加工作经历</div>';
+            listBody.innerHTML = '<div class="editor-empty">暂无工作经历<br><button class="editor-btn editor-btn-add" onclick="OnlineEditor.addItem()" style="margin-top:12px;">+ 新增工作经历</button></div>';
+            formPanel.innerHTML = '<div class="editor-empty">点击左上方"+ 新增"按钮添加工作经历</div>';
             return;
         }
         
@@ -177,7 +260,7 @@
             const stackCount = exp.stacks ? exp.stacks.length : 0;
             
             listHtml += `
-                <div class="editor-list-item" onclick="selectExperience(${index})">
+                <div class="editor-list-item" onclick="OnlineEditor.selectExperience(${index})">
                     <div class="editor-list-item-title">${exp.title || '未命名'}</div>
                     <div class="editor-list-item-meta">
                         <span>${exp.job || '无职位'}</span>
@@ -189,7 +272,7 @@
         });
         listHtml += '</div>';
         
-        listPanel.innerHTML = listHtml;
+        listBody.innerHTML = listHtml;
         
         // 默认选中第一个
         selectExperience(0);
@@ -203,7 +286,7 @@
     /**
      * 选择工作经历
      */
-    window.selectExperience = function(index) {
+    function selectExperience(index) {
         if (index < 0 || index >= dataCache.experiences.length) return;
         
         selectedExperienceIndex = index;
@@ -216,7 +299,7 @@
         
         // 渲染右侧表单
         renderExperienceForm(exp);
-    };
+    }
     
     /**
      * 渲染工作经历表单
@@ -231,29 +314,34 @@
         formPanel.innerHTML = `
             <div class="editor-form">
                 <h3>工作经历详情</h3>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>公司名称</label>
-                    <input type="text" class="form-control" value="${exp.title || ''}" readonly>
+                    <input type="text" id="editor-field-title" class="form-control" value="${escapeAttr(exp.title || '')}">
                 </div>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>职位</label>
-                    <input type="text" class="form-control" value="${exp.job || ''}" readonly>
+                    <input type="text" id="editor-field-job" class="form-control" value="${escapeAttr(exp.job || '')}">
                 </div>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>描述</label>
-                    <textarea class="form-control" rows="4" readonly>${exp.description || ''}</textarea>
+                    <textarea id="editor-field-description" class="form-control" rows="4">${escapeHtml(exp.description || '')}</textarea>
                 </div>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>包含项目 (${projectCount}个)</label>
                     <div class="sub-list">
-                        ${(exp.projects || []).map(p => `<div class="sub-item">${p.name}</div>`).join('')}
+                        ${(exp.projects || []).map(p => `<div class="sub-item">${escapeHtml(p.name)}</div>`).join('')}
                     </div>
                 </div>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>技术栈 (${stackCount}个)</label>
                     <div class="tech-tags">
-                        ${(exp.stacks || []).map(s => `<span class="tech-tag">${s}</span>`).join('')}
+                        ${(exp.stacks || []).map(s => `<span class="tech-tag">${escapeHtml(s)}</span>`).join('')}
                     </div>
+                    <button class="editor-btn editor-btn-add" onclick="OnlineEditor.addTechStack()" style="margin-top:8px;">+ 添加技术栈</button>
+                </div>
+                <div class="editor-form-actions">
+                    <button class="editor-btn editor-btn-primary" onclick="OnlineEditor.saveExperienceForm()">保存修改</button>
+                    <button class="editor-btn editor-btn-danger" onclick="OnlineEditor.deleteExperience(${selectedExperienceIndex})">删除经历</button>
                 </div>
             </div>
         `;
@@ -267,7 +355,7 @@
     /**
      * 选择项目
      */
-    window.selectProject = function(index) {
+    function selectProject(index) {
         if (index < 0 || index >= dataCache.projects.length) return;
         
         selectedProjectIndex = index;
@@ -280,7 +368,7 @@
         
         // 渲染右侧表单
         renderProjectForm(proj);
-    };
+    }
     
     /**
      * 渲染项目表单
@@ -294,27 +382,31 @@
         formPanel.innerHTML = `
             <div class="editor-form">
                 <h3>项目详情</h3>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>项目名称</label>
-                    <input type="text" class="form-control" value="${proj.name || ''}" readonly>
+                    <input type="text" id="editor-proj-name" class="form-control" value="${escapeAttr(proj.name || '')}">
                 </div>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>项目周期</label>
-                    <input type="text" class="form-control" value="${proj.lifecycle || ''}" readonly>
+                    <input type="text" id="editor-proj-lifecycle" class="form-control" value="${escapeAttr(proj.lifecycle || '')}">
                 </div>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>项目背景</label>
-                    <textarea class="form-control" rows="3" readonly>${proj.background || ''}</textarea>
+                    <textarea id="editor-proj-background" class="form-control" rows="3">${escapeHtml(proj.background || '')}</textarea>
                 </div>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>个人职责</label>
-                    <textarea class="form-control" rows="3" readonly>${proj.duty || ''}</textarea>
+                    <textarea id="editor-proj-duty" class="form-control" rows="3">${escapeHtml(proj.duty || '')}</textarea>
                 </div>
-                <div class="form-group">
+                <div class="editor-form-group">
                     <label>项目成果 (${achievementCount}项)</label>
                     <div class="sub-list">
-                        ${(proj.achievements || []).map(a => `<div class="sub-item">${a}</div>`).join('')}
+                        ${(proj.achievements || []).map(a => `<div class="sub-item">${escapeHtml(a)}</div>`).join('')}
                     </div>
+                </div>
+                <div class="editor-form-actions">
+                    <button class="editor-btn editor-btn-primary" onclick="OnlineEditor.saveProjectForm()">保存修改</button>
+                    <button class="editor-btn editor-btn-danger" onclick="OnlineEditor.deleteProject(${selectedProjectIndex})">删除项目</button>
                 </div>
             </div>
         `;
@@ -324,15 +416,19 @@
      * 渲染项目面板
      */
     function renderProjectPanel() {
-        const listPanel = document.getElementById('editor-list-panel');
+        const listBody = document.getElementById('editor-list-body');
         const formPanel = document.getElementById('editor-form-panel');
+        const listTitle = document.getElementById('editor-list-title');
         
-        if (!listPanel || !formPanel) return;
+        if (!listBody || !formPanel) return;
+        
+        // 更新列表头部
+        if (listTitle) listTitle.textContent = '项目经历';
         
         // 渲染左侧列表
         if (dataCache.projects.length === 0) {
-            listPanel.innerHTML = '<div class="editor-empty">暂无项目</div>';
-            formPanel.innerHTML = '<div class="editor-empty">请先添加工作经历和项目</div>';
+            listBody.innerHTML = '<div class="editor-empty">暂无项目<br><button class="editor-btn editor-btn-add" onclick="OnlineEditor.addItem()" style="margin-top:12px;">+ 新增项目</button></div>';
+            formPanel.innerHTML = '<div class="editor-empty">请先添加工作经历，再新增项目</div>';
             return;
         }
         
@@ -342,7 +438,7 @@
             const achievementCount = proj.achievements ? proj.achievements.length : 0;
             
             listHtml += `
-                <div class="editor-list-item" onclick="selectProject(${index})">
+                <div class="editor-list-item" onclick="OnlineEditor.selectProject(${index})">
                     <div class="editor-list-item-title">${proj.name || '未命名'}</div>
                     <div class="editor-list-item-meta">
                         <span>${proj.lifecycle || '无周期'}</span>
@@ -353,7 +449,7 @@
         });
         listHtml += '</div>';
         
-        listPanel.innerHTML = listHtml;
+        listBody.innerHTML = listHtml;
         
         // 默认选中第一个
         selectProject(0);
@@ -362,8 +458,8 @@
     /**
      * 预览简历
      */
-    window.previewResume = function() {
-        const modal = document.getElementById('resume-preview-modal');
+    function previewResume() {
+        const modal = document.getElementById('editor-preview-modal');
         if (!modal) return;
         
         // 检查是否有数据
@@ -378,15 +474,15 @@
         
         // 自动刷新预览内容
         refreshPreview();
-    };
+    }
 
     /**
      * 刷新预览
      */
-    window.refreshPreview = function() {
+    function refreshPreview() {
         console.log('[OnlineEditor] 刷新预览');
         
-        const previewBody = document.getElementById('resume-preview-body');
+        const previewBody = document.getElementById('editor-preview-body');
         if (!previewBody) return;
         
         // 生成预览 HTML
@@ -438,24 +534,286 @@
         html += '</div>';
         
         previewBody.innerHTML = html;
-    };
+    }
 
     /**
      * 打开完整简历页面
      */
-    window.openFullResume = function() {
+    function openFullResume() {
         window.open('/about.html', '_blank');
-    };
+    }
 
     /**
      * 关闭预览
      */
-    window.closePreview = function() {
-        const modal = document.getElementById('resume-preview-modal');
+    function closePreview() {
+        const modal = document.getElementById('editor-preview-modal');
         if (modal) {
             modal.style.display = 'none';
         }
-    };
+    }
+
+    /**
+     * 新增按钮点击 - 根据当前步骤分发
+     */
+    function addItem() {
+        if (currentStep === 1) {
+            addExperience();
+        } else if (currentStep === 2) {
+            addProject();
+        }
+    }
+
+    /**
+     * 新增工作经历
+     */
+    async function addExperience() {
+        const title = prompt('请输入公司名称：');
+        if (!title || !title.trim()) return;
+
+        const job = prompt('请输入职位：') || '';
+        const description = prompt('请输入描述（可留空）：') || '';
+
+        try {
+            const payload = {
+                title: title.trim(),
+                job: job.trim(),
+                description: description.trim(),
+                sortOrder: dataCache.experiences.length,
+                isVisible: 1
+            };
+
+            const res = await fetch('/api/resume/manage/experiences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error('创建失败: ' + res.status);
+
+            const newExp = await res.json();
+            newExp.projects = [];
+            newExp.stacks = [];
+            dataCache.experiences.push(newExp);
+            renderExperiencePanel();
+            selectExperience(dataCache.experiences.length - 1);
+            console.log('[OnlineEditor] 工作经历创建成功');
+        } catch (error) {
+            console.error('[OnlineEditor] 创建工作经历失败:', error);
+            alert('创建失败: ' + error.message);
+        }
+    }
+
+    /**
+     * 新增项目（归属当前选中的工作经历）
+     */
+    async function addProject() {
+        if (dataCache.experiences.length === 0) {
+            alert('请先添加工作经历');
+            return;
+        }
+
+        // 如果当前步骤1且有选中经历，用该经历；否则用第一个
+        let expIndex = selectedExperienceIndex;
+        if (expIndex < 0 || expIndex >= dataCache.experiences.length) {
+            expIndex = 0;
+        }
+        const parentExp = dataCache.experiences[expIndex];
+
+        const name = prompt('请输入项目名称：');
+        if (!name || !name.trim()) return;
+
+        const lifecycle = prompt('请输入项目周期（如：2024.01 - 2024.06）：') || '';
+        const background = prompt('请输入项目背景（可留空）：') || '';
+        const duty = prompt('请输入个人职责（可留空）：') || '';
+
+        try {
+            const payload = {
+                experienceId: parentExp.id,
+                name: name.trim(),
+                lifecycle: lifecycle.trim(),
+                background: background.trim(),
+                duty: duty.trim(),
+                sortOrder: (parentExp.projects || []).length
+            };
+
+            const res = await fetch('/api/resume/manage/projects', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error('创建失败: ' + res.status);
+
+            const newProj = await res.json();
+            newProj.achievements = [];
+            dataCache.projects.push(newProj);
+
+            // 同步到父经历的 projects 数组
+            if (!parentExp.projects) parentExp.projects = [];
+            parentExp.projects.push(newProj);
+
+            renderProjectPanel();
+            selectProject(dataCache.projects.length - 1);
+            console.log('[OnlineEditor] 项目创建成功');
+        } catch (error) {
+            console.error('[OnlineEditor] 创建项目失败:', error);
+            alert('创建失败: ' + error.message);
+        }
+    }
+
+    /**
+     * 新增技术栈（归属当前选中的工作经历）
+     */
+    async function addTechStack() {
+        if (selectedExperienceIndex < 0 || selectedExperienceIndex >= dataCache.experiences.length) {
+            alert('请先选择一个工作经历');
+            return;
+        }
+        const exp = dataCache.experiences[selectedExperienceIndex];
+
+        const techName = prompt('请输入技术栈名称：');
+        if (!techName || !techName.trim()) return;
+
+        try {
+            const payload = {
+                experienceId: exp.id,
+                techName: techName.trim(),
+                sortOrder: (exp.stacks || []).length
+            };
+
+            const res = await fetch('/api/resume/manage/stacks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error('创建失败: ' + res.status);
+
+            const newStack = await res.json();
+            dataCache.techStacks.push(newStack);
+
+            // 同步到父经历
+            if (!exp.stacks) exp.stacks = [];
+            exp.stacks.push(newStack.techName);
+
+            renderExperiencePanel();
+            selectExperience(selectedExperienceIndex);
+            console.log('[OnlineEditor] 技术栈添加成功');
+        } catch (error) {
+            console.error('[OnlineEditor] 添加技术栈失败:', error);
+            alert('添加失败: ' + error.message);
+        }
+    }
+
+    /**
+     * 删除工作经历
+     */
+    async function deleteExperience(index) {
+        if (index < 0 || index >= dataCache.experiences.length) return;
+        const exp = dataCache.experiences[index];
+
+        if (!confirm('确定删除工作经历"' + (exp.title || '未命名') + '"吗？关联的项目和技术栈也会被删除。')) return;
+
+        try {
+            const res = await fetch('/api/resume/manage/experiences/' + exp.id, { method: 'DELETE' });
+            if (!res.ok) throw new Error('删除失败: ' + res.status);
+
+            // 清理缓存
+            const removedProjects = exp.projects || [];
+            removedProjects.forEach(p => {
+                const pi = dataCache.projects.findIndex(cp => cp.id === p.id);
+                if (pi >= 0) dataCache.projects.splice(pi, 1);
+            });
+            dataCache.techStacks = dataCache.techStacks.filter(s => s.experienceId != exp.id);
+            dataCache.experiences.splice(index, 1);
+
+            selectedExperienceIndex = -1;
+            renderExperiencePanel();
+            console.log('[OnlineEditor] 工作经历删除成功');
+        } catch (error) {
+            console.error('[OnlineEditor] 删除工作经历失败:', error);
+            alert('删除失败: ' + error.message);
+        }
+    }
+
+    /**
+     * 删除项目
+     */
+    async function deleteProject(index) {
+        if (index < 0 || index >= dataCache.projects.length) return;
+        const proj = dataCache.projects[index];
+
+        if (!confirm('确定删除项目"' + (proj.name || '未命名') + '"吗？')) return;
+
+        try {
+            const res = await fetch('/api/resume/manage/projects/' + proj.id, { method: 'DELETE' });
+            if (!res.ok) throw new Error('删除失败: ' + res.status);
+
+            // 清理缓存
+            dataCache.achievements = dataCache.achievements.filter(a => a.projectId != proj.id);
+            const pi = dataCache.projects.findIndex(cp => cp.id === proj.id);
+            if (pi >= 0) dataCache.projects.splice(pi, 1);
+
+            // 同步到父经历
+            dataCache.experiences.forEach(exp => {
+                if (exp.projects) {
+                    exp.projects = exp.projects.filter(p => p.id !== proj.id);
+                }
+            });
+
+            selectedProjectIndex = -1;
+            renderProjectPanel();
+            console.log('[OnlineEditor] 项目删除成功');
+        } catch (error) {
+            console.error('[OnlineEditor] 删除项目失败:', error);
+            alert('删除失败: ' + error.message);
+        }
+    }
+
+    /**
+     * 保存工作经历表单编辑
+     */
+    async function saveExperienceForm() {
+        if (selectedExperienceIndex < 0 || selectedExperienceIndex >= dataCache.experiences.length) return;
+        const exp = dataCache.experiences[selectedExperienceIndex];
+
+        const titleEl = document.getElementById('editor-field-title');
+        const jobEl = document.getElementById('editor-field-job');
+        const descEl = document.getElementById('editor-field-description');
+
+        if (!titleEl || !jobEl || !descEl) return;
+
+        try {
+            const payload = {
+                title: titleEl.value.trim(),
+                job: jobEl.value.trim(),
+                description: descEl.value.trim()
+            };
+
+            const res = await fetch('/api/resume/manage/experiences/' + exp.id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error('保存失败: ' + res.status);
+
+            const updated = await res.json();
+            // 更新缓存
+            exp.title = updated.title;
+            exp.job = updated.job;
+            exp.description = updated.description;
+
+            renderExperiencePanel();
+            selectExperience(selectedExperienceIndex);
+            alert('保存成功');
+            console.log('[OnlineEditor] 工作经历更新成功');
+        } catch (error) {
+            console.error('[OnlineEditor] 更新工作经历失败:', error);
+            alert('保存失败: ' + error.message);
+        }
+    }
 
     /**
      * 销毁组件
@@ -469,11 +827,32 @@
         });
     }
 
-    // 注册组件
-    registerComponent('online-editor', {
+    // 导出命名空间
+    window.OnlineEditor = {
         init,
-        destroy
-    });
+        goToStep,
+        selectExperience,
+        selectProject,
+        previewResume,
+        refreshPreview,
+        openFullResume,
+        closePreview,
+        addItem,
+        addExperience,
+        addProject,
+        addTechStack,
+        deleteExperience,
+        deleteProject,
+        saveExperienceForm
+    };
+
+    // 注册组件
+    if (typeof registerComponent === 'function') {
+        registerComponent('online-editor', {
+            init,
+            destroy
+        });
+    }
 
     console.log('[OnlineEditor] 在线编辑组件加载成功');
 })();

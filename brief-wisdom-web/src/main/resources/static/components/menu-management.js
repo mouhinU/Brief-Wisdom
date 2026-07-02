@@ -16,6 +16,12 @@
      */
     async function init(options = {}) {
         console.log('[MenuManagement] 初始化');
+
+        const container = document.getElementById(options.containerId || 'menu-tab-content');
+        if (container && window.MenuManagementTemplate) {
+            MenuManagementTemplate.render(container);
+        }
+
         await loadMenus();
         
         setTimeout(() => {
@@ -98,11 +104,11 @@
      * 显示新增/编辑菜单表单
      */
     async function showMenuForm(menu) {
-        const modal = document.getElementById('modal');
+        const modal = document.getElementById('menu-modal');
         if (!modal) return;
 
         if (menu) {
-            document.getElementById('modal-title').textContent = '编辑菜单';
+            document.getElementById('menu-modal-title').textContent = '编辑菜单';
             document.getElementById('menu-id').value = menu.id;
             document.getElementById('menu-type').value = String(menu.type ?? 1);
             document.getElementById('menu-name').value = menu.name;
@@ -115,7 +121,7 @@
             document.getElementById('menu-permission').value = menu.permission || '';
             await loadMenuTreeForSelector(menu.parentId || 0);
         } else {
-            document.getElementById('modal-title').textContent = '新增菜单';
+            document.getElementById('menu-modal-title').textContent = '新增菜单';
             document.getElementById('menu-id').value = '';
             document.getElementById('menu-type').value = '1';
             document.getElementById('menu-name').value = '';
@@ -233,7 +239,7 @@
      * 关闭弹窗
      */
     function closeModal() {
-        const modal = document.getElementById('modal');
+        const modal = document.getElementById('menu-modal');
         if (modal) modal.style.display = 'none';
     }
 

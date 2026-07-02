@@ -150,22 +150,20 @@
                 <input type="number" name="sortOrder" id="stack-f-sortOrder" value="${data?.sortOrder ?? 0}">
             </div>
             <div class="form-actions">
-                <button type="button" class="btn btn-cancel" onclick="closeModal()">取消</button>
+                <button type="button" class="btn btn-cancel" onclick="techStackManagement.closeModal()">取消</button>
                 <button type="submit" class="btn btn-primary">${isEdit ? '保存' : '创建'}</button>
             </div>
         `;
         
         openModal(isEdit ? '编辑技术栈' : '新增技术栈', formHtml);
         
-        // 等待 DOM 更新后再绑定事件
-        setTimeout(() => {
-            const form = document.getElementById('modal-form');
-            if (!form) {
-                console.error('[TechStackManagement] 表单元素不存在');
-                return;
-            }
-            
-            form.onsubmit = async (e) => {
+        const form = document.getElementById('modal-form');
+        if (!form) {
+            console.error('[TechStackManagement] 表单元素不存在');
+            return;
+        }
+        
+        form.onsubmit = async (e) => {
                 e.preventDefault();
                 
                 const fd = new FormData(form);
@@ -196,7 +194,6 @@
                     alert('保存失败: ' + error.message);
                 }
             };
-        }, 0);
     }
 
     /**
@@ -269,31 +266,18 @@
     }
 
     /**
-     * 打开弹窗
+     * 打开弹窗（弹窗不存在时自动创建）
      */
     function openModal(title, content) {
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modal-title');
-        
-        if (!modal || !modalTitle) {
-            console.error('[TechStackManagement] 弹窗元素不存在');
-            return;
+        let modal = document.getElementById('modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modal';
+            modal.className = 'modal';
+            modal.style.display = 'none';
+            document.body.appendChild(modal);
         }
-        
-        modalTitle.textContent = title;
-        
-        // 替换整个modal-content的内容
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.innerHTML = `
-                <div class="modal-header">
-                    <h3 id="modal-title">${title}</h3>
-                    <button class="modal-close" onclick="closeModal()">×</button>
-                </div>
-                <form id="modal-form" class="modal-form">${content}</form>
-            `;
-        }
-        
+        modal.innerHTML = '<div class="modal-content"><div class="modal-header"><h3 id="modal-title">' + title + '</h3><button class="modal-close" onclick="techStackManagement.closeModal()">&times;</button></div><form id="modal-form" class="modal-form">' + content + '</form></div>';
         modal.style.display = 'flex';
     }
 
@@ -319,11 +303,9 @@
     window.techStackManagement = {
         showTechStackForm,
         editTechStack,
-        deleteTechStack
+        deleteTechStack,
+        closeModal
     };
-    
-    // 暴露 closeModal 到全局，供弹窗中的按钮使用
-    window.closeModal = closeModal;
 
     // 注册组件
     if (typeof registerComponent === 'function') {

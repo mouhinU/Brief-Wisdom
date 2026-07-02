@@ -35,10 +35,10 @@
             </section>
 
             <!-- 菜单表单弹窗 -->
-            <div id="modal" class="modal" style="display:none;">
+            <div id="menu-modal" class="modal" style="display:none;">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3 id="modal-title">新增菜单</h3>
+                        <h3 id="menu-modal-title">新增菜单</h3>
                         <button class="modal-close" onclick="MenuManagement.closeModal()">×</button>
                     </div>
                     <form id="menu-form" class="modal-form" onsubmit="MenuManagement.saveMenu(event)">

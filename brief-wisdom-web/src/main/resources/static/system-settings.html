@@ -19,417 +19,47 @@
     <!-- Tab 导航（由 initPageTabs 动态渲染） -->
     <nav class="settings-tabs"></nav>
 
-    <!-- Tab 1: 菜单管理 -->
-    <div id="menu-tab-content" class="settings-tab-content active">
-        <section class="settings-section">
-            <div class="section-header">
-                <h2>菜单管理</h2>
-                <button class="btn btn-primary" onclick="MenuManagement.showMenuForm()">+ 新增菜单</button>
-            </div>
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead>
-                    <tr>
-                        <th>排序</th>
-                        <th>图标</th>
-                        <th>菜单名称</th>
-                        <th>类型</th>
-                        <th>父级菜单</th>
-                        <th>链接</th>
-                        <th>显示</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody id="menu-table-body"></tbody>
-                </table>
-            </div>
-        </section>
-    </div>
+    <!-- 所有 Tab 内容由对应组件动态渲染，HTML 只保留空容器 -->
 
-    <!-- Tab 2: 用户管理 -->
-    <div id="user-tab-content" class="settings-tab-content">
-        <section class="settings-section">
-            <div class="section-header">
-                <h2>用户管理</h2>
-                <div class="user-filter-bar">
-                    <select id="user-level-filter" onchange="UserManagement.loadUsers()">
-                        <option value="">全部级别</option>
-                        <option value="admin">管理员</option>
-                        <option value="vip">会员</option>
-                        <option value="normal">普通用户</option>
-                    </select>
-                    <input type="text" id="user-search-input" placeholder="搜索用户名/昵称"
-                           onkeydown="if(event.key==='Enter')UserManagement.loadUsers()">
-                    <button class="btn btn-primary btn-sm" onclick="UserManagement.loadUsers()">搜索</button>
-                </div>
-            </div>
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead>
-                    <tr>
-                        <th>用户名</th>
-                        <th>昵称</th>
-                        <th>级别</th>
-                        <th>注册时间</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody id="user-table-body"></tbody>
-                </table>
-            </div>
-            <!-- 分页 -->
-            <div class="pagination-bar" id="user-pagination"></div>
-        </section>
-    </div>
+    <!-- Tab: 菜单管理 -->
+    <div id="menu-tab-content" class="settings-tab-content active"></div>
 
-    <!-- Tab 3: 角色管理 -->
-    <div id="role-tab-content" class="settings-tab-content">
-        <section class="settings-section">
-            <div class="section-header">
-                <h2>角色管理</h2>
-                <button class="btn btn-primary" onclick="RoleManagement.showRoleForm()">+ 新增角色</button>
-            </div>
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead>
-                    <tr>
-                        <th>角色名称</th>
-                        <th>角色标识</th>
-                        <th>描述</th>
-                        <th>状态</th>
-                        <th>创建时间</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody id="role-table-body"></tbody>
-                </table>
-            </div>
-        </section>
-    </div>
+    <!-- Tab: 用户管理 -->
+    <div id="user-tab-content" class="settings-tab-content"></div>
 
-    <!-- Tab 4: 知识库 -->
-    <div id="knowledge-tab-content" class="settings-tab-content">
-        <!-- 知识库内容将由组件动态加载 -->
-    </div>
+    <!-- Tab: 角色管理 -->
+    <div id="role-tab-content" class="settings-tab-content"></div>
 
-    <!-- Tab 5: 模型管理 -->
-    <div id="models-tab-content" class="settings-tab-content">
-        <div class="model-section">
-            <div class="section-header">
-                <h2>模型配置</h2>
-                <button class="btn btn-primary" onclick="ModelManagement.showModelForm()">+ 新增模型</button>
-            </div>
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead>
-                    <tr>
-                        <th>排序</th>
-                        <th>模型标识</th>
-                        <th>显示名称</th>
-                        <th>服务商</th>
-                        <th>描述</th>
-                        <th>状态</th>
-                        <th>激活</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody id="model-table-body"></tbody>
-                </table>
-            </div>
-        </div>
+    <!-- Tab: 知识库 -->
+    <div id="knowledge-tab-content" class="settings-tab-content"></div>
 
-        <!-- 模型编辑弹窗 -->
-        <div id="model-modal" class="modal" style="display:none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="model-modal-title">新增模型</h3>
-                    <button class="modal-close" onclick="ModelManagement.closeModelModal()">×</button>
-                </div>
-                <form id="model-form" class="modal-form" onsubmit="ModelManagement.saveModel(event)">
-                    <input type="hidden" id="model-id">
-                    <div class="form-group">
-                        <label>模型标识 *</label>
-                        <input type="text" id="model-name-input" required placeholder="例如: qwen-max">
-                    </div>
-                    <div class="form-group">
-                        <label>显示名称 *</label>
-                        <input type="text" id="model-display-name" required placeholder="例如: 通义千问 Max">
-                    </div>
-                    <div class="form-group">
-                        <label>服务商</label>
-                        <input type="text" id="model-provider" value="dashscope" placeholder="dashscope">
-                    </div>
-                    <div class="form-group">
-                        <label>描述</label>
-                        <input type="text" id="model-description" placeholder="模型描述">
-                    </div>
-                    <div class="form-group">
-                        <label>排序</label>
-                        <input type="number" id="model-sort-order" value="0" min="0">
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="ModelManagement.closeModelModal()">取消</button>
-                        <button type="submit" class="btn btn-primary">保存</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <!-- Tab: 模型管理 -->
+    <div id="models-tab-content" class="settings-tab-content"></div>
 
-    <!-- Tab 6: 会话历史 -->
-    <div id="sessions-tab-content" class="settings-tab-content">
-        <!-- 三栏布局 -->
-        <div class="panels">
-            <!-- 左栏：用户列表 -->
-            <div class="panel panel-users">
-                <div class="panel-header">
-                    <h2>用户列表</h2>
-                    <span id="user-count" class="count-badge">0</span>
-                </div>
-                <div id="user-list" class="panel-body">
-                    <div class="empty-hint">加载中...</div>
-                </div>
-            </div>
+    <!-- Tab: 会话历史 -->
+    <div id="sessions-tab-content" class="settings-tab-content"></div>
 
-            <!-- 中栏：会话列表 -->
-            <div class="panel panel-sessions">
-                <div class="panel-header">
-                    <h2 id="session-title">会话列表</h2>
-                    <span id="session-count" class="count-badge">0</span>
-                </div>
-                <div id="session-list" class="panel-body">
-                    <div class="empty-hint">请选择用户查看会话</div>
-                </div>
-            </div>
+    <!-- Tab: 在线编辑 -->
+    <div id="online-editor-tab-content" class="settings-tab-content"></div>
 
-            <!-- 右栏：消息详情 -->
-            <div class="panel panel-messages">
-                <div class="panel-header">
-                    <h2 id="message-title">消息详情</h2>
-                    <span id="message-count" class="count-badge">0</span>
-                </div>
-                <div id="message-list" class="panel-body">
-                    <div class="empty-hint">请选择会话查看消息</div>
-                </div>
-            </div>
-        </div>
+    <!-- Tab: 工作经历 -->
+    <div id="experience-tab-content" class="settings-tab-content"></div>
 
-        <!-- 消息详情弹窗 -->
-        <div id="detail-modal" class="modal" style="display:none;">
-            <div class="modal-content modal-lg">
-                <div class="modal-header">
-                    <h3 id="detail-modal-title">消息详情</h3>
-                    <button class="modal-close" onclick="SessionHistory.closeDetailModal()">×</button>
-                </div>
-                <div id="detail-modal-body" class="modal-form">
-                    <!-- 动态内容 -->
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Tab: 项目经历 -->
+    <div id="project-tab-content" class="settings-tab-content"></div>
 
-    <!-- Tab 7: 在线编辑 -->
-    <div id="online-editor-tab-content" class="settings-tab-content">
-        <!-- 在线编辑内容将由组件动态加载 -->
-    </div>
+    <!-- Tab: 项目成果 -->
+    <div id="achievement-tab-content" class="settings-tab-content"></div>
 
-    <!-- Tab 8: 工作经历 -->
-    <div id="experience-tab-content" class="settings-tab-content">
-        <!-- 工作经历内容将由组件动态加载 -->
-    </div>
-
-    <!-- Tab 9: 项目经历 -->
-    <div id="project-tab-content" class="settings-tab-content">
-        <!-- 项目经历内容将由组件动态加载 -->
-    </div>
-
-    <!-- Tab 10: 项目成果 -->
-    <div id="achievement-tab-content" class="settings-tab-content">
-        <!-- 项目成果内容将由组件动态加载 -->
-    </div>
-
-    <!-- Tab 11: 技术栈 -->
-    <div id="tech-stack-tab-content" class="settings-tab-content">
-        <!-- 技术栈内容将由组件动态加载 -->
-    </div>
-
-    <!-- 菜单弹窗 -->
-    <div id="modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">新增菜单</h3>
-                <button class="modal-close" onclick="MenuManagement.closeModal()">×</button>
-            </div>
-            <form id="menu-form" class="modal-form" onsubmit="MenuManagement.saveMenu(event)">
-                <input type="hidden" id="menu-id">
-                <div class="form-group">
-                    <label>菜单类型</label>
-                    <select id="menu-type" onchange="MenuManagement.onMenuTypeChange()">
-                        <option value="0">目录</option>
-                        <option value="1" selected>菜单</option>
-                        <option value="2">按钮</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>父级菜单</label>
-                    <select id="menu-parent">
-                        <option value="0">顶级菜单</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>菜单名称 *</label>
-                    <input type="text" id="menu-name" required placeholder="例如：首页">
-                </div>
-                <div class="form-group" id="menu-url-group">
-                    <label>链接</label>
-                    <input type="text" id="menu-url" placeholder="例如：/ 或 /about.html">
-                </div>
-                <div class="form-group" id="menu-perm-group" style="display:none;">
-                    <label>权限标识</label>
-                    <input type="text" id="menu-permission" placeholder="例如：user:create">
-                </div>
-                <div class="form-group">
-                    <label>图标</label>
-                    <input type="text" id="menu-icon" placeholder="Emoji 或图标类名，例如：🏠">
-                </div>
-                <div class="form-group">
-                    <label>排序序号</label>
-                    <input type="number" id="menu-sort" value="0" min="0">
-                </div>
-                <div class="form-group" id="menu-target-group">
-                    <label>打开方式</label>
-                    <select id="menu-target">
-                        <option value="_self">当前窗口</option>
-                        <option value="_blank">新窗口</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>是否显示</label>
-                    <select id="menu-visible">
-                        <option value="1">显示</option>
-                        <option value="0">隐藏</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>需要登录</label>
-                    <select id="menu-require-login">
-                        <option value="0">否</option>
-                        <option value="1">是</option>
-                    </select>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="MenuManagement.closeModal()">取消</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 角色表单弹窗 -->
-    <div id="role-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="role-modal-title">新增角色</h3>
-                <button class="modal-close" onclick="RoleManagement.closeRoleModal()">×</button>
-            </div>
-            <form id="role-form" class="modal-form" onsubmit="RoleManagement.saveRole(event)">
-                <input type="hidden" id="role-id">
-                <div class="form-group">
-                    <label>角色名称 *</label>
-                    <input type="text" id="role-name" required placeholder="例如：超级管理员">
-                </div>
-                <div class="form-group">
-                    <label>角色标识 *</label>
-                    <input type="text" id="role-key" required placeholder="例如：super_admin">
-                </div>
-                <div class="form-group">
-                    <label>描述</label>
-                    <input type="text" id="role-desc" placeholder="角色描述">
-                </div>
-                <div class="form-group">
-                    <label>状态</label>
-                    <select id="role-status">
-                        <option value="1">启用</option>
-                        <option value="0">禁用</option>
-                    </select>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="RoleManagement.closeRoleModal()">取消</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 角色菜单权限弹窗 -->
-    <div id="menu-perm-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="menu-perm-title">分配菜单权限</h3>
-                <button class="modal-close" onclick="RoleManagement.closeMenuPermModal()">×</button>
-            </div>
-            <div class="modal-form">
-                <div class="menu-tree-actions">
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="RoleManagement.checkAllMenus(true)">全选</button>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="RoleManagement.checkAllMenus(false)">取消全选</button>
-                </div>
-                <div id="menu-perm-tree" class="menu-perm-tree"></div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="RoleManagement.closeMenuPermModal()">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="RoleManagement.saveMenuPermissions()">保存</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 用户角色分配弹窗 -->
-    <div id="user-role-modal" class="modal" style="display:none;">
-        <div class="modal-content modal-sm">
-            <div class="modal-header">
-                <h3 id="user-role-title">分配角色</h3>
-                <button class="modal-close" onclick="UserManagement.closeUserRoleModal()">×</button>
-            </div>
-            <div class="modal-form">
-                <div id="user-role-checkboxes" class="role-checkbox-list"></div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="UserManagement.closeUserRoleModal()">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="UserManagement.saveUserRoles()">保存</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 用户级别修改弹窗 -->
-    <div id="user-level-modal" class="modal" style="display:none;">
-        <div class="modal-content modal-sm">
-            <div class="modal-header">
-                <h3>修改用户级别</h3>
-                <button class="modal-close" onclick="UserManagement.closeUserLevelModal()">×</button>
-            </div>
-            <form class="modal-form" onsubmit="UserManagement.saveUserLevel(event)">
-                <input type="hidden" id="user-level-id">
-                <div class="form-group">
-                    <label>用户级别</label>
-                    <select id="user-level-select">
-                        <option value="admin">管理员</option>
-                        <option value="vip">会员</option>
-                        <option value="normal">普通用户</option>
-                    </select>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="UserManagement.closeUserLevelModal()">取消</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Tab: 技术栈 -->
+    <div id="tech-stack-tab-content" class="settings-tab-content"></div>
 </div>
 
 <!-- 公共导航栏 -->
 <script src="js/navbar.js?v=10"></script>
 <!-- 组件加载器 -->
 <script src="components/component-loader.js"></script>
-<!-- 系统设置页面脚本（轻量级，只负责Tab切换） -->
+<!-- 系统设置页面脚本（轻量级，只负责Tab切换和组件加载） -->
 <script src="js/system-settings-lite.js"></script>
 </body>
 </html>
