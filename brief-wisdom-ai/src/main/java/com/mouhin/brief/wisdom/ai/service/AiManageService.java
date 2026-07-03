@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.ai.service;
 
+import com.mouhin.brief.wisdom.common.manage.CostStatisticsDTO;
 import com.mouhin.brief.wisdom.common.manage.MessageDTO;
 import com.mouhin.brief.wisdom.common.manage.SessionDTO;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
@@ -43,4 +44,12 @@ public interface AiManageService {
      * 获取会话的消息历史
      */
     List<MessageDTO> getSessionMessages(String sessionId);
+
+    /**
+     * 获取费用统计数据
+     *
+     * @param days 按日期统计的天数范围
+     * @return 多维度费用统计
+     */
+    CostStatisticsDTO getCostStatistics(int days);
 }

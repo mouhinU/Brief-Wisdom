@@ -80,4 +80,26 @@ public class ChatMessageRepository {
     public void save(ChatMessage message) {
         chatMessageMapper.insert(message);
     }
+
+    // ========== 费用统计 ==========
+
+    public Map<String, Object> getOverallStats() {
+        return chatMessageMapper.selectOverallStats();
+    }
+
+    public List<Map<String, Object>> getCostByModel() {
+        return chatMessageMapper.selectCostByModel();
+    }
+
+    public List<Map<String, Object>> getCostByUser() {
+        return chatMessageMapper.selectCostByUser();
+    }
+
+    public List<Map<String, Object>> getCostByDate(int days) {
+        return chatMessageMapper.selectCostByDate(days);
+    }
+
+    public List<Map<String, Object>> getCostByDateAndModel(int days) {
+        return chatMessageMapper.selectCostByDateAndModel(days);
+    }
 }

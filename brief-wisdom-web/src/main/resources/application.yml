@@ -6,6 +6,10 @@ spring:
     name: brief-wisdom
   profiles:
     include: dev
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    cache-duration: 3600s
   datasource:
     url: jdbc:mysql://localhost:3306/brief_wisdom?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -96,6 +100,10 @@ app:
   sync:
     # transport: sse    # 同步传输方式：sse（Server-Sent Events）或 websocket（双向通信）
     transport: websocket    # 同步传输方式：sse（Server-Sent Events）或 websocket（双向通信）
+
+# AI 聊天模式配置
+  chat:
+    streaming: true    # 是否启用流式输出（打字机效果），true=流式，false=普通阻塞式
 
 # 分页配置 - 按业务维度配置每页查询条数
   pagination:

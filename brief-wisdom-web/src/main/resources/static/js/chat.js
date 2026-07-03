@@ -67,6 +67,9 @@ let paginationConfig = {
     messageHistory: { defaultSize: 20, maxSize: 200 }
 };
 
+// 流式输出配置
+let chatStreamingEnabled = true;  // 默认启用，从后端加载
+
 // 多端同步状态（支持 SSE / WebSocket 双模式）
 let syncTransport = null;          // 'sse' 或 'websocket'，首次连接时从后端获取
 let syncEventSource = null;        // SSE 模式下的 EventSource 实例
@@ -87,6 +90,23 @@ async function loadPaginationConfig() {
         }
     } catch (error) {
         console.warn('加载分页配置失败，使用默认值:', error);
+    }
+}
+
+// 加载聊天模式配置（流式/普通）
+async function loadChatConfig() {
+    try {
+        // 从 application.yml 中读取 app.chat.streaming 配置
+        // 由于无法直接读取 yml，这里通过一个专门的接口获取
+        const response = await fetch('/api/ai/config/chat');
+        const data = await response.json();
+        if (data.success && data.data) {
+            chatStreamingEnabled = data.data.streaming !== false;  // 默认为 true
+            console.log('聊天模式配置已加载: streaming=', chatStreamingEnabled);
+        }
+    } catch (error) {
+        console.warn('加载聊天配置失败，使用默认值（流式启用）:', error);
+        chatStreamingEnabled = true;
     }
 }
 
@@ -303,6 +323,194 @@ async function loadSessions(autoSelect = false) {
     }
 }
 
+/**
+ * 静默更新会话列表（不触发页面刷新，避免抖动）
+ * 只更新左侧会话列表，不清空右侧聊天区域
+ */
+async function updateSessionListSilently() {
+    try {
+        const pageSize = paginationConfig.sessionList.defaultSize;
+        const url = `/api/ai/sessions?page=1&size=${pageSize}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            const pageData = data.data;
+            allSessions = pageData.records || [];
+            sessionHasMore = pageData.hasMore;
+            sessionCurrentPage = 1;
+
+            // 保存当前选中的会话 ID
+            const previousSessionId = currentSessionId;
+            
+            // 重新渲染会话列表
+            renderSessionList(allSessions);
+            updateLoadMoreIndicator();
+            
+            // 恢复选中状态（不会触发 loadSessionHistory）
+            if (previousSessionId) {
+                const activeItem = document.querySelector(`.session-item[data-session-id="${previousSessionId}"]`);
+                if (activeItem) {
+                    activeItem.classList.add('active');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('[静默更新] 会话列表失败:', error);
+        // 静默失败，不影响用户体验
+    }
+}
+
+/**
+ * 局部更新当前会话项（只更新标题和时间，不发起网络请求）
+ * @param {string} sessionId - 会话 ID
+ */
+function updateCurrentSessionItem(sessionId) {
+    // 从内存缓存中找到当前会话
+    const sessionIndex = allSessions.findIndex(s => s.sessionId === sessionId);
+    if (sessionIndex === -1) {
+        console.warn('[局部更新] 未找到会话:', sessionId);
+        return;
+    }
+    
+    const session = allSessions[sessionIndex];
+    
+    // 更新会话的更新时间为当前时间（表示有新消息）
+    session.updateTime = new Date().toISOString();
+    
+    // 如果标题还是默认的“新会话”，尝试根据最新消息生成新标题
+    if (session.title === '新会话' || !session.title) {
+        // 这里可以后续优化：从聊天记录中提取前几个字作为标题
+        // 暂时保持原标题不变
+    }
+    
+    // 找到对应的 DOM 元素
+    const sessionItem = document.querySelector(`.session-item[data-session-id="${sessionId}"]`);
+    if (!sessionItem) {
+        console.warn('[局部更新] 未找到会话项 DOM:', sessionId);
+        return;
+    }
+    
+    // 只更新时间（标题可能不需要每次更新）
+    const timeEl = sessionItem.querySelector('.session-time');
+    if (timeEl) {
+        timeEl.textContent = formatTime(session.updateTime);
+    }
+    
+    console.log('[局部更新] 会话项已更新:', sessionId, session.updateTime);
+}
+
+/**
+ * 局部添加新会话项到列表（不重新加载整个列表）
+ * @param {string} newSessionId - 新会话 ID
+ */
+async function addNewSessionToList(newSessionId) {
+    try {
+        // 获取新会话的信息
+        const pageSize = paginationConfig.sessionList.defaultSize;
+        const url = `/api/ai/sessions?page=1&size=${pageSize}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (!data.success || !data.data || !data.data.records) {
+            return;
+        }
+        
+        // 找到新会话
+        const newSession = data.data.records.find(s => s.sessionId === newSessionId);
+        if (!newSession) {
+            console.warn('[局部添加] 未找到新会话:', newSessionId);
+            return;
+        }
+        
+        // 添加到内存缓存的开头
+        allSessions.unshift(newSession);
+        
+        // 在 DOM 中插入新会话项
+        const list = getEl('sessionList');
+        if (!list) return;
+        
+        // 移除空提示
+        const emptyTip = list.querySelector('.session-empty-tip');
+        if (emptyTip) {
+            emptyTip.remove();
+        }
+        
+        // 创建新会话项
+        const sessionItem = document.createElement('div');
+        sessionItem.className = 'session-item active';  // 默认选中
+        sessionItem.dataset.sessionId = newSession.sessionId;
+        
+        const timeStr = formatTime(newSession.updateTime);
+        const pageLabel = getPageContextLabel(newSession.pageContext);
+        const pageLabelHtml = pageLabel ? `<span class="session-page-label" title="${escapeHtml(pageLabel)}">${getPageContextIcon(newSession.pageContext)}</span>` : '';
+        
+        sessionItem.innerHTML = `
+            <div class="session-title-row">
+                ${pageLabelHtml}
+                <div class="session-title" title="双击编辑标题">${escapeHtml(newSession.title)}</div>
+            </div>
+            <div class="session-time">${timeStr}</div>
+            <button class="delete-session-btn" onclick="deleteSession(event, '${newSession.sessionId}')">×</button>
+        `;
+        
+        // 双击标题进入编辑模式
+        const titleEl = sessionItem.querySelector('.session-title');
+        titleEl.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            startEditSessionTitle(titleEl, newSession.sessionId, newSession.title);
+        });
+        
+        sessionItem.onclick = (e) => {
+            if (!e.target.classList.contains('delete-session-btn') && !e.target.classList.contains('session-title-input')) {
+                selectSession(newSession.sessionId);
+            }
+        };
+        
+        // 取消其他会话的选中状态
+        list.querySelectorAll('.session-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // 插入到列表开头
+        if (list.firstChild) {
+            list.insertBefore(sessionItem, list.firstChild);
+        } else {
+            list.appendChild(sessionItem);
+        }
+        
+        console.log('[局部添加] 新会话项已添加:', newSessionId);
+    } catch (error) {
+        console.error('[局部添加] 失败:', error);
+    }
+}
+
+/**
+ * 局部删除会话项（不重新加载整个列表）
+ * @param {string} sessionId - 会话 ID
+ */
+function removeSessionFromList(sessionId) {
+    // 从内存缓存中删除
+    const index = allSessions.findIndex(s => s.sessionId === sessionId);
+    if (index !== -1) {
+        allSessions.splice(index, 1);
+    }
+    
+    // 从 DOM 中删除
+    const sessionItem = document.querySelector(`.session-item[data-session-id="${sessionId}"]`);
+    if (sessionItem) {
+        sessionItem.remove();
+    }
+    
+    // 如果列表为空，显示空提示
+    const list = getEl('sessionList');
+    if (list && list.querySelectorAll('.session-item').length === 0) {
+        list.innerHTML = '<div class="session-empty-tip">暂无会话，发送消息即可开始</div>';
+    }
+    
+    console.log('[局部删除] 会话项已删除:', sessionId);
+}
+
 // 加载更多会话（下一页）
 async function loadMoreSessions() {
     if (sessionIsLoading || !sessionHasMore) {
@@ -395,6 +603,7 @@ function appendSessionItems(sessions) {
     sessions.forEach(session => {
         const sessionItem = document.createElement('div');
         sessionItem.className = 'session-item';
+        sessionItem.dataset.sessionId = session.sessionId;  // 添加 data 属性
         if (session.sessionId === currentSessionId) {
             sessionItem.classList.add('active');
         }
@@ -453,8 +662,8 @@ async function createNewSession() {
             // 清空聊天窗口
             clearChatMessages();
             
-            // 重新加载会话列表以显示新会话
-            await loadSessions();
+            // 局部添加新会话项到列表（不重新加载整个列表）
+            addNewSessionToList(newSessionId);
             
             console.log('创建新会话成功:', newSessionId);
             return newSessionId;
@@ -529,7 +738,8 @@ async function deleteSession(event, sessionId) {
                 currentSessionId = null;
                 clearChatMessages();
             }
-            await loadSessions();
+            // 局部删除会话项（不重新加载整个列表）
+            removeSessionFromList(sessionId);
         }
     } catch (error) {
         console.error('删除会话失败:', error);
@@ -933,39 +1143,13 @@ async function sendMessage() {
             return;
         }
         
-        const url = `/api/ai/chat/session/${currentSessionId}`;
-        console.log('========== 发送请求 ==========');
-        console.log('currentSessionId:', currentSessionId);
-        console.log('model:', currentModel);
-        console.log('请求 URL:', url);
-        console.log('请求消息:', message);
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message: message,
-                model: currentModel,
-                pageContext: getCurrentPageContext()
-            })
-        });
-
-        const data = await response.json();
-        console.log('响应数据:', data);
-        
-        // 隐藏打字指示器
-        hideTypingIndicator();
-
-        if (data.success) {
-            addMessage(data.data, 'ai', true, currentModel);
-            // 更新会话列表（可能标题变了）
-            await loadSessions();
+        // 根据配置选择流式或普通模式
+        if (chatStreamingEnabled) {
+            // 流式模式
+            await sendMessageStream(currentSessionId, message, currentModel, getCurrentPageContext());
         } else {
-            addMessage('抱歉,出现了错误: ' + data.error, 'ai');
-            // 失败时恢复输入框内容
-            if (chatInput) { chatInput.value = message; }
+            // 普通模式
+            await sendMessageNormal(currentSessionId, message, currentModel, getCurrentPageContext());
         }
     } catch (error) {
         console.error('发送消息失败:', error);
@@ -977,6 +1161,183 @@ async function sendMessage() {
         if (sendButton) sendButton.disabled = false;
         if (chatInput) { chatInput.disabled = false; chatInput.focus(); }
         isSending = false;
+    }
+}
+
+/**
+ * 普通模式发送消息（阻塞式）
+ */
+async function sendMessageNormal(sessionId, message, model, pageContext) {
+    const url = `/api/ai/chat/session/${sessionId}`;
+    console.log('========== 发送请求（普通模式） ==========');
+    console.log('currentSessionId:', sessionId);
+    console.log('model:', model);
+    console.log('请求 URL:', url);
+    console.log('请求消息:', message);
+    
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            message: message,
+            model: model,
+            pageContext: pageContext
+        })
+    });
+
+    const data = await response.json();
+    console.log('响应数据:', data);
+    
+    // 隐藏打字指示器
+    hideTypingIndicator();
+
+    if (data.success) {
+        addMessage(data.data, 'ai', true, model);
+        // 局部更新当前会话项的标题和时间（不重新加载整个列表）
+        updateCurrentSessionItem(sessionId);
+    } else {
+        addMessage('抱歉,出现了错误: ' + data.error, 'ai');
+    }
+}
+
+/**
+ * 流式模式发送消息（SSE）
+ */
+async function sendMessageStream(sessionId, message, model, pageContext) {
+    const url = `/api/ai/chat/session/${sessionId}/stream?message=${encodeURIComponent(message)}&model=${encodeURIComponent(model || '')}&pageContext=${encodeURIComponent(pageContext || '')}`;
+    console.log('========== 发送请求（流式模式） ==========');
+    console.log('currentSessionId:', sessionId);
+    console.log('model:', model);
+    console.log('请求 URL:', url);
+    
+    // 隐藏打字指示器，准备接收流式数据
+    hideTypingIndicator();
+    
+    // 创建一个空的 AI 消息容器
+    const aiMessageDiv = document.createElement('div');
+    aiMessageDiv.className = 'message ai';
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    messageContent.innerHTML = '<span class="typing-cursor">|</span>';  // 显示光标
+    
+    // 添加模型标签
+    if (model) {
+        const modelLabel = document.createElement('div');
+        modelLabel.className = 'message-model-label';
+        modelLabel.textContent = model;
+        aiMessageDiv.appendChild(modelLabel);
+    }
+    
+    aiMessageDiv.appendChild(messageContent);
+    const messages = getEl('chatMessages');
+    if (messages) {
+        messages.appendChild(aiMessageDiv);
+        messages.scrollTop = messages.scrollHeight;
+    }
+    
+    // 使用 EventSource 接收 SSE 流
+    return new Promise((resolve, reject) => {
+        let fullText = '';
+        const eventSource = new EventSource(url);
+        
+        eventSource.onmessage = function(event) {
+            const chunk = event.data;
+            if (chunk) {
+                fullText += chunk;
+                // 实时更新消息内容（带 Markdown 渲染）
+                try {
+                    messageContent.innerHTML = marked.parse(fullText) + '<span class="typing-cursor">|</span>';
+                } catch (e) {
+                    messageContent.textContent = fullText + '|';
+                }
+                // 自动滚动
+                if (messages) {
+                    messages.scrollTop = messages.scrollHeight;
+                }
+            }
+        };
+        
+        eventSource.onerror = function(error) {
+            console.error('[SSE] 错误:', error);
+            console.error('[SSE] readyState:', eventSource.readyState); // 0=CONNECTING, 1=OPEN, 2=CLOSED
+            
+            // 如果已经接收到了一些内容，说明流式输出基本成功，只是最后关闭时出错
+            if (fullText && fullText.length > 0) {
+                console.log('[SSE] 已接收内容，忽略关闭错误');
+                eventSource.close();
+                // 移除光标
+                messageContent.innerHTML = marked.parse(fullText);
+                
+                // 保存 AI 回复到数据库（后台静默完成）
+                saveStreamedMessage(sessionId, fullText, model).then(() => {
+                    console.log('[流式] 消息已保存到数据库');
+                    // 局部更新当前会话项的标题和时间（不重新加载整个列表）
+                    updateCurrentSessionItem(sessionId);
+                    resolve();
+                }).catch(error => {
+                    console.error('[流式] 保存消息失败:', error);
+                    // 即使保存失败，也更新会话项
+                    updateCurrentSessionItem(sessionId);
+                    resolve();
+                });
+            } else {
+                // 完全没有接收到内容，才是真正的错误
+                eventSource.close();
+                reject(error);
+            }
+        };
+        
+        eventSource.addEventListener('complete', function() {
+            console.log('[SSE] 完成');
+            eventSource.close();
+            // 移除光标
+            messageContent.innerHTML = marked.parse(fullText);
+            
+            // 保存 AI 回复到数据库（后台静默完成）
+            saveStreamedMessage(sessionId, fullText, model).then(() => {
+                console.log('[流式] 消息已保存到数据库');
+                // 局部更新当前会话项的标题和时间（不重新加载整个列表）
+                updateCurrentSessionItem(sessionId);
+                resolve();
+            }).catch(error => {
+                console.error('[流式] 保存消息失败:', error);
+                // 即使保存失败，也更新会话项
+                updateCurrentSessionItem(sessionId);
+                resolve();
+            });
+        });
+    });
+}
+
+/**
+ * 保存流式输出的 AI 消息到数据库
+ */
+async function saveStreamedMessage(sessionId, content, model) {
+    try {
+        const response = await fetch('/api/ai/message/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                sessionId: sessionId,
+                content: content,
+                model: model || null
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            console.log('[流式] 消息保存成功');
+        } else {
+            console.warn('[流式] 消息保存失败:', data.error);
+        }
+    } catch (error) {
+        console.error('[流式] 保存消息异常:', error);
+        throw error;
     }
 }
 
@@ -1112,6 +1473,7 @@ async function ensureChatDataLoaded() {
     if (chatDataLoaded) return;
     chatDataLoaded = true;
     await loadPaginationConfig();
+    await loadChatConfig();  // 加载聊天模式配置（流式/普通）
     await loadModels();
     await loadSessions();
 }

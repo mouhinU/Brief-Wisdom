@@ -33,6 +33,14 @@ window.fetch = async function(...args) {
 
 async function initNavbar() {
   try {
+    // 0. 初始化国际化框架
+    if (window.I18n) {
+      await I18n.init();
+      // 同步语言选择器
+      const langSelect = document.getElementById('navbarLangSelect');
+      if (langSelect) langSelect.value = I18n.getLocale();
+    }
+
     // 1. 先检查登录状态，确定用户角色
     await checkLoginStatus();
     // 2. 再基于登录状态加载菜单（后端会根据 session 中的用户角色过滤）
@@ -44,6 +52,12 @@ async function initNavbar() {
     }
     const menus = result.data;
     renderNavbar(menus);
+
+    // 3. 渲染后同步语言选择器（renderNavbar 会重建 DOM）
+    const langSelect = document.getElementById('navbarLangSelect');
+    if (langSelect && window.I18n) {
+      langSelect.value = I18n.getLocale();
+    }
   } catch (err) {
     console.error('加载菜单异常:', err);
   }
@@ -198,7 +212,22 @@ function renderNavbar(menus) {
 
   navbar.appendChild(menuList);
 
-  // ===== 右侧认证区域 =====
+  // ===== 语言切换 + 右侧认证区域 =====
+  const rightArea = document.createElement('div');
+  rightArea.className = 'navbar-right';
+
+  // 语言切换器
+  const langSwitcher = document.createElement('div');
+  langSwitcher.className = 'navbar-lang';
+  langSwitcher.innerHTML = `
+    <select id="navbarLangSelect" onchange="I18n && I18n.setLocale(this.value)">
+      <option value="zh-CN">中文</option>
+      <option value="en-US">EN</option>
+    </select>
+  `;
+  rightArea.appendChild(langSwitcher);
+
+  // 认证区域
   const authArea = document.createElement('div');
   authArea.className = 'navbar-auth';
   authArea.id = 'navbarAuth';
@@ -207,7 +236,8 @@ function renderNavbar(menus) {
     <button class="auth-btn auth-login-btn" onclick="window.location.href='/login.html?tab=login'">登录</button>
     <button class="auth-btn auth-register-btn" onclick="window.location.href='/login.html?tab=register'">注册</button>
   `;
-  navbar.appendChild(authArea);
+  rightArea.appendChild(authArea);
+  navbar.appendChild(rightArea);
 
   // 插入到 body 最前面
   document.body.insertBefore(navbar, document.body.firstChild);

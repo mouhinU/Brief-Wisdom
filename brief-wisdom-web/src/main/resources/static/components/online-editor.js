@@ -324,7 +324,10 @@
                 </div>
                 <div class="editor-form-group">
                     <label>描述</label>
-                    <textarea id="editor-field-description" rows="4">${escapeHtml(exp.description || '')}</textarea>
+                    <div class="editor-field-with-ai">
+                        <textarea id="editor-field-description" rows="4">${escapeHtml(exp.description || '')}</textarea>
+                        <button class="editor-ai-polish-btn" onclick="OnlineEditor.polishText('editor-field-description', 'description', '${escapeAttr(exp.title || '')}')" title="AI润色">✨ AI</button>
+                    </div>
                 </div>
                 <div class="editor-form-group">
                     <label>包含项目 (${projectCount}个)</label>
@@ -392,11 +395,17 @@
                 </div>
                 <div class="editor-form-group">
                     <label>项目背景</label>
-                    <textarea id="editor-proj-background" rows="3">${escapeHtml(proj.background || '')}</textarea>
+                    <div class="editor-field-with-ai">
+                        <textarea id="editor-proj-background" rows="3">${escapeHtml(proj.background || '')}</textarea>
+                        <button class="editor-ai-polish-btn" onclick="OnlineEditor.polishText('editor-proj-background', 'background', '${escapeAttr(proj.name || '')}')" title="AI润色">✨ AI</button>
+                    </div>
                 </div>
                 <div class="editor-form-group">
                     <label>个人职责</label>
-                    <textarea id="editor-proj-duty" rows="3">${escapeHtml(proj.duty || '')}</textarea>
+                    <div class="editor-field-with-ai">
+                        <textarea id="editor-proj-duty" rows="3">${escapeHtml(proj.duty || '')}</textarea>
+                        <button class="editor-ai-polish-btn" onclick="OnlineEditor.polishText('editor-proj-duty', 'duty', '${escapeAttr(proj.name || '')}')" title="AI润色">✨ AI</button>
+                    </div>
                 </div>
                 <div class="editor-form-group">
                     <label>项目成果 (${achievementCount}项)</label>
@@ -884,6 +893,79 @@
     }
 
     /**
+     * AI 文本润色
+     * @param {string} fieldId - 目标 textarea 的 DOM id
+     * @param {string} fieldType - 字段类型：description/background/duty/achievement
+     * @param {string} context - 上下文信息（如公司名、项目名）
+     */
+    async function polishText(fieldId, fieldType, context) {
+        // 检查 AI 开关是否开启
+        const aiToggle = document.getElementById('editor-ai-enabled');
+        if (aiToggle && !aiToggle.checked) {
+            alert('AI 辅助功能已关闭，请在顶部开关中开启');
+            return;
+        }
+
+        const textarea = document.getElementById(fieldId);
+        if (!textarea) return;
+
+        const originalText = textarea.value.trim();
+        if (!originalText) {
+            alert('请先输入需要润色的文本');
+            return;
+        }
+
+        // 显示加载状态
+        const btn = textarea.parentElement.querySelector('.editor-ai-polish-btn');
+        const originalBtnText = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '⏳ 润色中...';
+            btn.style.opacity = '0.6';
+        }
+        textarea.style.borderColor = '#6366f1';
+
+        try {
+            const response = await fetch('/api/resume/ai/polish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: originalText,
+                    fieldType: fieldType,
+                    context: context || ''
+                })
+            });
+
+            if (!response.ok) throw new Error('请求失败: ' + response.status);
+
+            const data = await response.json();
+            if (data.error) {
+                alert(data.error);
+            } else if (data.result) {
+                // 弹出对比确认
+                const confirmed = confirm(
+                    'AI 润色结果：\n\n' + data.result + '\n\n' +
+                    '点击"确定"替换原文本，点击"取消"保留原文。'
+                );
+                if (confirmed) {
+                    textarea.value = data.result;
+                }
+            }
+        } catch (error) {
+            console.error('[OnlineEditor] AI润色失败:', error);
+            alert('AI 润色失败: ' + error.message);
+        } finally {
+            // 恢复按钮状态
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+                btn.style.opacity = '1';
+            }
+            textarea.style.borderColor = '';
+        }
+    }
+
+    /**
      * HTML 转义
      */
     function escapeHtml(str) {
@@ -930,7 +1012,8 @@
         deleteExperience,
         deleteProject,
         saveExperienceForm,
-        saveProjectForm
+        saveProjectForm,
+        polishText
     };
 
     // 注册组件

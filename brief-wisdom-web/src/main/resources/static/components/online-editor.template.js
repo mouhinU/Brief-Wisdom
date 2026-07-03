@@ -11,6 +11,15 @@
     function generateHTML() {
         return `
             <div class="editor-container">
+                <!-- AI 辅助开关栏 -->
+                <div class="editor-ai-bar" id="editor-ai-bar">
+                    <label class="editor-ai-toggle">
+                        <input type="checkbox" id="editor-ai-enabled" checked>
+                        <span class="editor-ai-toggle-slider"></span>
+                    </label>
+                    <span class="editor-ai-label">AI 辅助润色</span>
+                    <span class="editor-ai-hint">开启后，文本框旁将显示 AI 润色按钮</span>
+                </div>
                 <!-- 步骤导航 -->
                 <div class="editor-steps">
                     <button class="step-btn active" data-step="1" onclick="OnlineEditor.goToStep(1)">

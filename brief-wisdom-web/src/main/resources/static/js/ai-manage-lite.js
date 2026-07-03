@@ -12,7 +12,8 @@ const COMPONENT_NAME_MAP = {
     '知识库': 'knowledge-management',
     '模型管理': 'model-management',
     '用户管理': 'user-management',
-    '角色管理': 'role-management'
+    '角色管理': 'role-management',
+    '费用统计': 'cost-statistics'
 };
 
 // Tab ID 映射表（菜单名称 → Tab 内容容器 ID）
@@ -21,7 +22,8 @@ const TAB_ID_MAP = {
     '知识库': 'knowledge-tab-content',
     '模型管理': 'models-tab-content',
     '用户管理': 'user-tab-content',
-    '角色管理': 'role-tab-content'
+    '角色管理': 'role-tab-content',
+    '费用统计': 'cost-statistics-tab-content'
 };
 
 /**

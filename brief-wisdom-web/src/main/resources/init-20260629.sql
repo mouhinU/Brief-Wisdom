@@ -273,7 +273,8 @@ INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, 
 -- AI助手管理子菜单
 INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
 (14, 3, '模型管理', '', '🧠', '_self', 1, NULL, 9, 0, 0),
-(15, 3, '会话历史', '', '💬', '_self', 1, NULL, 10, 0, 0);
+(15, 3, '会话历史', '', '💬', '_self', 1, NULL, 10, 0, 0),
+(22, 3, '费用统计', '', '💰', '_self', 1, NULL, 11, 0, 0);
 
 -- 简历数据管理子菜单
 INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
@@ -296,13 +297,13 @@ INSERT INTO sys_role_menu (role_id, menu_id) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7),
 (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13),
 (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20),
-(1, 21);
+(1, 21), (1, 22);
 
 -- 管理员 (role_id=2)：除角色管理外的菜单
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES
 (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 8),
-(2, 9), (2, 14), (2, 16), (2, 17), (2, 18), (2, 19), (2, 20),
-(2, 21);
+(2, 9), (2, 14), (2, 15), (2, 16), (2, 17), (2, 18), (2, 19), (2, 20),
+(2, 21), (2, 22);
 
 -- 普通用户 (role_id=3)：基本菜单（首页、简历）
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES

@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.ai.service.impl;
 
 import com.mouhin.brief.wisdom.ai.service.AiManageService;
+import com.mouhin.brief.wisdom.common.manage.CostStatisticsDTO;
 import com.mouhin.brief.wisdom.common.manage.MessageDTO;
 import com.mouhin.brief.wisdom.common.manage.SessionDTO;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -140,5 +142,88 @@ public class AiManageServiceImpl implements AiManageService {
         dto.setTimestamp(msg.getTimestamp());
         dto.setMessageType(msg.getMessageType());
         return dto;
+    }
+
+    /**
+     * 获取费用统计数据
+     */
+    @Override
+    public CostStatisticsDTO getCostStatistics(int days) {
+        log.info("获取费用统计, days={}", days);
+
+        CostStatisticsDTO dto = new CostStatisticsDTO();
+
+        // 总体统计
+        Map<String, Object> overall = chatMessageRepository.getOverallStats();
+        dto.setTotalCost(toDouble(overall.get("totalCost")));
+        dto.setTotalTokens(toLong(overall.get("totalTokens")));
+        dto.setTotalMessages(toLong(overall.get("totalMessages")));
+
+        // 按模型统计
+        List<Map<String, Object>> modelRows = chatMessageRepository.getCostByModel();
+        dto.getByModel().addAll(modelRows.stream().map(row -> {
+            CostStatisticsDTO.ModelCostItem item = new CostStatisticsDTO.ModelCostItem();
+            item.setModel((String) row.get("model"));
+            item.setMessageCount(toLong(row.get("messageCount")));
+            item.setTotalCost(toDouble(row.get("totalCost")));
+            item.setTotalTokens(toLong(row.get("totalTokens")));
+            return item;
+        }).collect(Collectors.toList()));
+
+        // 按用户统计
+        List<Map<String, Object>> userRows = chatMessageRepository.getCostByUser();
+        dto.getByUser().addAll(userRows.stream().map(row -> {
+            CostStatisticsDTO.UserCostItem item = new CostStatisticsDTO.UserCostItem();
+            item.setUserId((String) row.get("userId"));
+            item.setMessageCount(toLong(row.get("messageCount")));
+            item.setTotalCost(toDouble(row.get("totalCost")));
+            item.setTotalTokens(toLong(row.get("totalTokens")));
+            // 尝试查找用户名
+            try {
+                ChatUser user = chatUserRepository.findByUserId(item.getUserId());
+                if (user != null) {
+                    item.setUserName(user.getNickname() != null ? user.getNickname() : user.getUsername());
+                }
+            } catch (Exception e) {
+                log.debug("查找用户名失败: {}", item.getUserId());
+            }
+            return item;
+        }).collect(Collectors.toList()));
+
+        // 按日期统计
+        List<Map<String, Object>> dateRows = chatMessageRepository.getCostByDate(days);
+        dto.getByDate().addAll(dateRows.stream().map(row -> {
+            CostStatisticsDTO.DateCostItem item = new CostStatisticsDTO.DateCostItem();
+            item.setDate(String.valueOf(row.get("date")));
+            item.setMessageCount(toLong(row.get("messageCount")));
+            item.setTotalCost(toDouble(row.get("totalCost")));
+            item.setTotalTokens(toLong(row.get("totalTokens")));
+            return item;
+        }).collect(Collectors.toList()));
+
+        // 按模型+日期统计
+        List<Map<String, Object>> dateModelRows = chatMessageRepository.getCostByDateAndModel(days);
+        dto.getByDateAndModel().addAll(dateModelRows.stream().map(row -> {
+            CostStatisticsDTO.DateModelCostItem item = new CostStatisticsDTO.DateModelCostItem();
+            item.setDate(String.valueOf(row.get("date")));
+            item.setModel((String) row.get("model"));
+            item.setMessageCount(toLong(row.get("messageCount")));
+            item.setTotalCost(toDouble(row.get("totalCost")));
+            return item;
+        }).collect(Collectors.toList()));
+
+        return dto;
+    }
+
+    private Double toDouble(Object value) {
+        if (value == null) return 0.0;
+        if (value instanceof Number) return ((Number) value).doubleValue();
+        return Double.parseDouble(String.valueOf(value));
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) return 0L;
+        if (value instanceof Number) return ((Number) value).longValue();
+        return Long.parseLong(String.valueOf(value));
     }
 }

@@ -46,7 +46,8 @@ public class SecurityConfig {
                         // AI 助手管理需要 admin 或 super_admin 角色（必须在 /api/ai/** 之前）
                         .requestMatchers("/api/ai/manage/**").hasAnyRole("admin", "super_admin")
                         .requestMatchers("/ai-manage.html").hasAnyRole("admin", "super_admin")
-                        // AI 聊天接口全部公开（含会话管理、同步、配置）
+                        // AI 聊天接口全部公开（含会话管理、同步、配置、模型列表）
+                        .requestMatchers("/api/ai/models/enabled").permitAll()
                         .requestMatchers("/api/ai/**").permitAll()
                         // WebSocket 同步端点公开
                         .requestMatchers("/ws/**").permitAll()

@@ -28,6 +28,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -644,6 +645,103 @@ public class AiAgentService {
     }
 
     /**
+     * 流式聊天（返回 Flux<String>，每个元素是一段文本片段）
+     * <p>
+     * 注意：流式模式下不保存 token 和费用信息，仅在最终完成后由调用方统一保存
+     *
+     * @param sessionId   会话ID
+     * @param userId      用户ID
+     * @param message     用户消息
+     * @param modelName   模型名称（可选）
+     * @param pageContext 当前页面上下文（可选）
+     * @return 文本片段流
+     */
+    public Flux<String> chatStreamWithSession(String sessionId, String userId, String message, String modelName, String pageContext) {
+        log.info("========== 开始流式聊天请求 ==========");
+        log.info("sessionId: {}, userId: {}, model: {}, pageContext: {}", sessionId, userId, modelName, pageContext);
+
+        // 输入校验
+        validateInput(message);
+        checkInputSafety(message);
+
+        String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
+
+        // 验证会话
+        ChatSession session = sessionRepository.findBySessionId(sessionId);
+        if (session == null) {
+            return Flux.error(new RuntimeException("会话不存在: " + sessionId));
+        }
+        if (!session.getUserId().equals(userId)) {
+            return Flux.error(new RuntimeException("无权访问此会话"));
+        }
+
+        // 保存用户消息
+        ChatMessage userMsg = new ChatMessage();
+        userMsg.setSessionId(sessionId);
+        userMsg.setUserId(userId);
+        userMsg.setRole("user");
+        userMsg.setContent(message);
+        userMsg.setMessageType("text");
+        messageRepository.save(userMsg);
+
+        // 构建上下文（与非流式相同逻辑）
+        List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, 10);
+        Collections.reverse(recentMessages);
+
+        StringBuilder context = new StringBuilder();
+        context.append("## 当前会话的最近消息\n");
+        for (ChatMessage msg : recentMessages) {
+            context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
+        }
+
+        String effectivePageContext = (pageContext != null && !pageContext.isBlank()) ? pageContext : session.getPageContext();
+        if (effectivePageContext != null && !effectivePageContext.isBlank()) {
+            List<ChatSession> relatedSessions = sessionRepository.findRecentByUserIdAndPageContext(userId, effectivePageContext, 3);
+            relatedSessions = relatedSessions.stream()
+                    .filter(s -> !s.getSessionId().equals(sessionId))
+                    .toList();
+
+            if (!relatedSessions.isEmpty()) {
+                context.append("\n## 同页面（").append(getPageContextName(effectivePageContext)).append("）的其他最近会话\n");
+                for (ChatSession relatedSession : relatedSessions) {
+                    List<ChatMessage> relatedMessages = messageRepository.findRecentMessages(relatedSession.getSessionId(), 5);
+                    Collections.reverse(relatedMessages);
+                    if (!relatedMessages.isEmpty()) {
+                        context.append("\n### 会话: ").append(relatedSession.getTitle()).append("\n");
+                        for (ChatMessage msg : relatedMessages) {
+                            context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
+                        }
+                    }
+                }
+            }
+        }
+
+        String systemPrompt = SystemPrompts.getSystemPromptWithContext(effectivePageContext);
+        String provider = resolveProvider(model);
+        ChatModel chatModel = chatModelRegistry.getChatModel(provider);
+
+        Prompt prompt = new Prompt(
+                List.of(new SystemMessage(systemPrompt), new UserMessage(context.toString())),
+                buildChatOptions(provider, model)
+        );
+
+        // 使用 stream() 获取流式响应
+        return chatModel.stream(prompt)
+                .map(chatResponse -> {
+                    String text = chatResponse.getResult().getOutput().getText();
+                    return text != null ? text : "";
+                })
+                .doOnComplete(() -> {
+                    log.info("[流式] 完成");
+                    // 流式完成后，通知其他设备
+                    chatSyncService.notifyUser(userId, "message_added", sessionId);
+                })
+                .doOnError(error -> {
+                    log.error("[流式] 错误: {}", error.getMessage());
+                });
+    }
+
+    /**
      * 获取页面上下文的中文名称
      */
     private String getPageContextName(String pageContext) {
@@ -770,5 +868,66 @@ public class AiAgentService {
         syncStatus.setFingerprint(Integer.toHexString(raw.hashCode()));
 
         return syncStatus;
+    }
+
+    /**
+     * 保存流式输出的 AI 消息到数据库
+     * <p>
+     * 前端在接收到完整的流式响应后调用此接口，将 AI 回复保存到数据库。
+     *
+     * @param sessionId 会话ID
+     * @param userId    用户ID
+     * @param content   AI 回复内容
+     * @param model     模型名称
+     */
+    @Transactional
+    public void saveStreamedMessage(String sessionId, String userId, String content, String model) {
+        log.info("保存流式消息 - sessionId: {}, userId: {}, model: {}, content length: {}",
+                sessionId, userId, model, content != null ? content.length() : 0);
+
+        // 验证会话
+        ChatSession session = sessionRepository.findBySessionId(sessionId);
+        if (session == null) {
+            throw new RuntimeException("会话不存在: " + sessionId);
+        }
+        if (!session.getUserId().equals(userId)) {
+            throw new RuntimeException("无权访问此会话");
+        }
+
+        // 保存 AI 回复
+        ChatMessage aiMsg = new ChatMessage();
+        aiMsg.setSessionId(sessionId);
+        aiMsg.setUserId(userId);
+        aiMsg.setRole("assistant");
+        aiMsg.setContent(content);
+        aiMsg.setModel(model);
+        aiMsg.setMessageType("text");
+        // 流式模式下不记录 token 和费用
+        aiMsg.setTokens(0);
+        aiMsg.setCost(0.0);
+        messageRepository.save(aiMsg);
+
+        // 更新会话统计信息
+        long messageCount = messageRepository.countBySessionId(sessionId);
+        session.setMessageCount((int) messageCount);
+
+        // 如果是第一条消息，用用户消息作为标题
+        if (messageCount == 2) {
+            // 获取用户的第一条消息作为标题
+            List<ChatMessage> firstMessages = messageRepository.findRecentMessages(sessionId, 1);
+            if (!firstMessages.isEmpty()) {
+                String firstMessage = firstMessages.get(0).getContent();
+                session.setTitle(firstMessage.length() > 30 ? firstMessage.substring(0, 30) + "..." : firstMessage);
+            }
+        }
+
+        // 手动设置更新时间为当前时间
+        session.setUpdateTime(LocalDateTime.now());
+        sessionRepository.update(session);
+
+        log.info("流式消息保存成功 - sessionId: {}, messageCount: {}", sessionId, messageCount);
+
+        // SSE 通知其他设备：新消息已添加
+        chatSyncService.notifyUser(userId, "message_added", sessionId);
     }
 }

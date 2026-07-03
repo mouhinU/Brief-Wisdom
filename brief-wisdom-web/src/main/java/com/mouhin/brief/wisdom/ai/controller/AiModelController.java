@@ -38,14 +38,6 @@ public class AiModelController {
     }
 
     /**
-     * 获取启用的模型列表（聊天页面选择器用）
-     */
-    @GetMapping("/enabled")
-    public List<AiModelDTO> listEnabledModels() {
-        return aiModelService.listEnabledModels();
-    }
-
-    /**
      * 获取当前激活的模型
      */
     @GetMapping("/active")

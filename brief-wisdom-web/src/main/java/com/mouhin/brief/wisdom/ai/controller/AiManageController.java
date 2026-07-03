@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
+import com.mouhin.brief.wisdom.common.manage.CostStatisticsDTO;
 import com.mouhin.brief.wisdom.common.manage.MessageDTO;
 import com.mouhin.brief.wisdom.common.manage.SessionDTO;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
@@ -70,5 +71,13 @@ public class AiManageController {
     @GetMapping("/session/{sessionId}/messages")
     public List<MessageDTO> getSessionMessages(@PathVariable String sessionId) {
         return aiManageService.getSessionMessages(sessionId);
+    }
+
+    /**
+     * 获取费用统计数据
+     */
+    @GetMapping("/cost-statistics")
+    public CostStatisticsDTO getCostStatistics(@RequestParam(value = "days", defaultValue = "30") int days) {
+        return aiManageService.getCostStatistics(days);
     }
 }

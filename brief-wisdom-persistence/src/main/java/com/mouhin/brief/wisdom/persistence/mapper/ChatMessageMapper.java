@@ -32,4 +32,26 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessage> {
     // 批量获取指定用户所有会话的最后消息时间（用于同步状态检测）
     @Select("SELECT session_id, MAX(timestamp) as last_time FROM chat_message WHERE user_id = #{userId} AND is_deleted = 0 GROUP BY session_id")
     List<Map<String, Object>> selectLastMessageTimesByUserId(String userId);
+
+    // ========== 费用统计聚合查询 ==========
+
+    // 总体统计：总费用、总token数、总消息数
+    @Select("SELECT COALESCE(SUM(cost), 0) as totalCost, COALESCE(SUM(tokens), 0) as totalTokens, COUNT(*) as totalMessages FROM chat_message WHERE is_deleted = 0 AND role = 'assistant' AND cost > 0")
+    Map<String, Object> selectOverallStats();
+
+    // 按模型分组统计
+    @Select("SELECT model, COUNT(*) as messageCount, COALESCE(SUM(cost), 0) as totalCost, COALESCE(SUM(tokens), 0) as totalTokens FROM chat_message WHERE is_deleted = 0 AND role = 'assistant' AND cost > 0 GROUP BY model ORDER BY totalCost DESC")
+    List<Map<String, Object>> selectCostByModel();
+
+    // 按用户分组统计
+    @Select("SELECT user_id as userId, COUNT(*) as messageCount, COALESCE(SUM(cost), 0) as totalCost, COALESCE(SUM(tokens), 0) as totalTokens FROM chat_message WHERE is_deleted = 0 AND role = 'assistant' AND cost > 0 GROUP BY user_id ORDER BY totalCost DESC")
+    List<Map<String, Object>> selectCostByUser();
+
+    // 按日期分组统计（最近N天）
+    @Select("SELECT DATE(timestamp) as date, COUNT(*) as messageCount, COALESCE(SUM(cost), 0) as totalCost, COALESCE(SUM(tokens), 0) as totalTokens FROM chat_message WHERE is_deleted = 0 AND role = 'assistant' AND cost > 0 AND timestamp >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) GROUP BY DATE(timestamp) ORDER BY date")
+    List<Map<String, Object>> selectCostByDate(int days);
+
+    // 按模型+日期分组统计（最近N天）
+    @Select("SELECT DATE(timestamp) as date, model, COUNT(*) as messageCount, COALESCE(SUM(cost), 0) as totalCost FROM chat_message WHERE is_deleted = 0 AND role = 'assistant' AND cost > 0 AND timestamp >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) GROUP BY DATE(timestamp), model ORDER BY date")
+    List<Map<String, Object>> selectCostByDateAndModel(int days);
 }
