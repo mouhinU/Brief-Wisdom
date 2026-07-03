@@ -25,6 +25,12 @@ import java.util.regex.Pattern;
 @Service
 public class ContentFilterService {
 
+    private final com.mouhin.brief.wisdom.ai.service.AiAuditService auditService;
+
+    public ContentFilterService(com.mouhin.brief.wisdom.ai.service.AiAuditService auditService) {
+        this.auditService = auditService;
+    }
+
     /**
      * 输入敏感关键词列表（命中即拦截，不调用模型）
      * <p>
@@ -64,48 +70,56 @@ public class ContentFilterService {
             "抱歉，回复中包含敏感信息，已被安全过滤。请调整您的问题后重试。";
 
     /**
-     * 检查输入是否包含违规关键词
+     * 检查输入是否包含违规关键词（仅检测，不记录日志）
      *
      * @param message 用户输入
-     * @return true 表示违规，应拦截
+     * @return 命中的敏感词，null 表示未命中
      */
-    public boolean isInputBlocked(String message) {
+    public String checkInputBlocked(String message) {
         if (message == null || message.isBlank()) {
-            return false;
+            return null;
         }
         String lowerMsg = message.toLowerCase();
         for (String keyword : BLOCKED_KEYWORDS) {
             if (lowerMsg.contains(keyword.toLowerCase())) {
-                log.warn("[内容安全] 输入命中敏感关键词，已拦截: keyword={}", keyword);
-                return true;
+                log.warn("[内容安全] 输入命中敏感关键词: keyword={}", keyword);
+                return keyword;
             }
         }
-        return false;
+        return null;
     }
 
     /**
      * 过滤输出内容中的敏感信息
      *
-     * @param content AI 回复内容
+     * @param content   AI 回复内容
+     * @param sessionId 会话ID（用于审计日志）
+     * @param userId    用户ID（用于审计日志）
+     * @param messageId 消息ID（用于审计日志）
      * @return 过滤后的内容（若命中严重敏感内容则返回完整替换提示）
      */
-    public String filterOutput(String content) {
+    public String filterOutput(String content, String sessionId, String userId, Long messageId) {
         if (content == null || content.isBlank()) {
             return content;
         }
 
         String filtered = content;
         int matchCount = 0;
+        String matchedPattern = null;
 
         for (Pattern pattern : OUTPUT_SENSITIVE_PATTERNS) {
             if (pattern.matcher(filtered).find()) {
                 matchCount++;
+                matchedPattern = pattern.pattern();
                 filtered = pattern.matcher(filtered).replaceAll(SENSITIVE_REPLACEMENT);
             }
         }
 
         if (matchCount > 0) {
             log.info("[内容安全] 输出过滤命中 {} 处敏感信息，已替换", matchCount);
+            // 记录审计日志
+            auditService.logOutputFiltered(sessionId, userId, messageId, matchedPattern, 
+                                          maskSensitiveInfo(content), filtered);
         }
 
         return filtered;
@@ -116,5 +130,29 @@ public class ContentFilterService {
      */
     public String getBlockedMessage() {
         return "抱歉，您的消息包含不当内容，无法处理。请遵守相关法律法规和社区规范。";
+    }
+
+    /**
+     * 获取审计服务（供外部调用）
+     */
+    public com.mouhin.brief.wisdom.ai.service.AiAuditService getAuditService() {
+        return auditService;
+    }
+
+    /**
+     * 对敏感信息进行脱敏处理（用于审计日志存储）
+     *
+     * @param content 原始内容
+     * @return 脱敏后的内容
+     */
+    private String maskSensitiveInfo(String content) {
+        if (content == null || content.isBlank()) {
+            return content;
+        }
+        // 简单脱敏：只显示前50个字符，其余用省略号代替
+        if (content.length() > 50) {
+            return content.substring(0, 50) + "...[已脱敏]";
+        }
+        return content;
     }
 }

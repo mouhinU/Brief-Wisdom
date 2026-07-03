@@ -18,7 +18,8 @@ const COMPONENT_NAME_MAP = {
     '工作经历': 'experience-management',
     '项目经历': 'project-management',
     '项目成果': 'achievement-management',
-    '技术栈': 'tech-stack-management'
+    '技术栈': 'tech-stack-management',
+    'AI安全审计': 'audit-log'
 };
 
 // Tab ID 映射表（菜单名称 → Tab 内容容器 ID）
@@ -33,7 +34,8 @@ const TAB_ID_MAP = {
     '工作经历': 'experience-tab-content',
     '项目经历': 'project-tab-content',
     '项目成果': 'achievement-tab-content',
-    '技术栈': 'tech-stack-tab-content'
+    '技术栈': 'tech-stack-tab-content',
+    'AI安全审计': 'audit-log-tab-content'
 };
 
 /**

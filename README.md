@@ -37,14 +37,19 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 - **RBAC 权限控制**：基于角色的访问控制，支持超级管理员/管理员/普通用户三级权限体系，细粒度到按钮级别的权限管理
 - **多会话管理**：支持创建、切换、删除多个会话，分页加载（无限滚动）
 - **页面上下文感知**：AI 助手识别当前页面，提供针对性的对话能力（如简历页提供简历优化建议）
-- **多模型管理**：支持 AI 模型的动态管理（启用/禁用/切换/价格配置），已集成通义千问、OpenAI GPT、Anthropic Claude、DeepSeek 等多提供商
+- **多模型管理**：支持 AI 模型的动态管理（启用/禁用/切换/价格配置），已集成通义千问、DeepSeek 等多提供商，支持 OpenAI 兼容协议和 Anthropic 协议
 - **知识库管理**：支持文档上传、向量化存储、语义检索，增强 AI 回答准确性，支持内部文档/文件/外部链接三种类型
 - **多端实时同步**：支持 SSE 和 WebSocket 两种传输方式，可配置切换，实现多设备同时在线实时同步
-- **Redis 分布式缓存**：菜单、用户权限、简历数据等低频变动数据的 Redis 缓存，Spring Session 会话持久化
-- **分布式锁**：基于 Redisson 的分布式锁，防止并发操作冲突
+- **流式输出**：支持 SSE 流式聊天（打字机效果），可配置开启或关闭，提升用户体验
+- **局部更新优化**：前端采用纯内存缓存 + 零网络请求的局部更新策略，消除页面抖动，实现极致流畅的交互体验
+- **分布式锁修复**：解决 Redisson Spring Boot Starter 与 Spring Data Redis 的 `pExpire()` 方法递归冲突，确保 Spring Session 稳定性
 - **用户认证体系**：支持用户名/密码登录、微信扫码登录、钉钉扫码登录、支付宝扫码登录
 - **访客系统**：未登录用户基于 IP + 浏览器 + 设备类型生成唯一指纹，保证会话连续性
-- **个人简历管理**：完整的工作经历、项目经历、项目成果、技术栈的 CRUD 管理（组件化架构）
+- **个人简历管理**：完整的工作经历、项目经历、项目成果、技术栈的 CRUD 管理（组件化架构），支持在线编辑和 AI 文案润色
+- **AI 文案润色**：在线编辑器中集成 AI 润色功能，可对工作描述、项目背景、个人职责等字段进行智能优化，支持用户开关控制
+- **费用统计**：多维度 AI 使用费用统计，支持按模型、用户、时间段分析，提供可视化图表和汇总报表
+- **AI 审计日志**：记录 AI 交互审计日志，支持日志查询和统计分析
+- **国际化（i18n）**：前后端完整的多语言框架，支持中文/英文切换，可扩展更多语言
 - **系统管理**：用户管理（级别/状态）、角色管理、菜单管理（树形结构 + 动态配置）
 - **AI 管理后台**：按用户级别查看会话历史、消息记录
 - **安全合规**：输入关键词拦截、输出敏感信息过滤、接口限流保护
@@ -71,11 +76,25 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 - **动态菜单**：根据用户角色动态加载可见菜单，前端按权限渲染
 - **超级管理员特权**：super_admin 角色拥有所有权限，自动放行
 
-### 3. 多端实时同步
+### 3. 流式输出与实时同步
 
-### 多端实时同步
+#### 流式聊天（SSE）
 
-系统提供两种实时同步方案，通过配置项 `app.sync.transport` 切换：
+系统支持两种聊天模式，通过配置项 `app.chat.streaming` 切换：
+
+- **流式模式**（默认）：
+  - 服务端使用 `SseEmitter` 逐块推送 AI 回复
+  - 前端使用 `EventSource` API 接收并实时渲染
+  - 提供打字机效果，提升用户等待体验
+  - 支持完成事件通知，确保消息完整性
+
+- **普通模式**：
+  - 阻塞式等待完整响应后一次性返回
+  - 适用于对实时性要求不高的场景
+
+#### 多端实时同步
+
+系统提供两种实时同步方案，通过配置项 `app.sync.transport` 切换（默认 `websocket`）：
 
 #### SSE (Server-Sent Events)
 
@@ -99,14 +118,32 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 - `session_deleted`：会话删除事件
 - `message_added`：新消息添加事件
 
-### 4. Redis 分布式缓存
+### 4. 前端性能优化
+
+#### 局部更新策略
+
+为消除页面刷新抖动，系统实现了纯内存缓存的局部更新机制：
+
+- **零网络请求**：从内存数组 `allSessions` 直接读取数据，无需重新加载整个列表
+- **精准 DOM 更新**：只更新单个文本节点（如会话时间），不重建任何组件
+- **零视觉抖动**：响应延迟从 200-500ms 降至 <1ms，用户完全感知不到"系统在工作"
+
+#### 核心优化函数
+
+| 函数名 | 功能 | 优化前 | 优化后 |
+|--------|------|--------|--------|
+| `updateCurrentSessionItem()` | 更新当前会话项 | 发起网络请求获取最新数据 | 纯内存操作，零请求 |
+| `addNewSessionToList()` | 添加新会话到列表 | 调用 `loadSessions()` 重新加载 | 局部插入 DOM 元素 |
+| `removeSessionFromList()` | 删除会话项 | 调用 `loadSessions()` 重新加载 | 局部移除 DOM 元素 |
+
+### 5. Redis 分布式缓存
 
 - **Spring Cache**：基于注解的缓存管理，不同缓存域设置独立 TTL
 - **业务域缓存**：菜单树（10min）、用户权限（5min）、简历数据（30min）、AI 模型（15min）
 - **Session 持久化**：Spring Session + Redis，支持分布式会话共享
 - **分布式锁**：基于 Redisson 的 `@DistributedLock` 注解，防止并发冲突
 
-### 5. 安全与合规
+### 6. 安全与合规
 
 - **三层防线**：
     1. **系统提示词**：引导 AI 遵守伦理合规和安全风控准则
@@ -115,7 +152,7 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 - **接口限流**：滑动窗口算法，每用户每分钟 20 次、每天 200 次
 - **输入校验**：空值检测、长度限制（最大 10000 字符）
 
-### 6. 用户认证
+### 7. 用户认证
 
 - **用户名/密码登录**：支持注册、登录，密码 BCrypt 加密
 - **微信扫码登录**：OAuth2.0 标准流程
@@ -124,14 +161,41 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 - **访客模式**：未登录用户基于客户端指纹生成唯一 ID，保证会话连续性
 - **用户级别**：admin（管理员）、vip（会员）、normal（普通用户）
 
-### 7. 简历管理
+### 8. 简历管理
 
 - **工作经历**：支持 CRUD，包含职位、岗位、描述、排序、显示控制
 - **项目经历**：关联工作经历，包含项目名称、周期、背景、职责
 - **项目成果**：关联项目，记录具体成果内容
 - **技术栈**：关联工作经历，记录使用的技术
+- **在线编辑器**：分步式编辑界面（工作经历 → 项目经历），支持实时预览和全屏简历查看
+- **AI 文案润色**：集成 AI 润色功能，对工作描述、项目背景、个人职责进行智能优化
+  - 用户可通过顶部开关控制 AI 功能的启用/禁用
+  - 基于 STAR 法则优化表述，突出量化成果
+  - 润色结果通过确认弹窗让用户决定是否替换原文
 
-### 8. 系统管理
+### 9. 费用统计
+
+- **多维度统计**：支持按模型、用户、时间段三个维度分析 AI 使用费用
+- **总览面板**：展示总费用、总 Token 数、AI 回复次数、平均费用等关键指标
+- **可视化图表**：每日费用趋势柱状图、模型费用分布条形图
+- **时间范围**：支持近 7 天 / 30 天 / 90 天切换查看
+- **详细报表**：按模型和按用户的详细统计表格
+
+### 10. AI 审计日志
+
+- **操作审计**：记录 AI 交互的审计日志，包括用户操作、模型调用、内容审核等
+- **日志查询**：支持分页查询审计日志，按会话查看历史记录
+- **统计分析**：提供审计数据的统计概览
+
+### 11. 国际化（i18n）
+
+- **后端支持**：基于 Spring `MessageSource` 的国际化消息，`I18nUtils` 工具类提供便捷的消息获取
+- **前端框架**：轻量级 `I18n.js` 工具，支持 `I18n.t()` 翻译函数、`data-i18n` 属性自动翻译、语言切换事件
+- **语言包**：中文（zh-CN）和英文（en-US）双语支持，JSON 格式易于扩展
+- **语言切换**：导航栏集成语言选择器，Cookie 持久化用户偏好
+- **扩展方式**：新增语言只需添加对应的 `.properties` 和 `.json` 翻译文件
+
+### 12. 系统管理
 
 - **用户管理**：分页查询、级别修改、删除用户、重置密码
 - **角色管理**：角色 CRUD、角色分配菜单权限、用户角色分配（仅 super_admin 可管理）
@@ -146,11 +210,12 @@ Brief-Wisdom 是一个 AI 智能对话平台，核心功能包括：
 Brief-Wisdom/
 ├── brief-wisdom-persistence/   # 数据持久化模块（Entity + Mapper + Repository）
 ├── brief-wisdom-ai/            # AI 智能模块（Service + 业务逻辑）
+├── brief-wisdom-system/        # 系统模块（用户/角色/菜单/认证/OAuth）
 ├── brief-wisdom-web/           # Web 应用模块（Controller + 配置 + 前端资源）
 ├── brief-wisdom-api/           # API 接口定义模块
 ├── brief-wisdom-service/       # 通用服务模块
 ├── brief-wisdom-resume/        # 个人简历模块
-└── brief-wisdom-common/        # 公共模块（DTO + 工具类 + 常量 + 安全注解）
+└── brief-wisdom-common/        # 公共模块（DTO + 工具类 + 常量 + 安全注解 + i18n）
 ```
 
 **依赖关系**：
@@ -158,6 +223,8 @@ Brief-Wisdom/
 ```
 brief-wisdom-web (Web入口)
     ├── brief-wisdom-ai (AI功能)
+    │       └── brief-wisdom-persistence (数据访问)
+    ├── brief-wisdom-system (系统管理)
     │       └── brief-wisdom-persistence (数据访问)
     ├── brief-wisdom-resume (简历功能)
     │       └── brief-wisdom-persistence (数据访问)
@@ -171,11 +238,12 @@ brief-wisdom-web (Web入口)
 
 | 模块          | 职责            | 关键类                                                                                                                              |
 |-------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| persistence | 数据存储和访问层      | `ChatUser`, `ChatSession`, `ChatMessage`, `AiModel`, `SysRole`, `SysMenu`, `RoleMenu`, `UserRole`, `WorkExperience`, `Project`, `KnowledgeBase`, `KnowledgeDocument`, 各 Mapper/Repository |
-| ai          | AI 服务和业务逻辑    | `AiAgentService`, `ChatSyncService`, `ContentFilterService`, `RateLimitService`, `SystemPrompts`, `KnowledgeService`                                     |
-| web         | Web 入口、配置和前端资源 | `WebApplication`, `AiAgentController`, `AuthController`, `UserController`, `RoleController`, `MenuController`, `SecurityConfig`, `RedisConfig`, `PermissionInterceptor` |
+| persistence | 数据存储和访问层      | `ChatUser`, `ChatSession`, `ChatMessage`, `AiModel`, `SysRole`, `SysMenu`, `RoleMenu`, `UserRole`, `WorkExperience`, `Project`, `KnowledgeBase`, `KnowledgeDocument`, `AiAuditLog`, 各 Mapper/Repository |
+| ai          | AI 服务和业务逻辑    | `AiAgentService`, `ChatSyncService`, `ContentFilterService`, `RateLimitService`, `SystemPrompts`, `KnowledgeService`, `SseChatSyncService`, `WebSocketChatSyncService`, `AiAuditService`, `AiManageService`, `AiModelService`, `ChatModelRegistry` |
+| system      | 系统管理和认证       | `AuthService`, `UserService`, `MenuService`, `RoleService`, `WechatAuthService`, `DingtalkAuthService`, `AlipayAuthServiceImpl`, `UserContextHelper`, `OAuthProperties` |
+| web         | Web 入口、配置和前端资源 | `WebApplication`, `AiAgentController`, `AuthController`, `UserController`, `RoleController`, `MenuController`, `ResumeAiController`, `AiAuditController`, `SecurityConfig`, `RedisConfig`, `I18nConfig`, `PermissionInterceptor`, `WebSocketConfig`, `ResultAutoWrapperAdvice` |
 | resume      | 个人简历展示和管理     | `ResumeController`, `ResumeManageController`, `ResumeService`, `ResumeManageService`                                               |
-| common      | 公共 DTO、常量和注解  | `Result`, `PageResult`, `CachePrefix`, `RequiresPermission`, `SessionMetaDTO`, `ChatMessageDTO`, `AiModelDTO`, `KnowledgeDTO` 等                       |
+| common      | 公共 DTO、常量、注解和 i18n | `Result`, `PageResult`, `CachePrefix`, `RequiresPermission`, `SessionMetaDTO`, `ChatMessageDTO`, `AiModelDTO`, `KnowledgeDTO`, `CostStatisticsDTO`, `I18nUtils` 等 |
 | api         | API 接口定义和 DTO | 通用响应封装                                                                                                                             |
 | service     | 通用服务层         | 业务服务类                                                                                                                              |
 
@@ -194,7 +262,8 @@ brief-wisdom-web (Web入口)
 | ORM           | MyBatis-Plus 3.5.5           |
 | 数据库           | MySQL 8.0+                   |
 | 缓存            | Redis + Lettuce 连接池          |
-| 分布式锁          | Redisson 3.40.2              |
+| 分布式锁          | Redisson 3.40.2（独立客户端，避免与 Spring Data Redis 冲突） |
+| 实时通信          | SSE (Server-Sent Events) / WebSocket |
 | 前端            | 原生 HTML/CSS/JS                |
 | 构建工具          | Maven                        |
 
@@ -261,10 +330,24 @@ mysql -u root -p123456 < brief-wisdom-web/src/main/resources/init-20260629.sql
 2. 创建所有表（含 RBAC 表：`sys_role`、`sys_user_role`、`sys_role_menu`）
 3. 插入默认用户：`default-user/guest`（访客）和 `admin/mouhin`（超级管理员）
 4. 插入默认角色：super_admin、admin、normal
-5. 插入树形菜单（含系统设置子菜单：用户管理、角色管理、菜单管理）
+5. 插入树形菜单（含系统设置子菜单：用户管理、角色管理、菜单管理、费用统计）
 6. 插入角色-菜单权限分配
-7. 插入 AI 模型配置（qwen-max/plus/turbo/qwen3.7-plus）
+7. 插入 AI 模型配置（qwen-max/plus/turbo/qwen3.7-plus/deepseek 等）
 8. 插入简历示例数据
+
+**其他 SQL 脚本**：
+
+| 脚本文件 | 说明 |
+|---------|------|
+| `init-20260629.sql` | 一体化初始化脚本（推荐，包含所有表结构和初始数据） |
+| `init.sql` | 基础建表脚本（chat_user/chat_session/chat_message） |
+| `ai_model_init.sql` | AI 模型初始化数据（含价格配置） |
+| `knowledge_init.sql` | 知识库初始数据 |
+| `resume_init.sql` | 简历示例数据 |
+| `menu_init.sql` | 菜单初始化 |
+| `rbac_migration.sql` | RBAC 权限迁移脚本 |
+| `ai_audit_init.sql` | AI 审计日志表建表脚本 |
+| `test-audit-data.sql` | 审计测试数据 |
 
 **方式二：应用启动时自动建表**
 
@@ -291,6 +374,7 @@ chat_user (用户)
     ├── chat_session (会话) [一对多]
     │       └── chat_message (消息) [一对多]
     ├── user_oauth (第三方登录绑定) [一对多]
+    ├── ai_audit_log (AI审计日志) [一对多]
     └── sys_user_role (用户角色关联) [一对多]
             └── sys_role (角色)
 
@@ -301,6 +385,9 @@ sys_role (角色)
 sys_menu (系统菜单) [树形结构，parent_id 自引用]
 
 ai_model (AI模型配置) [独立]
+
+knowledge_base (知识库) [树形结构，parent_id 自引用]
+    └── knowledge_document (知识文档) [一对多]
 
 work_experience (工作经历)
     ├── project (项目) [一对多]
@@ -492,6 +579,21 @@ work_experience (工作经历)
 | create_time   | DATETIME     | 创建时间                  |
 | update_time   | DATETIME     | 更新时间                  |
 | is_deleted    | TINYINT      | 逻辑删除                  |
+
+### ai_audit_log（AI 审计日志表）
+
+| 字段          | 类型           | 说明                    |
+|---------------|--------------|-----------------------|
+| id            | BIGINT       | 自增主键                  |
+| user_id       | VARCHAR(36)  | 用户 ID                  |
+| session_id    | VARCHAR(36)  | 会话 ID                  |
+| action        | VARCHAR(50)  | 操作类型（chat/polish/audit 等） |
+| model         | VARCHAR(100) | 使用的 AI 模型             |
+| input_tokens  | INT          | 输入 Token 数             |
+| output_tokens | INT          | 输出 Token 数             |
+| cost          | DOUBLE       | 费用（元）                 |
+| status        | VARCHAR(20)  | 状态（success/failed/filtered） |
+| create_time   | DATETIME     | 创建时间                  |
 
 ### 主键策略
 
@@ -722,17 +824,27 @@ public void sendMessage(String sessionId, String content) { ... }
 
 ### 当前 AI 提供商
 
-项目当前使用 **阿里通义千问（DashScope）**，通过 OpenAI 兼容协议对接：
+项目当前配置了两个 AI 提供商，通过 OpenAI 兼容协议对接：
+
+- **阿里通义千问（DashScope）**：默认提供商，使用 qwen-max 模型
+- **DeepSeek**：备选提供商，使用 deepseek-chat 模型
 
 ```yaml
-spring:
+# application.yml 中的提供商配置示例
+app:
   ai:
-    openai:
-      api-key: ${AI_API_KEY}
-      base-url: https://dashscope.aliyuncs.com/compatible-mode
-      chat:
-        options:
-          model: qwen-max
+    default-provider: dashscope
+    providers:
+      dashscope:
+        type: openai-compatible
+        base-url: https://dashscope.aliyuncs.com/compatible-mode
+        api-key: ${AI_API_KEY}
+        default-model: qwen-max
+      deepseek:
+        type: openai-compatible
+        base-url: https://api.deepseek.com
+        api-key: ${DEEPSEEK_API_KEY}
+        default-model: deepseek-chat
 ```
 
 ### 多模型管理
@@ -741,9 +853,8 @@ spring:
 
 - **支持的提供商**：
   - **DashScope（通义千问）**：qwen-max、qwen-plus、qwen-turbo、qwen3.7-plus
-  - **OpenAI**：gpt-4o、gpt-4o-mini
-  - **Anthropic（Claude）**：claude-sonnet-4、claude-3.5-haiku
   - **DeepSeek**：deepseek-chat、deepseek-v3-flash、deepseek-v3-pro
+  - **可扩展**：在 `application.yml` 中配置即可接入 OpenAI、Anthropic Claude 等其他提供商
   
 - **协议支持**：
   - **OpenAI 兼容协议**：适用于 DashScope、OpenAI、DeepSeek、Ollama 等
@@ -833,13 +944,18 @@ AI 助手根据当前页面自动切换角色定位：
 | 接口                                  | 方法     | 说明            |
 |-------------------------------------|--------|---------------|
 | `/api/knowledge/bases`              | GET    | 获取知识库列表      |
+| `/api/knowledge/bases/tree`         | GET    | 获取知识库树形结构    |
+| `/api/knowledge/bases/paged`        | GET    | 分页获取知识库列表    |
 | `/api/knowledge/bases`              | POST   | 创建知识库        |
 | `/api/knowledge/bases/{id}`         | PUT    | 更新知识库        |
 | `/api/knowledge/bases/{id}`         | DELETE | 删除知识库        |
+| `/api/knowledge/bases/{parentId}/children` | GET | 获取子知识库列表     |
 | `/api/knowledge/documents`          | GET    | 获取文档列表       |
 | `/api/knowledge/documents`          | POST   | 上传文档         |
+| `/api/knowledge/documents/{id}`     | GET    | 获取文档详情       |
 | `/api/knowledge/documents/{id}`     | PUT    | 更新文档         |
 | `/api/knowledge/documents/{id}`     | DELETE | 删除文档         |
+| `/api/knowledge/documents/search`   | GET    | 按标题搜索文档      |
 | `/api/knowledge/search`             | POST   | 语义检索         |
 
 ---
@@ -936,6 +1052,7 @@ SSE 通知其他设备同步
 |---------------------------------------|--------|----------------------------------------|
 | `/api/ai/session`                     | POST   | 创建新会话（支持传入 pageContext）                |
 | `/api/ai/session/{sessionId}`         | DELETE | 删除会话（逻辑删除）                             |
+| `/api/ai/session/{sessionId}/title`   | PUT    | 重命名会话标题                                |
 | `/api/ai/sessions?page=1&size=20`     | GET    | 分页获取会话列表（返回 `records/total/hasMore` 等） |
 | `/api/ai/session/{sessionId}/history` | GET    | 分页获取会话历史消息（第1页为最新消息）                   |
 | `/api/ai/config/pagination`           | GET    | 获取分页配置（sessionList/messageHistory）     |
@@ -948,6 +1065,9 @@ SSE 通知其他设备同步
 | `/api/ai/chat-with-prompt`         | POST | 带系统提示的聊天          |
 | `/api/ai/ask`                      | POST | 智能问答              |
 | `/api/ai/chat/session/{sessionId}` | POST | 带上下文的会话聊天（支持指定模型） |
+| `/api/ai/chat/session/{sessionId}/stream` | GET  | SSE 流式聊天（打字机效果） |
+| `/api/ai/message/save`             | POST | 保存流式消息            |
+| `/api/ai/models/enabled`           | GET  | 获取启用的模型列表         |
 
 ### AI 多端同步
 
@@ -956,6 +1076,8 @@ SSE 通知其他设备同步
 | `/api/ai/sync/events` | GET    | SSE 实时同步事件流  |
 | `/api/ai/sync/events` | DELETE | 断开 SSE 连接    |
 | `/api/ai/sync/status` | GET    | 获取同步状态（指纹对比） |
+| `/api/ai/sync/transport` | GET | 获取同步传输方式配置   |
+| `/api/ai/config/chat` | GET    | 获取聊天配置（流式/同步） |
 
 ### AI 模型管理（需 admin/super_admin 角色）
 
@@ -979,6 +1101,15 @@ SSE 通知其他设备同步
 | `/api/ai/manage/sessions/user/{userId}`       | GET | 按用户ID查询会话列表     |
 | `/api/ai/manage/sessions/level/{level}`       | GET | 按用户级别查询会话列表     |
 | `/api/ai/manage/session/{sessionId}/messages` | GET | 获取会话消息历史        |
+| `/api/ai/manage/cost-statistics?days=30`      | GET | 获取费用统计（按模型/用户/日期） |
+
+### AI 审计（需 admin/super_admin 角色）
+
+| 接口                                       | 方法  | 说明           |
+|------------------------------------------|-----|--------------|
+| `/api/ai/audit/logs`                     | GET | 分页查询审计日志      |
+| `/api/ai/audit/session/{sessionId}`      | GET | 查看会话审计记录      |
+| `/api/ai/audit/statistics`               | GET | 审计统计概览        |
 
 ### 认证
 
@@ -1053,6 +1184,22 @@ SSE 通知其他设备同步
 | `/api/resume/manage/stacks`            | POST   | 创建技术栈    |
 | `/api/resume/manage/stacks/{id}`       | PUT    | 更新技术栈    |
 | `/api/resume/manage/stacks/{id}`       | DELETE | 删除技术栈    |
+| `/api/resume/ai/polish`                | POST   | AI 文本润色（需 resume:manage 权限） |
+
+### 角色管理（需 super_admin 角色）
+
+| 接口                                  | 方法     | 说明          |
+|-------------------------------------|--------|-------------|
+| `/api/role/list`                    | GET    | 获取角色列表      |
+| `/api/role/enabled`                 | GET    | 获取启用的角色列表   |
+| `/api/role`                         | POST   | 创建角色        |
+| `/api/role`                         | PUT    | 更新角色        |
+| `/api/role/{id}`                    | GET    | 获取角色详情      |
+| `/api/role/{id}`                    | DELETE | 删除角色        |
+| `/api/role/{id}/menus`              | GET    | 获取角色关联的菜单ID |
+| `/api/role/{id}/menus`              | PUT    | 更新角色菜单权限    |
+| `/api/role/user/{userId}`           | GET    | 获取用户的角色列表   |
+| `/api/role/assign/{userId}`         | PUT    | 更新用户角色      |
 
 ---
 
@@ -1111,9 +1258,11 @@ SSE 通知其他设备同步
 |--------|-------------------------|-----------------------|----------------------------|
 | 主页     | `/` / `index.html`      | 公开                    | AI 聊天助手入口，右下角悬浮按钮打开聊天窗口    |
 | 个人简历   | `/about.html`           | 公开                    | 个人简历展示页，支持深色/浅色主题切换、PDF 导出 |
-| 简历数据维护 | `/resume-manage.html`   | admin/super_admin     | 工作经历、项目、成果、技术栈的 CRUD 管理    |
+| 登录注册   | `/login.html`           | 公开                    | 用户登录/注册页面，支持用户名密码和第三方登录    |
+| 简历数据维护 | `/resume-manage.html`   | admin/super_admin     | 工作经历、项目、成果、技术栈的 CRUD 管理，在线编辑器 |
 | 系统设置   | `/system-settings.html` | admin/super_admin     | 用户管理、角色管理、菜单管理等系统配置        |
-| AI助手管理 | `/ai-manage.html`       | admin/super_admin     | AI 模型管理、用户会话查看             |
+| AI助手管理 | `/ai-manage.html`       | admin/super_admin     | AI 模型管理、会话历史、费用统计、用户会话查看   |
+| AI 审计  | `/ai-audit.html`        | admin/super_admin     | AI 交互审计日志查看和统计             |
 | 测试页    | `/test-session.html`    | 公开                    | 会话 API 独立测试页面              |
 
 ### 组件化架构
@@ -1131,7 +1280,27 @@ components/
 ├── achievement-management.template.js # 项目成果 HTML 模板
 ├── achievement-management.js          # 项目成果业务逻辑
 ├── tech-stack-management.template.js  # 技术栈 HTML 模板
-└── tech-stack-management.js           # 技术栈业务逻辑
+├── tech-stack-management.js           # 技术栈业务逻辑
+├── online-editor.template.js          # 在线编辑器 HTML 模板
+├── online-editor.js                   # 在线编辑器业务逻辑（含 AI 润色）
+├── user-management.template.js        # 用户管理 HTML 模板
+├── user-management.js                 # 用户管理业务逻辑
+├── role-management.template.js        # 角色管理 HTML 模板
+├── role-management.js                 # 角色管理业务逻辑
+├── menu-management.template.js        # 菜单管理 HTML 模板
+├── menu-management.js                 # 菜单管理业务逻辑
+├── model-management.template.js       # AI 模型管理 HTML 模板
+├── model-management.js                # AI 模型管理业务逻辑
+├── ai-assistant.template.js           # AI 助手 HTML 模板
+├── knowledge-management.template.js   # 知识库管理 HTML 模板
+├── knowledge-management.js            # 知识库管理业务逻辑
+├── audit-log.template.js              # 审计日志 HTML 模板
+├── audit-log.js                       # 审计日志业务逻辑
+├── session-history.template.js        # 会话历史 HTML 模板
+├── session-history.js                 # 会话历史业务逻辑
+├── cost-statistics.template.js        # 费用统计 HTML 模板
+├── cost-statistics.js                 # 费用统计业务逻辑
+└── component-loader.js                # 组件加载器（统一注册和初始化）
 ```
 
 #### 组件特性
@@ -1148,9 +1317,40 @@ components/
 每个组件必须包含：
 1. ✅ HTML 模板文件（`.template.js`）
 2. ✅ JS 逻辑文件（`.js`）
-3. ✅ 在 `system-settings-lite.js` 中配置映射
+3. ✅ 在 `system-settings-lite.js` 或 `ai-manage-lite.js` 中配置映射
 4. ✅ 通过 `registerComponent()` 注册
 5. ✅ 暴露必要的全局方法到 `window.xxxManagement`
+
+### 前端资源文件
+
+#### CSS 样式表
+
+| 文件 | 说明 |
+|------|------|
+| `css/navbar.css` | 公共导航栏样式 |
+| `css/chat.css` | AI 聊天组件样式 |
+| `css/about.css` | 个人简历页面样式 |
+| `css/login.css` | 登录注册页面样式 |
+| `css/resume-manage.css` | 简历管理页面样式 |
+| `css/resume-editor.css` | 在线编辑器样式（含 AI 润色按钮） |
+| `css/system-settings.css` | 系统设置页面样式 |
+| `css/ai-manage.css` | AI 管理页面样式（含费用统计） |
+
+#### JavaScript 脚本
+
+| 文件 | 说明 |
+|------|------|
+| `js/navbar.js` | 公共导航栏（含语言切换器） |
+| `js/i18n.js` | 国际化框架（翻译、语言切换） |
+| `js/chat.js` | AI 聊天组件逻辑 |
+| `js/about.js` | 个人简历页面逻辑 |
+| `js/auth.js` | 认证工具函数 |
+| `js/auth-page.js` | 登录注册页面逻辑 |
+| `js/resume-manage-lite.js` | 简历管理页面入口（Tab 切换 + 组件加载） |
+| `js/resume-editor.js` | 在线编辑器（旧版，已被组件化替代） |
+| `js/system-settings-lite.js` | 系统设置页面入口（Tab 切换 + 组件加载） |
+| `js/ai-manage-lite.js` | AI 管理页面入口（Tab 切换 + 组件加载） |
+| `js/knowledge.js` | 知识库管理逻辑 |
 
 ---
 
@@ -1224,6 +1424,19 @@ redis-cli FLUSHDB
 redis-cli KEYS "bw:*" | xargs redis-cli DEL
 ```
 
+### 问题 7：StackOverflowError（Redis pExpire 无限递归）
+
+**症状**：应用启动后登录时抛出 `java.lang.StackOverflowError`，堆栈显示 `DefaultedRedisConnection.pExpire()` 无限递归
+
+**原因**：`redisson-spring-boot-starter` 自动注册的 `RedissonConnectionFactory` 与 Spring Data Redis 3.5.5 的 `DefaultedRedisConnection.pExpire()` 默认方法存在递归 bug
+
+**解决**：
+1. 替换依赖：将 `redisson-spring-boot-starter` 改为独立 `redisson` 核心包
+2. 手动配置：创建 `RedissonConfig.java` 手动初始化 `RedissonClient`
+3. 职责分离：Lettuce 处理 Session/Cache/RedisTemplate，Redisson 仅用于分布式锁
+
+详见 [FIX_SUMMARY.md](FIX_SUMMARY.md)
+
 ---
 
 ## 编译与运行
@@ -1257,21 +1470,46 @@ redis-cli KEYS "bw:*" | xargs redis-cli DEL
 - [ ] 访问 http://localhost:8090 页面正常显示
 - [ ] 创建会话、发送消息、切换会话功能正常
 - [ ] 会话列表无限滚动加载正常
+- [ ] **流式输出正常**（打字机效果，无内容消失问题）
+- [ ] **页面无抖动**（流式输出完成后，左侧会话列表局部更新，无刷新感）
 - [ ] AI 回复正常返回（Markdown 渲染）
-- [ ] SSE 实时同步正常（多设备测试）
+- [ ] SSE/WebSocket 实时同步正常（多设备测试）
 - [ ] 访问 http://localhost:8090/about.html 个人简历页面正常
 - [ ] 角色权限控制正常（普通用户无法访问管理页面）
+- [ ] 知识库文档上传和搜索功能正常
 
 ---
 
 ## 扩展方向
 
-| 方向      | 说明                         |
-|---------|----------------------------|
-| 费用统计    | Token 用量和费用报表              |
-| 插件系统    | 支持 AI 调用外部工具（如搜索引擎、API 调用） |
-| 多语言支持  | 国际化支持，多语言切换                |
-| 移动端适配  | 响应式设计优化，移动端 App            |
+### 短期规划（3-6个月）
+
+| 方向 | 优先级 | 说明 |
+|------|--------|------|
+| ✅ **费用统计报表** | P0 | **已完成**：多维度费用统计（按模型/用户/日期），可视化图表，时间范围筛选 |
+| ✅ **多语言国际化** | P1 | **已完成**：前后端 i18n 框架，中英文支持，语言切换器 |
+| ✅ **AI 文案润色** | P1 | **已完成**：在线编辑器集成 AI 润色，STAR 法则优化，用户开关控制 |
+| **AI 插件系统** | P1 | 支持 AI 调用外部工具（搜索引擎、API 调用、代码执行器），扩展能力边界 |
+| **移动端适配** | P2 | 响应式设计优化，PWA 支持，离线缓存策略 |
+
+### 中期规划（6-12个月）
+
+| 方向 | 说明 |
+|------|------|
+| **团队协作功能** | 共享会话、团队知识库、权限分级管理 |
+| **智能体工作流** | 可视化编排 AI Agent 工作流，支持多步骤任务自动化 |
+| **数据分析看板** | 用户行为分析、热门问题统计、模型性能监控 |
+| **语音交互** | 语音输入/输出，实时语音对话模式 |
+| **图像理解** | 接入多模态模型，支持图片上传和分析 |
+
+### 长期愿景（1-2年）
+
+| 方向 | 说明 |
+|------|------|
+| **企业级部署** | 私有化部署方案，Kubernetes 容器化，高可用架构 |
+| **自定义模型训练** | 基于领域数据微调模型，提供专属 AI 助手 |
+| **开放平台** | API 网关，开发者生态，第三方应用市场 |
+| **AI 安全审计** | 内容合规审查，操作日志追溯，风险预警机制 |
 
 ---
 

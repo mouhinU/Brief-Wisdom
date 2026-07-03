@@ -80,15 +80,19 @@ public class AiAgentController {
      */
     @GetMapping(value = "/chat/session/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStreamWithSession(@PathVariable String sessionId, ChatRequest request) {
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
         String userId = userContextHelper.getCurrentUserId();
 
         log.info("收到流式聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}",
                 sessionId, userId, request.getMessage(), request.getModel());
 
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+
         // 异步处理流式响应
         CompletableFuture.runAsync(() -> {
             try {
+                // 在异步流内部进行输入安全检查，避免媒体类型冲突
+                aiAgentService.checkInputSafety(request.getMessage(), sessionId, userId);
+                
                 aiAgentService.chatStreamWithSession(
                         sessionId,
                         userId,
@@ -121,6 +125,17 @@ public class AiAgentController {
                             emitter.complete();
                         }
                 );
+            } catch (com.mouhin.brief.wisdom.exception.ContentSecurityException e) {
+                // 内容安全拦截，通过 SSE 发送错误消息
+                log.warn("[内容安全] 流式聊天输入被拦截: {}", e.getMessage());
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("error")
+                            .data("{\"type\":\"CONTENT_BLOCKED\",\"message\":\"" + e.getMessage() + "\"}"));
+                } catch (IOException ioException) {
+                    log.error("[内容安全] 发送错误消息失败: {}", ioException.getMessage());
+                }
+                emitter.complete();
             } catch (Exception e) {
                 log.error("[流式] 启动失败: {}", e.getMessage());
                 emitter.completeWithError(e);

@@ -662,9 +662,8 @@ async function createNewSession() {
             // 清空聊天窗口
             clearChatMessages();
             
-            // 局部添加新会话项到列表（不重新加载整个列表）
-            addNewSessionToList(newSessionId);
-            
+            // 注意：不再手动添加到列表，等待 SSE 通知 session_created 后自动刷新列表
+            // 这样可以避免重复添加
             console.log('创建新会话成功:', newSessionId);
             return newSessionId;
         } else {
@@ -941,7 +940,10 @@ function prependMessages(records) {
     const welcomeMsg = messages.querySelector('.welcome-message');
     const insertBefore = welcomeMsg ? welcomeMsg.nextSibling : messages.firstChild;
 
-    records.forEach(msg => {
+    // ✅ 关键修复：逆序遍历，确保最早的消息在最上面
+    // records 是正序 [早 -> 晚]，需要从后往前插入，这样最早的才会出现在最顶部
+    for (let i = records.length - 1; i >= 0; i--) {
+        const msg = records[i];
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${msg.role === 'user' ? 'user' : 'ai'}`;
 
@@ -972,7 +974,7 @@ function prependMessages(records) {
 
         messageDiv.appendChild(messageContent);
         messages.insertBefore(messageDiv, insertBefore);
-    });
+    }
 
     // 保持用户当前的阅读位置（不跳到顶部或底部）
     const newScrollHeight = messages.scrollHeight;
@@ -1260,25 +1262,46 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
             }
         };
         
+        // 监听错误事件（包括内容安全拦截）
+        eventSource.addEventListener('error', function(event) {
+            // ✅ 静默处理：不打印日志，避免混淆（流式聊天始终使用SSE，与多端同步配置无关）
+            
+            // 尝试解析错误数据
+            if (event.data) {
+                try {
+                    const errorData = JSON.parse(event.data);
+                    if (errorData.type === 'CONTENT_BLOCKED') {
+                        // 显示友好的错误提示
+                        messageContent.innerHTML = `<div class="message-error">${errorData.message}</div>`;
+                        eventSource.close();
+                        resolve(); // 不算失败，只是被拦截
+                        return;
+                    }
+                } catch (e) {
+                    // 静默忽略解析错误
+                }
+            }
+            
+            // 其他错误
+            eventSource.close();
+            reject(new Error('请求被服务器拒绝'));
+        });
+        
         eventSource.onerror = function(error) {
-            console.error('[SSE] 错误:', error);
-            console.error('[SSE] readyState:', eventSource.readyState); // 0=CONNECTING, 1=OPEN, 2=CLOSED
+            // ✅ 静默处理：流式聊天的SSE连接关闭是正常行为，不打印错误日志
             
             // 如果已经接收到了一些内容，说明流式输出基本成功，只是最后关闭时出错
             if (fullText && fullText.length > 0) {
-                console.log('[SSE] 已接收内容，忽略关闭错误');
                 eventSource.close();
                 // 移除光标
                 messageContent.innerHTML = marked.parse(fullText);
                 
                 // 保存 AI 回复到数据库（后台静默完成）
                 saveStreamedMessage(sessionId, fullText, model).then(() => {
-                    console.log('[流式] 消息已保存到数据库');
                     // 局部更新当前会话项的标题和时间（不重新加载整个列表）
                     updateCurrentSessionItem(sessionId);
                     resolve();
                 }).catch(error => {
-                    console.error('[流式] 保存消息失败:', error);
                     // 即使保存失败，也更新会话项
                     updateCurrentSessionItem(sessionId);
                     resolve();
@@ -1291,19 +1314,16 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
         };
         
         eventSource.addEventListener('complete', function() {
-            console.log('[SSE] 完成');
             eventSource.close();
             // 移除光标
             messageContent.innerHTML = marked.parse(fullText);
             
             // 保存 AI 回复到数据库（后台静默完成）
             saveStreamedMessage(sessionId, fullText, model).then(() => {
-                console.log('[流式] 消息已保存到数据库');
                 // 局部更新当前会话项的标题和时间（不重新加载整个列表）
                 updateCurrentSessionItem(sessionId);
                 resolve();
             }).catch(error => {
-                console.error('[流式] 保存消息失败:', error);
                 // 即使保存失败，也更新会话项
                 updateCurrentSessionItem(sessionId);
                 resolve();
@@ -1330,11 +1350,10 @@ async function saveStreamedMessage(sessionId, content, model) {
         });
         
         const data = await response.json();
-        if (data.success) {
-            console.log('[流式] 消息保存成功');
-        } else {
-            console.warn('[流式] 消息保存失败:', data.error);
+        if (!data.success) {
+            console.warn('[流式] 消息保存失败:', data.msg);
         }
+        // ✅ 成功时不打印日志，保持控制台清爽
     } catch (error) {
         console.error('[流式] 保存消息异常:', error);
         throw error;

@@ -260,6 +260,17 @@ header h1 {
   overflow-y: auto;
 }
 
+/* 错误消息样式 */
+.message-error {
+  padding: 12px 16px;
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+  color: #856404;
+  font-size: 13px;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
 .message-time {
   font-size: 11px;
   color: #bbb;
@@ -1727,4 +1738,195 @@ header h1 {
   .cost-stats-tables {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==================== AI 安全审计日志组件样式 ==================== */
+
+.audit-log-container {
+  padding: 20px;
+}
+
+/* 统计卡片 */
+.audit-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.audit-stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.audit-stat-card h3 {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.audit-stat-card .value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.audit-stat-card.audit-critical .value {
+  color: #f44336;
+}
+
+.audit-stat-card.audit-high .value {
+  color: #ff9800;
+}
+
+/* 筛选栏 */
+.audit-filter-bar {
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.audit-filter-bar select,
+.audit-filter-bar input {
+  padding: 8px 12px;
+  border: 1px solid #dde1e7;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.audit-filter-bar button {
+  padding: 8px 16px;
+  background: #4a90d9;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.audit-filter-bar button:hover {
+  background: #357abd;
+}
+
+/* 表格 */
+.audit-table-container {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.audit-table-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.audit-table-container thead {
+  background: #f8f9fb;
+}
+
+.audit-table-container th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  color: #666;
+  font-weight: 600;
+}
+
+.audit-table-container td {
+  padding: 12px 16px;
+  border-top: 1px solid #f0f2f5;
+  font-size: 14px;
+}
+
+.audit-table-container tr:hover {
+  background: #f8f9fb;
+}
+
+/* 风险等级标签 */
+.audit-risk-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.audit-risk-badge.audit-risk-critical {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.audit-risk-badge.audit-risk-high {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.audit-risk-badge.audit-risk-medium {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.audit-risk-badge.audit-risk-low {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* 审计类型标签 */
+.audit-type-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  background: #f0f2f5;
+  color: #666;
+}
+
+/* 分页 */
+.audit-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+}
+
+.audit-pagination button {
+  padding: 6px 12px;
+  border: 1px solid #dde1e7;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.audit-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.audit-pagination button.active {
+  background: #4a90d9;
+  color: white;
+  border-color: #4a90d9;
+}
+
+/* 加载和空状态 */
+.audit-loading {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+.audit-empty {
+  text-align: center;
+  padding: 40px;
+  color: #999;
 }

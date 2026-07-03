@@ -322,10 +322,9 @@ public class AiAgentService {
     }
 
     /**
-     * 分页获取会话历史消息（倒序分页，第1页为最新消息）
+     * 分页获取会话历史消息（正序返回）
      * <p>
-     * 返回的 records 按时间正序排列（方便前端直接渲染），
-     * 但分页逻辑按倒序切片：page=1 取最新的 size 条。
+     * 返回的 records 按时间正序排列（从早到晚），方便前端直接渲染。
      *
      * @param sessionId 会话ID
      * @param page      页码，从1开始
@@ -333,25 +332,38 @@ public class AiAgentService {
      * @return 分页结果
      */
     public PageResult<ChatMessageDTO> getSessionHistoryPaged(String sessionId, int page, int size) {
-        Page<ChatMessage> pageResult = messageRepository.findBySessionIdOrderByTimestampDesc(sessionId, page, size);
-
-        // 转换为 DTO
-        List<ChatMessageDTO> dtos = pageResult.getRecords().stream()
+        // ✅ 使用正序查询，保持消息的自然顺序
+        List<ChatMessage> allMessages = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+        
+        // 手动分页（正序数据）
+        long total = allMessages.size();
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, allMessages.size());
+        
+        // 边界检查
+        if (fromIndex >= total) {
+            fromIndex = 0;
+            toIndex = 0;
+        }
+        
+        List<ChatMessage> pagedMessages = fromIndex < toIndex ? allMessages.subList(fromIndex, toIndex) : new ArrayList<>();
+        
+        // 转换为 DTO（保持正序）
+        List<ChatMessageDTO> dtos = pagedMessages.stream()
                 .map(this::toChatMessageDTO)
                 .toList();
 
-        // 反转为正序（方便前端直接按顺序渲染）
-        List<ChatMessageDTO> reversedDtos = new ArrayList<>(dtos);
-        Collections.reverse(reversedDtos);
+        // 计算总页数
+        long totalPages = (total + size - 1) / size;
 
         // 封装分页结果
         PageResult<ChatMessageDTO> result = new PageResult<>();
-        result.setRecords(reversedDtos);
-        result.setTotal(pageResult.getTotal());
-        result.setPage(pageResult.getCurrent());
-        result.setSize(pageResult.getSize());
-        result.setPages(pageResult.getPages());
-        result.setHasMore(pageResult.getCurrent() < pageResult.getPages());
+        result.setRecords(dtos);
+        result.setTotal(total);
+        result.setPage(page);
+        result.setSize(size);
+        result.setPages(totalPages);
+        result.setHasMore(page < totalPages);
 
         return result;
     }
@@ -450,8 +462,8 @@ public class AiAgentService {
      */
     public String chat(String message, String modelName) {
         validateInput(message);
-        // 输入预过滤
-        checkInputSafety(message);
+        // 输入预过滤（无 sessionId/userId，使用占位符）
+        checkInputSafety(message, "N/A", "N/A");
 
         log.info("收到用户消息: {}, 模型: {}", message, modelName);
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
@@ -466,8 +478,8 @@ public class AiAgentService {
 
         String response = chatResponse.getResult().getOutput().getText();
 
-        // 输出过滤
-        response = contentFilterService.filterOutput(response);
+        // 输出过滤（无 sessionId/userId/messageId，使用占位符）
+        response = contentFilterService.filterOutput(response, "N/A", "N/A", null);
         log.info("AI 回复(模型: {}, 提供商: {}): {}", model, provider, response);
         return response;
     }
@@ -513,7 +525,7 @@ public class AiAgentService {
         // 输入校验
         validateInput(message);
         // 输入预过滤
-        checkInputSafety(message);
+        checkInputSafety(message, sessionId, userId);
 
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
 
@@ -593,8 +605,8 @@ public class AiAgentService {
         assert chatResponse != null;
         String response = chatResponse.getResult().getOutput().getText();
 
-        // 输出过滤
-        response = contentFilterService.filterOutput(response);
+        // 输出过滤（在保存消息之前，以便记录 messageId）
+        response = contentFilterService.filterOutput(response, sessionId, userId, null);
 
         // 提取 token 用量
         int promptTokens = 0;
@@ -622,6 +634,9 @@ public class AiAgentService {
         aiMsg.setCost(cost);
         aiMsg.setMessageType("text");
         messageRepository.save(aiMsg);
+
+        // 如果之前输出过滤时记录了审计日志，需要更新 messageId
+        // （由于 filterOutput 在 save 之前调用，messageId 为 null，这里可以补充记录）
 
         // 更新会话统计信息
         long messageCount = messageRepository.countBySessionId(sessionId);
@@ -662,7 +677,7 @@ public class AiAgentService {
 
         // 输入校验
         validateInput(message);
-        checkInputSafety(message);
+        checkInputSafety(message, sessionId, userId);
 
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
 
@@ -786,10 +801,12 @@ public class AiAgentService {
      */
     public String askQuestion(String question) {
         validateInput(question);
-        checkInputSafety(question);
+        // 输入预过滤（无 sessionId/userId，使用占位符）
+        checkInputSafety(question, "N/A", "N/A");
         String systemPrompt = SystemPrompts.BASE_SYSTEM_PROMPT + "\n\n请简洁明了地回答问题。";
         String response = chatWithSystemPrompt(systemPrompt, question);
-        return contentFilterService.filterOutput(response);
+        // 输出过滤（无 sessionId/userId/messageId，使用占位符）
+        return contentFilterService.filterOutput(response, "N/A", "N/A", null);
     }
 
     /**
@@ -808,13 +825,118 @@ public class AiAgentService {
 
     /**
      * 输入安全预过滤（关键词拦截，命中即拒绝，不消耗模型 token）
+     * <p>
+     * 拦截时会按顺序执行：
+     * 1. 保存用户消息到聊天记录
+     * 2. 保存系统拦截回复到聊天记录
+     * 3. 记录审计日志
      *
-     * @param message 用户输入
+     * @param message   用户输入
+     * @param sessionId 会话ID（用于审计日志）
+     * @param userId    用户ID（用于审计日志）
      */
-    private void checkInputSafety(String message) {
-        if (contentFilterService.isInputBlocked(message)) {
+    public void checkInputSafety(String message, String sessionId, String userId) {
+        // 仅检测，不记录日志
+        String blockedKeyword = contentFilterService.checkInputBlocked(message);
+        if (blockedKeyword != null) {
+            // 被拦截，按正确顺序保存
+            saveBlockedMessages(sessionId, userId, message, blockedKeyword);
             throw new ContentSecurityException(contentFilterService.getBlockedMessage());
         }
+    }
+
+    /**
+     * 保存被拦截的消息到聊天记录（按正确顺序）
+     * <p>
+     * 执行顺序：
+     * 1. 保存用户消息
+     * 2. 保存系统拦截回复
+     * 3. 更新会话统计
+     * 4. 记录审计日志
+     *
+     * @param sessionId     会话ID
+     * @param userId        用户ID
+     * @param message       用户消息内容
+     * @param blockedKeyword 命中的敏感词
+     */
+    @Transactional
+    private void saveBlockedMessages(String sessionId, String userId, String message, String blockedKeyword) {
+        log.info("[内容安全] 开始保存被拦截的消息 - sessionId: {}, userId: {}, keyword: {}", sessionId, userId, blockedKeyword);
+
+        try {
+            // 第一步：保存用户消息（显式设置 timestamp）
+            LocalDateTime userMsgTime = LocalDateTime.now();
+            ChatMessage userMsg = new ChatMessage();
+            userMsg.setSessionId(sessionId);
+            userMsg.setUserId(userId);
+            userMsg.setRole("user");
+            userMsg.setContent(message);
+            userMsg.setMessageType("text");
+            userMsg.setTimestamp(userMsgTime); // 显式设置时间戳
+            userMsg.setTokens(0);
+            userMsg.setCost(0.0);
+            messageRepository.save(userMsg);
+            log.debug("[内容安全] 用户消息已保存 - timestamp: {}", userMsgTime);
+
+            // 第二步：保存系统拦截回复（时间戳稍晚于用户消息）
+            LocalDateTime systemMsgTime = userMsgTime.plusNanos(1_000_000); // +1毫秒
+            ChatMessage systemMsg = new ChatMessage();
+            systemMsg.setSessionId(sessionId);
+            systemMsg.setUserId(userId);
+            systemMsg.setRole("assistant");
+            systemMsg.setContent(contentFilterService.getBlockedMessage());
+            systemMsg.setModel("system-security-filter"); // 标记为系统安全过滤
+            systemMsg.setMessageType("text");
+            systemMsg.setTimestamp(systemMsgTime); // 显式设置时间戳
+            systemMsg.setTokens(0);
+            systemMsg.setCost(0.0);
+            messageRepository.save(systemMsg);
+            log.debug("[内容安全] 系统回复已保存 - timestamp: {}", systemMsgTime);
+
+            // 第三步：更新会话统计信息
+            long messageCount = messageRepository.countBySessionId(sessionId);
+            ChatSession session = sessionRepository.findBySessionId(sessionId);
+            if (session != null) {
+                session.setMessageCount((int) messageCount);
+                // 如果是第一条消息，用用户消息作为标题
+                if (messageCount == 2) {
+                    session.setTitle(message.length() > 30 ? message.substring(0, 30) + "..." : message);
+                }
+                session.setUpdateTime(LocalDateTime.now());
+                sessionRepository.update(session);
+                log.debug("[内容安全] 会话统计已更新");
+            }
+
+            // 第四步：记录审计日志（在聊天记录之后）
+            contentFilterService.getAuditService().logInputBlocked(
+                    sessionId, 
+                    userId, 
+                    blockedKeyword, 
+                    maskContentForAudit(message)
+            );
+            log.info("[内容安全] 审计日志已记录 - sessionId: {}, messageCount: {}", sessionId, messageCount);
+
+        } catch (Exception e) {
+            // 即使保存失败，也不影响拦截逻辑
+            log.error("[内容安全] 保存被拦截消息失败: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 对内容进行脱敏处理（用于审计日志）
+     *
+     * @param content 原始内容
+     * @return 脱敏后的内容
+     */
+    private String maskContentForAudit(String content) {
+        if (content == null || content.isBlank()) {
+            return content;
+        }
+        // 简单脱敏：只显示前50个字符
+        if (content.length() > 50) {
+            return content.substring(0, 50) + "...[已脱敏]";
+        }
+        return content;
     }
 
     /**

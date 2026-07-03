@@ -43,8 +43,12 @@ public class MybatisPlusConfig implements MetaObjectHandler {
     @Override
     public void insertFill(MetaObject metaObject) {
         this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
-        this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
-        this.strictInsertFill(metaObject, "timestamp", LocalDateTime.class, LocalDateTime.now());
+        this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+        // timestamp 字段：如果已经手动设置了值，则不覆盖
+        Object timestamp = this.getFieldValByName("timestamp", metaObject);
+        if (timestamp == null) {
+            this.strictInsertFill(metaObject, "timestamp", LocalDateTime.class, LocalDateTime.now());
+        }
         // 设置默认的逻辑删除字段为 0（未删除）
         this.strictInsertFill(metaObject, "isDeleted", Integer.class, 0);
     }

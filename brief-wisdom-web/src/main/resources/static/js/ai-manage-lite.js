@@ -6,24 +6,26 @@
  * @date 2026-07-02
  */
 
-// 组件名称映射表（菜单名称 → 组件文件名）
+// 组件名称映射表(菜单名称 → 组件文件名)
 const COMPONENT_NAME_MAP = {
     '会话历史': 'session-history',
     '知识库': 'knowledge-management',
     '模型管理': 'model-management',
     '用户管理': 'user-management',
     '角色管理': 'role-management',
-    '费用统计': 'cost-statistics'
+    '费用统计': 'cost-statistics',
+    'AI安全审计': 'audit-log'
 };
 
-// Tab ID 映射表（菜单名称 → Tab 内容容器 ID）
+// Tab ID 映射表(菜单名称 → Tab 内容容器 ID)
 const TAB_ID_MAP = {
     '会话历史': 'sessions-tab-content',
     '知识库': 'knowledge-tab-content',
     '模型管理': 'models-tab-content',
     '用户管理': 'user-tab-content',
     '角色管理': 'role-tab-content',
-    '费用统计': 'cost-statistics-tab-content'
+    '费用统计': 'cost-statistics-tab-content',
+    'AI安全审计': 'audit-log-tab-content'
 };
 
 /**

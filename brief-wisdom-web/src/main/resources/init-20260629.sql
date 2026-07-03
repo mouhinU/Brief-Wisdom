@@ -29,6 +29,7 @@ DROP TABLE IF EXISTS project;
 DROP TABLE IF EXISTS work_experience_stack;
 DROP TABLE IF EXISTS work_experience;
 DROP TABLE IF EXISTS ai_model;
+DROP TABLE IF EXISTS ai_audit_log;
 
 -- ============================================
 -- 1. 用户表 (chat_user)
@@ -263,7 +264,8 @@ INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, 
 (7, 4, '菜单管理', '/system-settings.html?tab=menu', '📋', '_self', 1, 'menu:list', 3, 1, 1),
 (9, 4, '用户管理', '', '👥', '_self', 1, 'user:manage', 6, 0, 1),
 (10, 4, '角色管理', '', '🛡️', '_self', 1, 'role:manage', 8, 0, 1),
-(11, 4, '菜单管理', '', '📋', '_self', 1, 'menu:manage', 7, 0, 1);
+(11, 4, '菜单管理', '', '📋', '_self', 1, 'menu:manage', 7, 0, 1),
+(23, 3, 'AI安全审计', '', '🔍', '_self', 1, 'ai:audit', 12, 0, 1);
 
 -- 按钮级权限菜单
 INSERT INTO sys_menu (id, parent_id, name, url, icon, target, type, permission, sort_order, is_visible, require_login) VALUES
@@ -297,13 +299,13 @@ INSERT INTO sys_role_menu (role_id, menu_id) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7),
 (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13),
 (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20),
-(1, 21), (1, 22);
+(1, 21), (1, 22), (1, 23);
 
 -- 管理员 (role_id=2)：除角色管理外的菜单
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES
 (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 8),
 (2, 9), (2, 14), (2, 15), (2, 16), (2, 17), (2, 18), (2, 19), (2, 20),
-(2, 21), (2, 22);
+(2, 21), (2, 22), (2, 23);
 
 -- 普通用户 (role_id=3)：基本菜单（首页、简历）
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES
@@ -493,6 +495,29 @@ INSERT INTO work_experience_stack (experience_id, tech_name, sort_order) VALUES
 (3, 'C', 3),
 (3, 'Oracle', 4),
 (3, 'MySQL', 5);
+
+-- ============================================
+-- 12. AI 安全审计日志表 (ai_audit_log)
+-- ============================================
+CREATE TABLE ai_audit_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键',
+    session_id VARCHAR(36) NOT NULL COMMENT '会话ID',
+    user_id VARCHAR(36) NOT NULL COMMENT '用户ID',
+    message_id BIGINT COMMENT '关联消息ID',
+    audit_type VARCHAR(50) NOT NULL COMMENT '审计类型: INPUT_BLOCKED-输入拦截, OUTPUT_FILTERED-输出过滤, RISK_DETECTED-风险检测',
+    risk_level VARCHAR(20) NOT NULL DEFAULT 'MEDIUM' COMMENT '风险等级: LOW-低, MEDIUM-中, HIGH-高, CRITICAL-严重',
+    trigger_keyword VARCHAR(500) COMMENT '触发的关键词或模式',
+    original_content TEXT COMMENT '原始内容（脱敏后）',
+    filtered_content TEXT COMMENT '过滤后的内容',
+    action_taken VARCHAR(100) NOT NULL COMMENT '采取的动作: BLOCKED-拦截, FILTERED-过滤, WARNED-警告, ALLOWED-放行',
+    confidence_score DOUBLE COMMENT '置信度分数 (0-1)',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_session_id (session_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_audit_type (audit_type),
+    INDEX idx_risk_level (risk_level),
+    INDEX idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI 安全审计日志表';
 
 -- ============================================
 -- 23. 验证
