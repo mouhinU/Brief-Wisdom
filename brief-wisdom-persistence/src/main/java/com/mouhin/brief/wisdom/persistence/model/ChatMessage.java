@@ -2,24 +2,20 @@ package com.mouhin.brief.wisdom.persistence.model;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
 
 /**
  * 聊天消息实体类 - 存储完整的问答历史
- */
-/**
- * ChatMessage
  *
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("chat_message")
-public class ChatMessage {
-
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class ChatMessage extends BaseEntity {
 
     @TableField(value = "session_id")
     private String sessionId;  // 会话ID
@@ -47,8 +43,4 @@ public class ChatMessage {
 
     @TableField(value = "message_type")
     private String messageType;  // 消息类型: text, image, code等
-
-    @TableLogic
-    @TableField(value = "is_deleted")
-    private Integer isDeleted;  // 0-未删除, 1-已删除
 }

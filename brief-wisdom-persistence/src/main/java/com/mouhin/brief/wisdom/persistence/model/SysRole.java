@@ -2,27 +2,18 @@ package com.mouhin.brief.wisdom.persistence.model;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 /**
  * 系统角色实体类
- */
-/**
- * SysRole
  *
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("sys_role")
-public class SysRole implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class SysRole extends BaseEntity {
 
     @TableField(value = "role_name")
     private String roleName;
@@ -35,10 +26,4 @@ public class SysRole implements Serializable {
 
     @TableField(value = "status")
     private Integer status;
-
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
 }

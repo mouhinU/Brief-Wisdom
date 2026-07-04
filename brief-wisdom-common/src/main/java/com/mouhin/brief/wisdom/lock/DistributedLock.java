@@ -1,4 +1,4 @@
-package com.mouhin.brief.wisdom.config;
+package com.mouhin.brief.wisdom.lock;
 
 import java.lang.annotation.*;
 import java.util.concurrent.TimeUnit;

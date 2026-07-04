@@ -7,9 +7,6 @@ import java.io.Serializable;
 
 /**
  * 角色-菜单关联实体类
- */
-/**
- * RoleMenu
  *
  * @author Brief-Wisdom
  * @date 2026-06-30

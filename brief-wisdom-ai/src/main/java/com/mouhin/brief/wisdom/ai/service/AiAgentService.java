@@ -56,6 +56,8 @@ public class AiAgentService {
     private final ChatSyncService chatSyncService;
     private final ContentFilterService contentFilterService;
     private final RateLimitService rateLimitService;
+    private final KnowledgeRagService knowledgeRagService;
+    private final ChatMemoryService chatMemoryService;
 
     public AiAgentService(ChatModelRegistry chatModelRegistry,
                           ChatSessionRepository sessionRepository,
@@ -64,7 +66,9 @@ public class AiAgentService {
                           AiModelRepository aiModelRepository,
                           ChatSyncService chatSyncService,
                           ContentFilterService contentFilterService,
-                          RateLimitService rateLimitService) {
+                          RateLimitService rateLimitService,
+                          KnowledgeRagService knowledgeRagService,
+                          ChatMemoryService chatMemoryService) {
         this.chatModelRegistry = chatModelRegistry;
         this.sessionRepository = sessionRepository;
         this.messageRepository = messageRepository;
@@ -73,6 +77,8 @@ public class AiAgentService {
         this.chatSyncService = chatSyncService;
         this.contentFilterService = contentFilterService;
         this.rateLimitService = rateLimitService;
+        this.knowledgeRagService = knowledgeRagService;
+        this.chatMemoryService = chatMemoryService;
     }
 
     /**
@@ -589,6 +595,34 @@ public class AiAgentService {
 
         // 根据会话的页面上下文构建增强的系统提示词
         String systemPrompt = SystemPrompts.getSystemPromptWithContext(effectivePageContext);
+
+        // 注入知识库 RAG 上下文（基于用户消息检索相关文档）
+        try {
+            var relevantDocs = knowledgeRagService.retrieveRelevantDocuments(message);
+            String ragContext = knowledgeRagService.buildContextFromDocuments(relevantDocs);
+            if (!ragContext.isBlank()) {
+                systemPrompt += ragContext;
+            }
+        } catch (Exception e) {
+            log.warn("知识库 RAG 检索失败，跳过上下文注入: {}", e.getMessage());
+        }
+
+        // 注入用户记忆上下文（跨会话记忆）
+        try {
+            String memoryContext = chatMemoryService.buildMemoryContext(userId);
+            if (!memoryContext.isBlank()) {
+                systemPrompt += memoryContext;
+            }
+        } catch (Exception e) {
+            log.warn("用户记忆加载失败，跳过记忆注入: {}", e.getMessage());
+        }
+
+        // 从用户消息中自动提取记忆（异步，不影响主流程）
+        try {
+            chatMemoryService.extractMemoriesFromMessage(userId, message, sessionId);
+        } catch (Exception e) {
+            log.warn("记忆提取失败: {}", e.getMessage());
+        }
 
         // 根据模型查询提供商，路由到对应的 ChatModel
         String provider = resolveProvider(model);

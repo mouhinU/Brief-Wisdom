@@ -1,10 +1,10 @@
 package com.mouhin.brief.wisdom.ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseRequest;
+import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentDTO;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentRequest;
 
 import java.util.List;
 
@@ -41,12 +41,12 @@ public interface KnowledgeService {
     /**
      * 创建知识库
      */
-    KnowledgeBaseDTO createBase(KnowledgeBaseRequest request);
+    KnowledgeBaseDTO createBase(KnowledgeBaseBO bo);
 
     /**
      * 更新知识库
      */
-    KnowledgeBaseDTO updateBase(Long id, KnowledgeBaseRequest request);
+    KnowledgeBaseDTO updateBase(Long id, KnowledgeBaseBO bo);
 
     /**
      * 删除知识库（同时删除其下所有文档）
@@ -68,12 +68,12 @@ public interface KnowledgeService {
     /**
      * 创建文档
      */
-    KnowledgeDocumentDTO createDocument(KnowledgeDocumentRequest request);
+    KnowledgeDocumentDTO createDocument(KnowledgeDocumentBO bo);
 
     /**
      * 更新文档
      */
-    KnowledgeDocumentDTO updateDocument(Long id, KnowledgeDocumentRequest request);
+    KnowledgeDocumentDTO updateDocument(Long id, KnowledgeDocumentBO bo);
 
     /**
      * 删除文档

@@ -1,11 +1,13 @@
 package com.mouhin.brief.wisdom.knowledge.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
+import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseRequest;
+import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentRequest;
-import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -71,7 +73,8 @@ public class KnowledgeController {
      */
     @PostMapping("/bases")
     public KnowledgeBaseDTO createBase(@RequestBody KnowledgeBaseRequest request) {
-        return knowledgeService.createBase(request);
+        KnowledgeBaseBO bo = convertToBaseBO(request);
+        return knowledgeService.createBase(bo);
     }
 
     /**
@@ -79,7 +82,8 @@ public class KnowledgeController {
      */
     @PutMapping("/bases/{id}")
     public KnowledgeBaseDTO updateBase(@PathVariable Long id, @RequestBody KnowledgeBaseRequest request) {
-        return knowledgeService.updateBase(id, request);
+        KnowledgeBaseBO bo = convertToBaseBO(request);
+        return knowledgeService.updateBase(id, bo);
     }
 
     /**
@@ -118,7 +122,8 @@ public class KnowledgeController {
      */
     @PostMapping("/documents")
     public KnowledgeDocumentDTO createDocument(@RequestBody KnowledgeDocumentRequest request) {
-        return knowledgeService.createDocument(request);
+        KnowledgeDocumentBO bo = convertToDocumentBO(request);
+        return knowledgeService.createDocument(bo);
     }
 
     /**
@@ -126,7 +131,8 @@ public class KnowledgeController {
      */
     @PutMapping("/documents/{id}")
     public KnowledgeDocumentDTO updateDocument(@PathVariable Long id, @RequestBody KnowledgeDocumentRequest request) {
-        return knowledgeService.updateDocument(id, request);
+        KnowledgeDocumentBO bo = convertToDocumentBO(request);
+        return knowledgeService.updateDocument(id, bo);
     }
 
     /**
@@ -147,5 +153,42 @@ public class KnowledgeController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
         return knowledgeService.searchDocuments(keyword, page, size);
+    }
+
+    // ==================== 私有转换方法 ====================
+
+    /**
+     * Request -> BO (知识库)
+     */
+    private KnowledgeBaseBO convertToBaseBO(KnowledgeBaseRequest request) {
+        KnowledgeBaseBO bo = new KnowledgeBaseBO();
+        bo.setName(request.getName());
+        bo.setDescription(request.getDescription());
+        bo.setIcon(request.getIcon());
+        bo.setParentId(request.getParentId());
+        bo.setSortOrder(request.getSortOrder());
+        bo.setIsPublic(request.getIsPublic());
+        return bo;
+    }
+
+    /**
+     * Request -> BO (知识文档)
+     */
+    private KnowledgeDocumentBO convertToDocumentBO(KnowledgeDocumentRequest request) {
+        KnowledgeDocumentBO bo = new KnowledgeDocumentBO();
+        bo.setBaseId(request.getBaseId());
+        bo.setTitle(request.getTitle());
+        bo.setDocType(request.getDocType());
+        bo.setContent(request.getContent());
+        bo.setFileUrl(request.getFileUrl());
+        bo.setFileName(request.getFileName());
+        bo.setFileSize(request.getFileSize());
+        bo.setFileType(request.getFileType());
+        bo.setLinkUrl(request.getLinkUrl());
+        bo.setLinkDesc(request.getLinkDesc());
+        bo.setTags(request.getTags());
+        bo.setSortOrder(request.getSortOrder());
+        bo.setStatus(request.getStatus());
+        return bo;
     }
 }

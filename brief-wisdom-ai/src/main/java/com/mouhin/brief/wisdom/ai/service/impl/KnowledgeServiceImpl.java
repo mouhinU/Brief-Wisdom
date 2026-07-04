@@ -2,10 +2,10 @@ package com.mouhin.brief.wisdom.ai.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
+import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseRequest;
+import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentDTO;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentRequest;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeBase;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeDocument;
 import com.mouhin.brief.wisdom.persistence.repository.KnowledgeBaseRepository;
@@ -76,14 +76,14 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      * 创建知识库
      */
     @Override
-    public KnowledgeBaseDTO createBase(KnowledgeBaseRequest request) {
+    public KnowledgeBaseDTO createBase(KnowledgeBaseBO bo) {
         KnowledgeBase base = new KnowledgeBase();
-        base.setName(request.getName());
-        base.setDescription(request.getDescription());
-        base.setIcon(request.getIcon() != null ? request.getIcon() : "📚");
-        base.setParentId(request.getParentId() != null ? request.getParentId() : 0L);
-        base.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
-        base.setIsPublic(request.getIsPublic() != null ? request.getIsPublic() : 0);
+        base.setName(bo.getName());
+        base.setDescription(bo.getDescription());
+        base.setIcon(bo.getIcon() != null ? bo.getIcon() : "📚");
+        base.setParentId(bo.getParentId() != null ? bo.getParentId() : 0L);
+        base.setSortOrder(bo.getSortOrder() != null ? bo.getSortOrder() : 0);
+        base.setIsPublic(bo.getIsPublic() != null ? bo.getIsPublic() : 0);
         knowledgeBaseRepository.save(base);
         return toBaseDTO(base);
     }
@@ -92,17 +92,17 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      * 更新知识库
      */
     @Override
-    public KnowledgeBaseDTO updateBase(Long id, KnowledgeBaseRequest request) {
+    public KnowledgeBaseDTO updateBase(Long id, KnowledgeBaseBO bo) {
         KnowledgeBase base = knowledgeBaseRepository.findById(id);
         if (base == null) {
             throw new IllegalArgumentException("知识库不存在: " + id);
         }
-        if (request.getName() != null) { base.setName(request.getName()); }
-        if (request.getDescription() != null) { base.setDescription(request.getDescription()); }
-        if (request.getIcon() != null) { base.setIcon(request.getIcon()); }
-        if (request.getParentId() != null) { base.setParentId(request.getParentId()); }
-        if (request.getSortOrder() != null) { base.setSortOrder(request.getSortOrder()); }
-        if (request.getIsPublic() != null) { base.setIsPublic(request.getIsPublic()); }
+        if (bo.getName() != null) { base.setName(bo.getName()); }
+        if (bo.getDescription() != null) { base.setDescription(bo.getDescription()); }
+        if (bo.getIcon() != null) { base.setIcon(bo.getIcon()); }
+        if (bo.getParentId() != null) { base.setParentId(bo.getParentId()); }
+        if (bo.getSortOrder() != null) { base.setSortOrder(bo.getSortOrder()); }
+        if (bo.getIsPublic() != null) { base.setIsPublic(bo.getIsPublic()); }
         knowledgeBaseRepository.update(base);
         return toBaseDTO(base);
     }
@@ -167,9 +167,9 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      * 创建文档
      */
     @Override
-    public KnowledgeDocumentDTO createDocument(KnowledgeDocumentRequest request) {
+    public KnowledgeDocumentDTO createDocument(KnowledgeDocumentBO bo) {
         KnowledgeDocument doc = new KnowledgeDocument();
-        copyRequestToDoc(request, doc);
+        copyBoToDoc(bo, doc);
         doc.setViewCount(0);
         knowledgeDocumentRepository.save(doc);
         return toDocDTO(doc);
@@ -179,12 +179,12 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      * 更新文档
      */
     @Override
-    public KnowledgeDocumentDTO updateDocument(Long id, KnowledgeDocumentRequest request) {
+    public KnowledgeDocumentDTO updateDocument(Long id, KnowledgeDocumentBO bo) {
         KnowledgeDocument doc = knowledgeDocumentRepository.findById(id);
         if (doc == null) {
             throw new IllegalArgumentException("文档不存在: " + id);
         }
-        copyRequestToDoc(request, doc);
+        copyBoToDoc(bo, doc);
         knowledgeDocumentRepository.update(doc);
         return toDocDTO(doc);
     }
@@ -274,19 +274,19 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         return dto;
     }
 
-    private void copyRequestToDoc(KnowledgeDocumentRequest request, KnowledgeDocument doc) {
-        if (request.getBaseId() != null) { doc.setBaseId(request.getBaseId()); }
-        if (request.getTitle() != null) { doc.setTitle(request.getTitle()); }
-        if (request.getDocType() != null) { doc.setDocType(request.getDocType()); }
-        doc.setContent(request.getContent());
-        doc.setFileUrl(request.getFileUrl());
-        doc.setFileName(request.getFileName());
-        doc.setFileSize(request.getFileSize());
-        doc.setFileType(request.getFileType());
-        doc.setLinkUrl(request.getLinkUrl());
-        doc.setLinkDesc(request.getLinkDesc());
-        doc.setTags(request.getTags());
-        if (request.getSortOrder() != null) { doc.setSortOrder(request.getSortOrder()); }
-        if (request.getStatus() != null) { doc.setStatus(request.getStatus()); }
+    private void copyBoToDoc(KnowledgeDocumentBO bo, KnowledgeDocument doc) {
+        if (bo.getBaseId() != null) { doc.setBaseId(bo.getBaseId()); }
+        if (bo.getTitle() != null) { doc.setTitle(bo.getTitle()); }
+        if (bo.getDocType() != null) { doc.setDocType(bo.getDocType()); }
+        doc.setContent(bo.getContent());
+        doc.setFileUrl(bo.getFileUrl());
+        doc.setFileName(bo.getFileName());
+        doc.setFileSize(bo.getFileSize());
+        doc.setFileType(bo.getFileType());
+        doc.setLinkUrl(bo.getLinkUrl());
+        doc.setLinkDesc(bo.getLinkDesc());
+        doc.setTags(bo.getTags());
+        if (bo.getSortOrder() != null) { doc.setSortOrder(bo.getSortOrder()); }
+        if (bo.getStatus() != null) { doc.setStatus(bo.getStatus()); }
     }
 }

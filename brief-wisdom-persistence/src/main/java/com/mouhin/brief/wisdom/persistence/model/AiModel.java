@@ -2,27 +2,18 @@ package com.mouhin.brief.wisdom.persistence.model;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 /**
  * AI模型配置实体类
- */
-/**
- * AiModel
  *
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("ai_model")
-public class AiModel implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class AiModel extends BaseEntity {
 
     @TableField(value = "model_name")
     private String modelName;
@@ -50,14 +41,4 @@ public class AiModel implements Serializable {
 
     @TableField(value = "output_price_per_million")
     private Double outputPricePerMillion;  // 每百万输出token价格(元)
-
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    @TableLogic
-    @TableField(value = "is_deleted")
-    private Integer isDeleted;
 }

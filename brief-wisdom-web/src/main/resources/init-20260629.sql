@@ -30,6 +30,7 @@ DROP TABLE IF EXISTS work_experience_stack;
 DROP TABLE IF EXISTS work_experience;
 DROP TABLE IF EXISTS ai_model;
 DROP TABLE IF EXISTS ai_audit_log;
+DROP TABLE IF EXISTS chat_memory;
 
 -- ============================================
 -- 1. 用户表 (chat_user)
@@ -518,6 +519,25 @@ CREATE TABLE ai_audit_log (
     INDEX idx_risk_level (risk_level),
     INDEX idx_create_time (create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI 安全审计日志表';
+
+-- ============================================
+-- 13. 对话记忆表 (chat_memory)
+-- ============================================
+CREATE TABLE chat_memory (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键',
+    user_id VARCHAR(36) NOT NULL COMMENT '用户ID',
+    category VARCHAR(30) NOT NULL DEFAULT 'fact' COMMENT '记忆分类: preference-偏好, fact-事实, context-上下文',
+    memory_key VARCHAR(100) NOT NULL COMMENT '记忆键（如：name, tech_stack）',
+    memory_value VARCHAR(500) NOT NULL COMMENT '记忆值',
+    source_session_id VARCHAR(36) COMMENT '来源会话ID',
+    access_count INT NOT NULL DEFAULT 0 COMMENT '访问次数（用于权重排序）',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    INDEX idx_user_id (user_id),
+    INDEX idx_user_category (user_id, category),
+    UNIQUE KEY uk_user_key (user_id, memory_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对话记忆表（跨会话记忆）';
 
 -- ============================================
 -- 23. 验证

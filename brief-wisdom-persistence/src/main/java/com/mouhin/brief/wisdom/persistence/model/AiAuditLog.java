@@ -1,11 +1,8 @@
 package com.mouhin.brief.wisdom.persistence.model;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 /**
  * AI 安全审计日志实体类
@@ -19,18 +16,14 @@ import java.time.LocalDateTime;
  * @date 2026-07-02
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("ai_audit_log")
-public class AiAuditLog {
-
-    /**
-     * 自增主键
-     */
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class AiAuditLog extends BaseEntity {
 
     /**
      * 会话ID
      */
+    @TableField(value = "session_id")
     private String sessionId;
 
     /**
@@ -90,7 +83,6 @@ public class AiAuditLog {
     private Double confidenceScore;
 
     /**
-     * 创建时间
+     * 创建时间（由 BaseEntity 自动管理）
      */
-    private LocalDateTime createTime;
 }

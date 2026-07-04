@@ -1,5 +1,6 @@
-package com.mouhin.brief.wisdom.config;
+package com.mouhin.brief.wisdom.aspect;
 
+import com.mouhin.brief.wisdom.lock.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -10,7 +11,6 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.ParameterNameDiscoverer;
-import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -23,9 +23,6 @@ import java.lang.reflect.Method;
  * <p>
  * 拦截 {@link DistributedLock} 注解标注的方法，自动加锁/释放。
  * 支持 SpEL 表达式动态解析锁的 Key。
- */
-/**
- * DistributedLockAspect
  *
  * @author Brief-Wisdom
  * @date 2026-06-30

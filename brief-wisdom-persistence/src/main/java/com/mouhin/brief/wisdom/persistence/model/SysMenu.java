@@ -2,27 +2,18 @@ package com.mouhin.brief.wisdom.persistence.model;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 /**
  * 系统菜单实体类
- */
-/**
- * SysMenu
  *
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("sys_menu")
-public class SysMenu implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class SysMenu extends BaseEntity {
 
     @TableField(value = "parent_id")
     private Long parentId;
@@ -53,14 +44,4 @@ public class SysMenu implements Serializable {
 
     @TableField(value = "require_login")
     private Integer requireLogin;
-
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    @TableLogic
-    @TableField(value = "is_deleted")
-    private Integer isDeleted;
 }

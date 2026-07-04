@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.config;
 
+import com.mouhin.brief.wisdom.interceptor.PermissionInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;

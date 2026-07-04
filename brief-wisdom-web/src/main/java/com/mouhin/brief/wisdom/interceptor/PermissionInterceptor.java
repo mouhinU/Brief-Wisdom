@@ -1,4 +1,4 @@
-package com.mouhin.brief.wisdom.config;
+package com.mouhin.brief.wisdom.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.brief.wisdom.common.Result;

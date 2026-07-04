@@ -2,27 +2,18 @@ package com.mouhin.brief.wisdom.persistence.model;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 /**
  * 知识文档实体类
- */
-/**
- * KnowledgeDocument
  *
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("knowledge_document")
-public class KnowledgeDocument implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class KnowledgeDocument extends BaseEntity {
 
     @TableField(value = "base_id")
     private Long baseId;
@@ -80,14 +71,4 @@ public class KnowledgeDocument implements Serializable {
      */
     @TableField(value = "status")
     private Integer status;
-
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    @TableLogic
-    @TableField(value = "is_deleted")
-    private Integer isDeleted;
 }

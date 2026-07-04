@@ -1,4 +1,4 @@
-package com.mouhin.brief.wisdom.config;
+package com.mouhin.brief.wisdom.lock;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,12 +14,9 @@ import java.util.function.Supplier;
  * <p>
  * 提供编程式和声明式两种使用方式：
  * <ul>
- *   <li>编程式：直接调用 {@link #lock}, {@link #tryLock}, {@link #unlock} 方法</li>
+ *   <li>编程式：直接调用 {@link #tryLockAndExecute}, {@link #lockAndExecute} 方法</li>
  *   <li>声明式：使用 {@link DistributedLock} 注解 + AOP 切面自动加锁/释放</li>
  * </ul>
- */
-/**
- * DistributedLockService
  *
  * @author Brief-Wisdom
  * @date 2026-06-30
