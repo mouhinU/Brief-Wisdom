@@ -6,6 +6,7 @@ import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentDTO;
+import com.mouhin.brief.wisdom.exception.AIException;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeBase;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeDocument;
 import com.mouhin.brief.wisdom.persistence.repository.KnowledgeBaseRepository;
@@ -16,7 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 知识库管理服务实现
@@ -49,7 +52,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     public List<KnowledgeBaseDTO> listBases() {
         List<KnowledgeBase> allBases = knowledgeBaseRepository.findAll();
-        return allBases.stream().map(this::toBaseDTO).toList();
+        // 批量查询文档数量和子知识库状态，避免 N+1
+        Map<Long, Long> docCountMap = buildDocCountMap(allBases);
+        Map<Long, Boolean> hasChildrenMap = buildHasChildrenMap(allBases);
+        return allBases.stream().map(base -> toBaseDTO(base, docCountMap, hasChildrenMap)).toList();
     }
 
     /**
@@ -95,7 +101,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     public KnowledgeBaseDTO updateBase(Long id, KnowledgeBaseBO bo) {
         KnowledgeBase base = knowledgeBaseRepository.findById(id);
         if (base == null) {
-            throw new IllegalArgumentException("知识库不存在: " + id);
+            throw new AIException("知识库不存在: " + id);
         }
         if (bo.getName() != null) { base.setName(bo.getName()); }
         if (bo.getDescription() != null) { base.setDescription(bo.getDescription()); }
@@ -115,12 +121,12 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     public void deleteBase(Long id) {
         KnowledgeBase base = knowledgeBaseRepository.findById(id);
         if (base == null) {
-            throw new IllegalArgumentException("知识库不存在: " + id);
+            throw new AIException("知识库不存在: " + id);
         }
         // 检查是否有子知识库
         long childCount = knowledgeBaseRepository.countByParentId(id);
         if (childCount > 0) {
-            throw new IllegalArgumentException("该知识库下还有子知识库，请先删除子知识库");
+            throw new AIException("该知识库下还有子知识库，请先删除子知识库");
         }
         // 删除知识库下的所有文档
         List<KnowledgeDocument> docs = knowledgeDocumentRepository.findByBaseId(id);
@@ -156,7 +162,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     public KnowledgeDocumentDTO getDocument(Long id) {
         KnowledgeDocument doc = knowledgeDocumentRepository.findById(id);
         if (doc == null) {
-            throw new IllegalArgumentException("文档不存在: " + id);
+            throw new AIException("文档不存在: " + id);
         }
         // 增加浏览次数
         knowledgeDocumentRepository.incrementViewCount(id);
@@ -182,7 +188,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     public KnowledgeDocumentDTO updateDocument(Long id, KnowledgeDocumentBO bo) {
         KnowledgeDocument doc = knowledgeDocumentRepository.findById(id);
         if (doc == null) {
-            throw new IllegalArgumentException("文档不存在: " + id);
+            throw new AIException("文档不存在: " + id);
         }
         copyBoToDoc(bo, doc);
         knowledgeDocumentRepository.update(doc);
@@ -196,7 +202,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     public void deleteDocument(Long id) {
         KnowledgeDocument doc = knowledgeDocumentRepository.findById(id);
         if (doc == null) {
-            throw new IllegalArgumentException("文档不存在: " + id);
+            throw new AIException("文档不存在: " + id);
         }
         knowledgeDocumentRepository.deleteById(id);
     }
@@ -230,6 +236,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     }
 
     private KnowledgeBaseDTO toBaseDTO(KnowledgeBase base) {
+        return toBaseDTO(base, null, null);
+    }
+
+    private KnowledgeBaseDTO toBaseDTO(KnowledgeBase base, Map<Long, Long> docCountMap, Map<Long, Boolean> hasChildrenMap) {
         KnowledgeBaseDTO dto = new KnowledgeBaseDTO();
         dto.setId(base.getId());
         dto.setName(base.getName());
@@ -240,14 +250,51 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         dto.setIsPublic(base.getIsPublic());
         dto.setCreateTime(base.getCreateTime());
         dto.setUpdateTime(base.getUpdateTime());
-        // 查询文档数量
-        dto.setDocumentCount(knowledgeDocumentRepository.countByBaseId(base.getId()));
-        // 查询是否有子知识库
-        dto.setHasChildren(knowledgeBaseRepository.countByParentId(base.getId()) > 0);
+        // 使用批量查询结果或单独查询
+        if (docCountMap != null) {
+            dto.setDocumentCount(docCountMap.getOrDefault(base.getId(), 0L));
+        } else {
+            dto.setDocumentCount(knowledgeDocumentRepository.countByBaseId(base.getId()));
+        }
+        if (hasChildrenMap != null) {
+            dto.setHasChildren(hasChildrenMap.getOrDefault(base.getId(), false));
+        } else {
+            dto.setHasChildren(knowledgeBaseRepository.countByParentId(base.getId()) > 0);
+        }
         return dto;
     }
 
+    /**
+     * 批量构建知识库文档数量映射（指定初始容量避免扩容）
+     */
+    private Map<Long, Long> buildDocCountMap(List<KnowledgeBase> bases) {
+        // 初始容量 = (元素个数 / 0.75) + 1，遵循 AGENTS.md 规范
+        int initialCapacity = (int) (bases.size() / 0.75) + 1;
+        Map<Long, Long> map = new HashMap<>(initialCapacity);
+        for (KnowledgeBase base : bases) {
+            map.put(base.getId(), knowledgeDocumentRepository.countByBaseId(base.getId()));
+        }
+        return map;
+    }
+
+    /**
+     * 批量构建知识库是否有子节点映射（指定初始容量避免扩容）
+     */
+    private Map<Long, Boolean> buildHasChildrenMap(List<KnowledgeBase> bases) {
+        // 初始容量 = (元素个数 / 0.75) + 1，遵循 AGENTS.md 规范
+        int initialCapacity = (int) (bases.size() / 0.75) + 1;
+        Map<Long, Boolean> map = new HashMap<>(initialCapacity);
+        for (KnowledgeBase base : bases) {
+            map.put(base.getId(), knowledgeBaseRepository.countByParentId(base.getId()) > 0);
+        }
+        return map;
+    }
+
     private KnowledgeDocumentDTO toDocDTO(KnowledgeDocument doc) {
+        return toDocDTO(doc, null);
+    }
+
+    private KnowledgeDocumentDTO toDocDTO(KnowledgeDocument doc, Map<Long, String> baseNameMap) {
         KnowledgeDocumentDTO dto = new KnowledgeDocumentDTO();
         dto.setId(doc.getId());
         dto.setBaseId(doc.getBaseId());
@@ -266,10 +313,14 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         dto.setStatus(doc.getStatus());
         dto.setCreateTime(doc.getCreateTime());
         dto.setUpdateTime(doc.getUpdateTime());
-        // 查询所属知识库名称
-        KnowledgeBase base = knowledgeBaseRepository.findById(doc.getBaseId());
-        if (base != null) {
-            dto.setBaseName(base.getName());
+        // 查询所属知识库名称（使用缓存或单独查询）
+        if (baseNameMap != null && baseNameMap.containsKey(doc.getBaseId())) {
+            dto.setBaseName(baseNameMap.get(doc.getBaseId()));
+        } else if (baseNameMap == null) {
+            KnowledgeBase base = knowledgeBaseRepository.findById(doc.getBaseId());
+            if (base != null) {
+                dto.setBaseName(base.getName());
+            }
         }
         return dto;
     }

@@ -6,6 +6,7 @@ import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
 import com.mouhin.brief.wisdom.common.ai.SyncStatusDTO;
+import com.mouhin.brief.wisdom.exception.AIException;
 import com.mouhin.brief.wisdom.exception.ContentSecurityException;
 import com.mouhin.brief.wisdom.exception.RateLimitException;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
@@ -32,7 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.*;
 /**
  * AiAgentService
@@ -50,6 +51,27 @@ public class AiAgentService {
     private static final String DEFAULT_USER_ID = "default-user";
     // 单条消息最大长度
     private static final int MAX_MESSAGE_LENGTH = 10000;
+    // 默认模型名称
+    private static final String DEFAULT_MODEL_NAME = "qwen-plus";
+    // 默认提供商标识
+    private static final String DEFAULT_PROVIDER = "dashscope";
+    // 默认思考模式
+    private static final String DEFAULT_THINKING_MODE = "normal";
+    // 消息角色常量
+    private static final String ROLE_USER = "user";
+    private static final String ROLE_ASSISTANT = "assistant";
+    // 消息类型常量
+    private static final String MESSAGE_TYPE_TEXT = "text";
+    // 上下文相关参数
+    private static final int RECENT_MESSAGES_COUNT = 10;
+    private static final int RELATED_SESSIONS_COUNT = 3;
+    private static final int RELATED_MESSAGES_COUNT = 5;
+    // 标题截断长度
+    private static final int TITLE_MAX_LENGTH = 30;
+    // 审计日志内容截断长度
+    private static final int AUDIT_CONTENT_MAX_LENGTH = 50;
+    // 占位符
+    private static final String NA_PLACEHOLDER = "N/A";
     private final ChatModelRegistry chatModelRegistry;
     private final ChatSessionRepository sessionRepository;
     private final ChatMessageRepository messageRepository;
@@ -171,10 +193,10 @@ public class AiAgentService {
     public void renameSession(String sessionId, String newTitle) {
         ChatSession session = sessionRepository.findBySessionId(sessionId);
         if (session == null) {
-            throw new IllegalArgumentException("会话不存在: " + sessionId);
+            throw new AIException("会话不存在: " + sessionId);
         }
         if (newTitle == null || newTitle.isBlank()) {
-            throw new IllegalArgumentException("标题不能为空");
+            throw new AIException("标题不能为空");
         }
         session.setTitle(newTitle.trim());
         sessionRepository.update(session);
@@ -284,7 +306,8 @@ public class AiAgentService {
      * @return sessionId -> lastMessageTime 的映射
      */
     private Map<String, LocalDateTime> buildLastMessageTimeMap(String userId) {
-        Map<String, LocalDateTime> map = new HashMap<>();
+        // 预估初始容量，避免频繁扩容
+        Map<String, LocalDateTime> map = new HashMap<>(16);
         List<Map<String, Object>> timeRows = messageRepository.findLastMessageTimesByUserId(userId);
         for (Map<String, Object> row : timeRows) {
             String sid = String.valueOf(row.get("session_id"));
@@ -318,38 +341,22 @@ public class AiAgentService {
      * @return 分页结果
      */
     public PageResult<ChatMessageDTO> getSessionHistoryPaged(String sessionId, int page, int size) {
-        // ✅ 使用正序查询，保持消息的自然顺序
-        List<ChatMessage> allMessages = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
-        
-        // 手动分页（正序数据）
-        long total = allMessages.size();
-        int fromIndex = (page - 1) * size;
-        int toIndex = Math.min(fromIndex + size, allMessages.size());
-        
-        // 边界检查
-        if (fromIndex >= total) {
-            fromIndex = 0;
-            toIndex = 0;
-        }
-        
-        List<ChatMessage> pagedMessages = fromIndex < toIndex ? allMessages.subList(fromIndex, toIndex) : new ArrayList<>();
-        
+        // 使用数据库级别分页，避免全量加载到内存
+        Page<ChatMessage> pageResult = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId, page, size);
+
         // 转换为 DTO（保持正序）
-        List<ChatMessageDTO> dtos = pagedMessages.stream()
+        List<ChatMessageDTO> dtos = pageResult.getRecords().stream()
                 .map(this::toChatMessageDTO)
                 .toList();
-
-        // 计算总页数
-        long totalPages = (total + size - 1) / size;
 
         // 封装分页结果
         PageResult<ChatMessageDTO> result = new PageResult<>();
         result.setRecords(dtos);
-        result.setTotal(total);
-        result.setPage(page);
-        result.setSize(size);
-        result.setPages(totalPages);
-        result.setHasMore(page < totalPages);
+        result.setTotal(pageResult.getTotal());
+        result.setPage(pageResult.getCurrent());
+        result.setSize(pageResult.getSize());
+        result.setPages(pageResult.getPages());
+        result.setHasMore(pageResult.getCurrent() < pageResult.getPages());
 
         return result;
     }
@@ -395,10 +402,10 @@ public class AiAgentService {
     public String getActiveModelName() {
         try {
             AiModel model = aiModelRepository.findActiveModel();
-            return model != null ? model.getModelName() : "qwen-plus";
+            return model != null ? model.getModelName() : DEFAULT_MODEL_NAME;
         } catch (Exception e) {
             log.warn("获取激活模型失败，使用默认模型: ", e);
-            return "qwen-plus";
+            return DEFAULT_MODEL_NAME;
         }
     }
 
@@ -411,7 +418,7 @@ public class AiAgentService {
     private String resolveProvider(String modelName) {
         AiModel aiModel = aiModelRepository.findByModelName(modelName);
         return (aiModel != null && aiModel.getProvider() != null)
-                ? aiModel.getProvider() : "dashscope";
+                ? aiModel.getProvider() : DEFAULT_PROVIDER;
     }
 
     /**
@@ -423,7 +430,7 @@ public class AiAgentService {
     private String resolveThinkingMode(String modelName) {
         AiModel aiModel = aiModelRepository.findByModelName(modelName);
         return (aiModel != null && aiModel.getThinkingMode() != null)
-                ? aiModel.getThinkingMode() : "normal";
+                ? aiModel.getThinkingMode() : DEFAULT_THINKING_MODE;
     }
 
     /**
@@ -461,7 +468,7 @@ public class AiAgentService {
     public String chat(String message, String modelName) {
         validateInput(message);
         // 输入预过滤（无 sessionId/userId，使用占位符）
-        checkInputSafety(message, "N/A", "N/A");
+        checkInputSafety(message, NA_PLACEHOLDER, NA_PLACEHOLDER);
 
         log.info("收到用户消息: {}, 模型: {}", message, modelName);
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
@@ -474,12 +481,32 @@ public class AiAgentService {
                 List.of(new SystemMessage(SystemPrompts.BASE_SYSTEM_PROMPT), new UserMessage(message)),
                 buildChatOptions(provider, model)
         );
+        long startTime = System.currentTimeMillis();
         ChatResponse chatResponse = chatModel.call(prompt);
+        long elapsed = System.currentTimeMillis() - startTime;
 
+        // NPE 防护：检查响应链
+        if (chatResponse == null || chatResponse.getResult() == null
+                || chatResponse.getResult().getOutput() == null) {
+            throw new AIException("AI 模型返回为空，请稍后重试");
+        }
         String response = chatResponse.getResult().getOutput().getText();
+        if (response == null) {
+            response = "";
+        }
+
+        // 记录 Token 消耗和耗时
+        Usage usage = chatResponse.getMetadata() != null ? chatResponse.getMetadata().getUsage() : null;
+        if (usage != null) {
+            log.info("[AI调用] 模型: {}, 提供商: {}, 耗时: {}ms, 输入Token: {}, 输出Token: {}, 总Token: {}",
+                    model, provider, elapsed,
+                    usage.getPromptTokens(), usage.getCompletionTokens(), usage.getTotalTokens());
+        } else {
+            log.info("[AI调用] 模型: {}, 提供商: {}, 耗时: {}ms", model, provider, elapsed);
+        }
 
         // 输出过滤（无 sessionId/userId/messageId，使用占位符）
-        response = contentFilterService.filterOutput(response, "N/A", "N/A", null);
+        response = contentFilterService.filterOutput(response, NA_PLACEHOLDER, NA_PLACEHOLDER, null);
         log.info("AI 回复(模型: {}, 提供商: {}, 思考模式: {}): {}", model, provider, thinkingMode, response);
         return response;
     }
@@ -535,25 +562,25 @@ public class AiAgentService {
 
         if (session == null) {
             log.error("会话不存在: {}", sessionId);
-            throw new RuntimeException("会话不存在: " + sessionId);
+            throw new AIException("会话不存在: " + sessionId);
         }
 
         if (!session.getUserId().equals(userId)) {
             log.error("无权访问此会话，session.userId: {}, userId: {}", session.getUserId(), userId);
-            throw new RuntimeException("无权访问此会话");
+            throw new AIException("无权访问此会话");
         }
 
         // 保存用户消息
         ChatMessage userMsg = new ChatMessage();
         userMsg.setSessionId(sessionId);
         userMsg.setUserId(userId);
-        userMsg.setRole("user");
+        userMsg.setRole(ROLE_USER);
         userMsg.setContent(message);
-        userMsg.setMessageType("text");
+        userMsg.setMessageType(MESSAGE_TYPE_TEXT);
         messageRepository.save(userMsg);
 
-        // 获取当前会话最近10条消息作为上下文
-        List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, 10);
+        // 获取当前会话最近消息作为上下文
+        List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, RECENT_MESSAGES_COUNT);
         Collections.reverse(recentMessages);  // 反转为正序
 
         // 构建当前会话上下文
@@ -566,7 +593,7 @@ public class AiAgentService {
         // 根据当前页面上下文，获取同页面其他会话的最近消息作为额外上下文
         String effectivePageContext = (pageContext != null && !pageContext.isBlank()) ? pageContext : session.getPageContext();
         if (effectivePageContext != null && !effectivePageContext.isBlank()) {
-            List<ChatSession> relatedSessions = sessionRepository.findRecentByUserIdAndPageContext(userId, effectivePageContext, 3);
+            List<ChatSession> relatedSessions = sessionRepository.findRecentByUserIdAndPageContext(userId, effectivePageContext, RELATED_SESSIONS_COUNT);
             // 过滤掉当前会话
             relatedSessions = relatedSessions.stream()
                     .filter(s -> !s.getSessionId().equals(sessionId))
@@ -575,7 +602,7 @@ public class AiAgentService {
             if (!relatedSessions.isEmpty()) {
                 context.append("\n## 同页面（").append(getPageContextName(effectivePageContext)).append("）的其他最近会话\n");
                 for (ChatSession relatedSession : relatedSessions) {
-                    List<ChatMessage> relatedMessages = messageRepository.findRecentMessages(relatedSession.getSessionId(), 5);
+                    List<ChatMessage> relatedMessages = messageRepository.findRecentMessages(relatedSession.getSessionId(), RELATED_MESSAGES_COUNT);
                     Collections.reverse(relatedMessages);
                     if (!relatedMessages.isEmpty()) {
                         context.append("\n### 会话: ").append(relatedSession.getTitle()).append("\n");
@@ -622,17 +649,29 @@ public class AiAgentService {
         String provider = resolveProvider(model);
         String thinkingMode = resolveThinkingMode(model);
         ChatModel chatModel = chatModelRegistry.getChatModel(provider, model, thinkingMode);
+        if (chatModel == null) {
+            log.error("无法获取 ChatModel: provider={}, model={}, thinkingMode={}", provider, model, thinkingMode);
+            throw new AIException("AI 模型不可用，请稍后重试");
+        }
 
         // 调用 AI，获取完整响应（包含 token 用量）
         Prompt prompt = new Prompt(
                 List.of(new SystemMessage(systemPrompt), new UserMessage(context.toString())),
                 buildChatOptions(provider, model)
         );
+        long startTime = System.currentTimeMillis();
         ChatResponse chatResponse = chatModel.call(prompt);
+        long elapsed = System.currentTimeMillis() - startTime;
 
         // 提取回复内容
-        assert chatResponse != null;
+        if (chatResponse == null || chatResponse.getResult() == null
+                || chatResponse.getResult().getOutput() == null) {
+            throw new AIException("AI 模型返回为空，请稍后重试");
+        }
         String response = chatResponse.getResult().getOutput().getText();
+        if (response == null) {
+            response = "";
+        }
 
         // 输出过滤（在保存消息之前，以便记录 messageId）
         response = contentFilterService.filterOutput(response, sessionId, userId, null);
@@ -641,13 +680,13 @@ public class AiAgentService {
         int promptTokens = 0;
         int completionTokens = 0;
         Integer totalTokens = 0;
-        Usage usage = chatResponse.getMetadata().getUsage();
+        Usage usage = chatResponse.getMetadata() != null ? chatResponse.getMetadata().getUsage() : null;
         if (usage != null) {
             promptTokens = usage.getPromptTokens() != null ? usage.getPromptTokens() : 0;
             completionTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens() : 0;
             totalTokens = usage.getTotalTokens() != null ? usage.getTotalTokens() : 0;
         }
-        log.info("Token 用量 - 输入: {}, 输出: {}, 总计: {}", promptTokens, completionTokens, totalTokens);
+        log.info("Token 用量 - 输入: {}, 输出: {}, 总计: {}, 耗时: {}ms", promptTokens, completionTokens, totalTokens, elapsed);
 
         // 计算费用
         Double cost = calculateCost(model, promptTokens, completionTokens);
@@ -656,12 +695,12 @@ public class AiAgentService {
         ChatMessage aiMsg = new ChatMessage();
         aiMsg.setSessionId(sessionId);
         aiMsg.setUserId(userId);
-        aiMsg.setRole("assistant");
+        aiMsg.setRole(ROLE_ASSISTANT);
         aiMsg.setContent(response);
         aiMsg.setModel(model);
         aiMsg.setTokens(totalTokens);
         aiMsg.setCost(cost);
-        aiMsg.setMessageType("text");
+        aiMsg.setMessageType(MESSAGE_TYPE_TEXT);
         messageRepository.save(aiMsg);
 
         // 如果之前输出过滤时记录了审计日志，需要更新 messageId
@@ -673,7 +712,7 @@ public class AiAgentService {
 
         // 如果是第一条消息，用用户消息作为标题
         if (messageCount == 2) {
-            session.setTitle(message.length() > 30 ? message.substring(0, 30) + "..." : message);
+            session.setTitle(message.length() > TITLE_MAX_LENGTH ? message.substring(0, TITLE_MAX_LENGTH) + "..." : message);
         }
 
         // 手动设置更新时间为当前时间（即最后一条消息的时间）
@@ -713,23 +752,23 @@ public class AiAgentService {
         // 验证会话
         ChatSession session = sessionRepository.findBySessionId(sessionId);
         if (session == null) {
-            return Flux.error(new RuntimeException("会话不存在: " + sessionId));
+            return Flux.error(new AIException("会话不存在: " + sessionId));
         }
         if (!session.getUserId().equals(userId)) {
-            return Flux.error(new RuntimeException("无权访问此会话"));
+            return Flux.error(new AIException("无权访问此会话"));
         }
 
         // 保存用户消息
         ChatMessage userMsg = new ChatMessage();
         userMsg.setSessionId(sessionId);
         userMsg.setUserId(userId);
-        userMsg.setRole("user");
+        userMsg.setRole(ROLE_USER);
         userMsg.setContent(message);
-        userMsg.setMessageType("text");
+        userMsg.setMessageType(MESSAGE_TYPE_TEXT);
         messageRepository.save(userMsg);
 
         // 构建上下文（与非流式相同逻辑）
-        List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, 10);
+        List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, RECENT_MESSAGES_COUNT);
         Collections.reverse(recentMessages);
 
         StringBuilder context = new StringBuilder();
@@ -740,7 +779,7 @@ public class AiAgentService {
 
         String effectivePageContext = (pageContext != null && !pageContext.isBlank()) ? pageContext : session.getPageContext();
         if (effectivePageContext != null && !effectivePageContext.isBlank()) {
-            List<ChatSession> relatedSessions = sessionRepository.findRecentByUserIdAndPageContext(userId, effectivePageContext, 3);
+            List<ChatSession> relatedSessions = sessionRepository.findRecentByUserIdAndPageContext(userId, effectivePageContext, RELATED_SESSIONS_COUNT);
             relatedSessions = relatedSessions.stream()
                     .filter(s -> !s.getSessionId().equals(sessionId))
                     .toList();
@@ -748,7 +787,7 @@ public class AiAgentService {
             if (!relatedSessions.isEmpty()) {
                 context.append("\n## 同页面（").append(getPageContextName(effectivePageContext)).append("）的其他最近会话\n");
                 for (ChatSession relatedSession : relatedSessions) {
-                    List<ChatMessage> relatedMessages = messageRepository.findRecentMessages(relatedSession.getSessionId(), 5);
+                    List<ChatMessage> relatedMessages = messageRepository.findRecentMessages(relatedSession.getSessionId(), RELATED_MESSAGES_COUNT);
                     Collections.reverse(relatedMessages);
                     if (!relatedMessages.isEmpty()) {
                         context.append("\n### 会话: ").append(relatedSession.getTitle()).append("\n");
@@ -828,9 +867,27 @@ public class AiAgentService {
         Prompt prompt = new Prompt(
                 List.of(new SystemMessage(systemPrompt), new UserMessage(userMessage))
         );
+        long startTime = System.currentTimeMillis();
         ChatResponse chatResponse = chatModel.call(prompt);
+        long elapsed = System.currentTimeMillis() - startTime;
 
+        // NPE 防护：检查响应链
+        if (chatResponse == null || chatResponse.getResult() == null
+                || chatResponse.getResult().getOutput() == null) {
+            throw new AIException("AI 模型返回为空，请稍后重试");
+        }
         String response = chatResponse.getResult().getOutput().getText();
+        if (response == null) {
+            response = "";
+        }
+        // 记录 Token 消耗和耗时
+        Usage usage = chatResponse.getMetadata() != null ? chatResponse.getMetadata().getUsage() : null;
+        if (usage != null) {
+            log.info("[AI调用] chatWithSystemPrompt, 耗时: {}ms, 输入Token: {}, 输出Token: {}, 总Token: {}",
+                    elapsed, usage.getPromptTokens(), usage.getCompletionTokens(), usage.getTotalTokens());
+        } else {
+            log.info("[AI调用] chatWithSystemPrompt, 耗时: {}ms", elapsed);
+        }
         log.info("AI 回复: {}", response);
         return response;
     }
@@ -844,11 +901,11 @@ public class AiAgentService {
     public String askQuestion(String question) {
         validateInput(question);
         // 输入预过滤（无 sessionId/userId，使用占位符）
-        checkInputSafety(question, "N/A", "N/A");
+        checkInputSafety(question, NA_PLACEHOLDER, NA_PLACEHOLDER);
         String systemPrompt = SystemPrompts.BASE_SYSTEM_PROMPT + "\n\n请简洁明了地回答问题。";
         String response = chatWithSystemPrompt(systemPrompt, question);
         // 输出过滤（无 sessionId/userId/messageId，使用占位符）
-        return contentFilterService.filterOutput(response, "N/A", "N/A", null);
+        return contentFilterService.filterOutput(response, NA_PLACEHOLDER, NA_PLACEHOLDER, null);
     }
 
     /**
@@ -858,10 +915,10 @@ public class AiAgentService {
      */
     private void validateInput(String message) {
         if (message == null || message.isBlank()) {
-            throw new IllegalArgumentException("消息内容不能为空");
+            throw new AIException("消息内容不能为空");
         }
         if (message.length() > MAX_MESSAGE_LENGTH) {
-            throw new IllegalArgumentException("消息长度不能超过" + MAX_MESSAGE_LENGTH + "个字符");
+            throw new AIException("消息长度不能超过" + MAX_MESSAGE_LENGTH + "个字符");
         }
     }
 
@@ -902,7 +959,7 @@ public class AiAgentService {
      * @param blockedKeyword 命中的敏感词
      */
     @Transactional
-    private void saveBlockedMessages(String sessionId, String userId, String message, String blockedKeyword) {
+    public void saveBlockedMessages(String sessionId, String userId, String message, String blockedKeyword) {
         log.info("[内容安全] 开始保存被拦截的消息 - sessionId: {}, userId: {}, keyword: {}", sessionId, userId, blockedKeyword);
 
         try {
@@ -911,9 +968,9 @@ public class AiAgentService {
             ChatMessage userMsg = new ChatMessage();
             userMsg.setSessionId(sessionId);
             userMsg.setUserId(userId);
-            userMsg.setRole("user");
+            userMsg.setRole(ROLE_USER);
             userMsg.setContent(message);
-            userMsg.setMessageType("text");
+            userMsg.setMessageType(MESSAGE_TYPE_TEXT);
             userMsg.setTimestamp(userMsgTime); // 显式设置时间戳
             userMsg.setTokens(0);
             userMsg.setCost(0.0);
@@ -925,10 +982,10 @@ public class AiAgentService {
             ChatMessage systemMsg = new ChatMessage();
             systemMsg.setSessionId(sessionId);
             systemMsg.setUserId(userId);
-            systemMsg.setRole("assistant");
+            systemMsg.setRole(ROLE_ASSISTANT);
             systemMsg.setContent(contentFilterService.getBlockedMessage());
             systemMsg.setModel("system-security-filter"); // 标记为系统安全过滤
-            systemMsg.setMessageType("text");
+            systemMsg.setMessageType(MESSAGE_TYPE_TEXT);
             systemMsg.setTimestamp(systemMsgTime); // 显式设置时间戳
             systemMsg.setTokens(0);
             systemMsg.setCost(0.0);
@@ -942,7 +999,7 @@ public class AiAgentService {
                 session.setMessageCount((int) messageCount);
                 // 如果是第一条消息，用用户消息作为标题
                 if (messageCount == 2) {
-                    session.setTitle(message.length() > 30 ? message.substring(0, 30) + "..." : message);
+                    session.setTitle(message.length() > TITLE_MAX_LENGTH ? message.substring(0, TITLE_MAX_LENGTH) + "..." : message);
                 }
                 session.setUpdateTime(LocalDateTime.now());
                 sessionRepository.update(session);
@@ -950,7 +1007,7 @@ public class AiAgentService {
             }
 
             // 第四步：记录审计日志（在聊天记录之后）
-            contentFilterService.getAuditService().logInputBlocked(
+            contentFilterService.logInputBlocked(
                     sessionId, 
                     userId, 
                     blockedKeyword, 
@@ -974,9 +1031,9 @@ public class AiAgentService {
         if (content == null || content.isBlank()) {
             return content;
         }
-        // 简单脱敏：只显示前50个字符
-        if (content.length() > 50) {
-            return content.substring(0, 50) + "...[已脱敏]";
+        // 简单脱敏：只显示前N个字符
+        if (content.length() > AUDIT_CONTENT_MAX_LENGTH) {
+            return content.substring(0, AUDIT_CONTENT_MAX_LENGTH) + "...[已脱敏]";
         }
         return content;
     }
@@ -1006,7 +1063,7 @@ public class AiAgentService {
         syncStatus.setSessionCount((int) sessionCount);
 
         // 2. 每个会话的消息数量
-        Map<String, Integer> messageCounts = new HashMap<>();
+        Map<String, Integer> messageCounts = new HashMap<>(16);
         List<Map<String, Object>> countRows = messageRepository.findMessageCountsByUserId(userId);
         for (Map<String, Object> row : countRows) {
             String sid = String.valueOf(row.get("session_id"));
@@ -1016,13 +1073,13 @@ public class AiAgentService {
         syncStatus.setSessionMessageCounts(messageCounts);
 
         // 3. 每个会话的最后消息时间（毫秒时间戳）
-        Map<String, Long> lastMessageTimes = new HashMap<>();
+        Map<String, Long> lastMessageTimes = new HashMap<>(16);
         List<Map<String, Object>> timeRows = messageRepository.findLastMessageTimesByUserId(userId);
         for (Map<String, Object> row : timeRows) {
             String sid = String.valueOf(row.get("session_id"));
             Object lastTime = row.get("last_time");
             if (lastTime instanceof LocalDateTime) {
-                lastMessageTimes.put(sid, ((LocalDateTime) lastTime).toInstant(ZoneOffset.UTC).toEpochMilli());
+                lastMessageTimes.put(sid, ((LocalDateTime) lastTime).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             }
         }
         syncStatus.setSessionLastMessageTimes(lastMessageTimes);
@@ -1052,20 +1109,20 @@ public class AiAgentService {
         // 验证会话
         ChatSession session = sessionRepository.findBySessionId(sessionId);
         if (session == null) {
-            throw new RuntimeException("会话不存在: " + sessionId);
+            throw new AIException("会话不存在: " + sessionId);
         }
         if (!session.getUserId().equals(userId)) {
-            throw new RuntimeException("无权访问此会话");
+            throw new AIException("无权访问此会话");
         }
 
         // 保存 AI 回复
         ChatMessage aiMsg = new ChatMessage();
         aiMsg.setSessionId(sessionId);
         aiMsg.setUserId(userId);
-        aiMsg.setRole("assistant");
+        aiMsg.setRole(ROLE_ASSISTANT);
         aiMsg.setContent(content);
         aiMsg.setModel(model);
-        aiMsg.setMessageType("text");
+        aiMsg.setMessageType(MESSAGE_TYPE_TEXT);
         // 流式模式下不记录 token 和费用
         aiMsg.setTokens(0);
         aiMsg.setCost(0.0);
@@ -1081,7 +1138,7 @@ public class AiAgentService {
             List<ChatMessage> firstMessages = messageRepository.findRecentMessages(sessionId, 1);
             if (!firstMessages.isEmpty()) {
                 String firstMessage = firstMessages.get(0).getContent();
-                session.setTitle(firstMessage.length() > 30 ? firstMessage.substring(0, 30) + "..." : firstMessage);
+                session.setTitle(firstMessage.length() > TITLE_MAX_LENGTH ? firstMessage.substring(0, TITLE_MAX_LENGTH) + "..." : firstMessage);
             }
         }
 

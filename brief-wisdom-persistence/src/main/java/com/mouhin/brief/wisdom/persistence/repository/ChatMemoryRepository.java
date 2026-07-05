@@ -22,6 +22,9 @@ public class ChatMemoryRepository {
 
     /**
      * 查询用户的所有记忆（按访问次数降序）
+     *
+     * @param userId 用户 ID
+     * @return 记忆列表
      */
     public List<ChatMemory> findByUserId(String userId) {
         return chatMemoryMapper.selectList(
@@ -33,6 +36,10 @@ public class ChatMemoryRepository {
 
     /**
      * 按分类查询用户记忆
+     *
+     * @param userId   用户 ID
+     * @param category 分类名称
+     * @return 记忆列表
      */
     public List<ChatMemory> findByUserIdAndCategory(String userId, String category) {
         return chatMemoryMapper.selectList(
@@ -45,6 +52,10 @@ public class ChatMemoryRepository {
 
     /**
      * 按 key 查询单条记忆
+     *
+     * @param userId    用户 ID
+     * @param memoryKey 记忆键
+     * @return 匹配的记忆，不存在返回 null
      */
     public ChatMemory findByUserIdAndKey(String userId, String memoryKey) {
         return chatMemoryMapper.selectOne(
@@ -56,6 +67,8 @@ public class ChatMemoryRepository {
 
     /**
      * 保存记忆
+     *
+     * @param memory 记忆实体
      */
     public void save(ChatMemory memory) {
         chatMemoryMapper.insert(memory);
@@ -63,6 +76,8 @@ public class ChatMemoryRepository {
 
     /**
      * 更新记忆
+     *
+     * @param memory 记忆实体
      */
     public void update(ChatMemory memory) {
         chatMemoryMapper.updateById(memory);
@@ -70,6 +85,8 @@ public class ChatMemoryRepository {
 
     /**
      * 删除记忆
+     *
+     * @param id 记忆 ID
      */
     public void deleteById(Long id) {
         chatMemoryMapper.deleteById(id);
@@ -77,6 +94,8 @@ public class ChatMemoryRepository {
 
     /**
      * 增加访问次数
+     *
+     * @param id 记忆 ID
      */
     public void incrementAccessCount(Long id) {
         ChatMemory memory = chatMemoryMapper.selectById(id);
@@ -88,6 +107,8 @@ public class ChatMemoryRepository {
 
     /**
      * 删除用户的所有记忆
+     *
+     * @param userId 用户 ID
      */
     public void deleteByUserId(String userId) {
         chatMemoryMapper.delete(

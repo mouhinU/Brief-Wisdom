@@ -2,6 +2,8 @@ package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
+import com.mouhin.brief.wisdom.exception.AuthException;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.UserOauth;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
@@ -68,6 +70,9 @@ public class DingtalkAuthServiceImpl implements DingtalkAuthService {
     public ChatUser handleDingtalkCallback(String authCode) {
         // 1. authCode 换 access_token
         JsonNode tokenResp = fetchAccessToken(authCode);
+        if (tokenResp == null || !tokenResp.has("accessToken")) {
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "钉钉授权响应缺少必要字段");
+        }
         String accessToken = tokenResp.get("accessToken").asText();
         log.info("[钉钉登录] 获取到 access_token");
 
@@ -85,7 +90,7 @@ public class DingtalkAuthServiceImpl implements DingtalkAuthService {
         if (oauth != null) {
             ChatUser user = chatUserRepository.findByUserId(oauth.getUserId());
             if (user == null) {
-                throw new RuntimeException("[钉钉登录] 用户不存在，请联系管理员");
+                throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "用户不存在，请联系管理员");
             }
             oauth.setNickname(nickname);
             oauth.setAvatar(avatar);
@@ -130,7 +135,7 @@ public class DingtalkAuthServiceImpl implements DingtalkAuthService {
     private JsonNode fetchAccessToken(String authCode) {
         String url = dingtalkProperties.getTokenUrl();
         try {
-            Map<String, String> body = new HashMap<>();
+            Map<String, String> body = new HashMap<>(4);
             body.put("clientId", dingtalkProperties.getAppKey());
             body.put("clientSecret", dingtalkProperties.getAppSecret());
             body.put("code", authCode);
@@ -143,12 +148,12 @@ public class DingtalkAuthServiceImpl implements DingtalkAuthService {
             String responseBody = restTemplate.postForObject(url, request, String.class);
             JsonNode json = objectMapper.readTree(responseBody);
             if (!json.has("accessToken")) {
-                throw new RuntimeException("[钉钉登录] 获取 access_token 失败: " + responseBody);
+                throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取 access_token 失败");
             }
             return json;
         } catch (Exception e) {
             log.error("[钉钉登录] 调用 token 接口异常", e);
-            throw new RuntimeException("[钉钉登录] 获取 access_token 异常: " + e.getMessage());
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取 access_token 异常: " + e.getMessage());
         }
     }
 
@@ -161,13 +166,13 @@ public class DingtalkAuthServiceImpl implements DingtalkAuthService {
 
             String responseBody = restTemplate.postForObject(url, request, String.class);
             JsonNode json = objectMapper.readTree(responseBody);
-            if (json.has("code") && !json.get("code").asText().equals("0")) {
-                throw new RuntimeException("[钉钉登录] 获取用户信息失败: " + json.get("message").asText());
+            if (json.has("code") && !"0".equals(json.get("code").asText())) {
+                throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取用户信息失败: " + (json.has("message") ? json.get("message").asText() : "未知错误"));
             }
             return json;
         } catch (Exception e) {
             log.error("[钉钉登录] 调用 userinfo 接口异常", e);
-            throw new RuntimeException("[钉钉登录] 获取用户信息异常: " + e.getMessage());
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取用户信息异常: " + e.getMessage());
         }
     }
 }

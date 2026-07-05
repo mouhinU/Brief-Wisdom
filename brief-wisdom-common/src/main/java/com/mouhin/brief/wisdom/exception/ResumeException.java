@@ -1,5 +1,7 @@
 package com.mouhin.brief.wisdom.exception;
 
+import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
+
 /**
  * 简历模块异常基类
  * <p>
@@ -12,8 +14,31 @@ public class ResumeException extends BizException {
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * 使用错误消息创建简历模块异常
+     *
+     * @param message 错误消息
+     */
     public ResumeException(String message) {
         super(message);
     }
 
+    /**
+     * 使用异常枚举创建简历模块异常
+     *
+     * @param exceptionEnum 业务异常枚举
+     */
+    public ResumeException(BizExceptionEnums exceptionEnum) {
+        super(exceptionEnum);
+    }
+
+    /**
+     * 使用异常枚举和自定义消息创建简历模块异常
+     *
+     * @param exceptionEnum 业务异常枚举
+     * @param message       自定义错误消息
+     */
+    public ResumeException(BizExceptionEnums exceptionEnum, String message) {
+        super(exceptionEnum, message);
+    }
 }

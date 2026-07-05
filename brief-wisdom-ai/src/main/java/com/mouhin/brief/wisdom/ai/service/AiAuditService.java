@@ -172,7 +172,7 @@ public class AiAuditService {
      */
     public AuditStatisticsDTO getAuditStatistics() {
         AuditStatisticsDTO stats = new AuditStatisticsDTO();
-        stats.setTotalCount(auditLogRepository.countByUserId(null)); // 总数需要另外计算
+        stats.setTotalCount(auditLogRepository.countAll());
         stats.setInputBlockedCount(countByType("INPUT_BLOCKED"));
         stats.setOutputFilteredCount(countByType("OUTPUT_FILTERED"));
         stats.setRiskDetectedCount(countByType("RISK_DETECTED"));
@@ -205,8 +205,7 @@ public class AiAuditService {
      * 按类型统计数量
      */
     private long countByType(String auditType) {
-        // 简化实现，实际应添加 Repository 方法
-        return 0;
+        return auditLogRepository.countByAuditType(auditType);
     }
 
     /**

@@ -16,11 +16,15 @@ public interface MenuService {
 
     /**
      * 获取所有可见菜单（扁平列表），按 sort_order 排序
+     *
+     * @return 可见菜单列表
      */
     List<MenuDTO> listVisibleMenus();
 
     /**
      * 获取所有可见菜单（树形结构，含隐藏子项用于页面 Tab 渲染）
+     *
+     * @return 菜单树列表
      */
     List<MenuTreeDTO> listVisibleMenuTree();
 
@@ -34,36 +38,51 @@ public interface MenuService {
 
     /**
      * 获取所有菜单（含隐藏，管理页面用）
+     *
+     * @return 全部菜单列表
      */
     List<MenuDTO> listAllMenus();
 
     /**
      * 获取所有菜单（树形结构，管理页面用）
+     *
+     * @return 菜单树列表
      */
     List<MenuTreeDTO> listAllMenuTree();
 
     /**
      * 根据 ID 查询菜单
+     *
+     * @param id 菜单 ID
+     * @return 菜单实体
      */
     SysMenu getMenuById(Long id);
 
     /**
      * 新增菜单
+     *
+     * @param menu 菜单实体
      */
     void createMenu(SysMenu menu);
 
     /**
      * 更新菜单
+     *
+     * @param menu 菜单实体
      */
     void updateMenu(SysMenu menu);
 
     /**
      * 删除菜单（逻辑删除）
+     *
+     * @param id 菜单 ID
      */
     void deleteMenu(Long id);
 
     /**
      * 切换菜单显示/隐藏状态
+     *
+     * @param id 菜单 ID
      */
     void toggleVisible(Long id);
 }

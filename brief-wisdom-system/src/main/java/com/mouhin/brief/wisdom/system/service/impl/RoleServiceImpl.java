@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.mouhin.brief.wisdom.common.role.RoleDTO;
+import com.mouhin.brief.wisdom.exception.SystemSettingsException;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import com.mouhin.brief.wisdom.persistence.model.SysRole;
 import com.mouhin.brief.wisdom.persistence.model.UserRole;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.mouhin.brief.wisdom.constants.CachePrefix;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -62,7 +64,7 @@ public class RoleServiceImpl implements RoleService {
     public RoleDTO getRoleById(Long id) {
         SysRole role = sysRoleRepository.findById(id);
         if (role == null) {
-            throw new IllegalArgumentException("角色不存在");
+            throw new SystemSettingsException("角色不存在");
         }
         return toRoleDTO(role);
     }
@@ -87,7 +89,7 @@ public class RoleServiceImpl implements RoleService {
     public void createRole(RoleDTO roleDTO) {
         SysRole existing = sysRoleRepository.findByRoleKey(roleDTO.getRoleKey());
         if (existing != null) {
-            throw new IllegalArgumentException("角色标识已存在: " + roleDTO.getRoleKey());
+            throw new SystemSettingsException("角色标识已存在: " + roleDTO.getRoleKey());
         }
 
         SysRole role = new SysRole();
@@ -112,7 +114,7 @@ public class RoleServiceImpl implements RoleService {
     public void updateRole(RoleDTO roleDTO) {
         SysRole role = sysRoleRepository.findById(roleDTO.getId());
         if (role == null) {
-            throw new IllegalArgumentException("角色不存在");
+            throw new SystemSettingsException("角色不存在");
         }
 
         role.setRoleName(roleDTO.getRoleName());
@@ -122,10 +124,11 @@ public class RoleServiceImpl implements RoleService {
         log.info("更新角色: id={}, roleName={}", role.getId(), role.getRoleName());
     }
 
-    /**
-     * 系统预置角色 Key 列表（不可删除）
-     */
+    /** 系统预置角色 Key 列表（不可删除） */
     private static final List<String> SYSTEM_ROLE_KEYS = List.of("super_admin", "admin", "normal");
+
+    /** 默认角色 Key */
+    private static final String DEFAULT_ROLE_KEY = "normal";
 
     /**
      * 删除角色
@@ -141,16 +144,16 @@ public class RoleServiceImpl implements RoleService {
     public void deleteRole(Long id) {
         SysRole role = sysRoleRepository.findById(id);
         if (role == null) {
-            throw new IllegalArgumentException("角色不存在");
+            throw new SystemSettingsException("角色不存在");
         }
 
         if (SYSTEM_ROLE_KEYS.contains(role.getRoleKey())) {
-            throw new IllegalArgumentException("系统预置角色【" + role.getRoleName() + "】不可删除");
+            throw new SystemSettingsException("系统预置角色【" + role.getRoleName() + "】不可删除");
         }
 
         long userCount = userRoleRepository.countByRoleId(id);
         if (userCount > 0) {
-            throw new IllegalArgumentException("角色【" + role.getRoleName() + "】正在被 " + userCount + " 个用户使用，无法删除");
+            throw new SystemSettingsException("角色【" + role.getRoleName() + "】正在被 " + userCount + " 个用户使用，无法删除");
         }
 
         roleMenuRepository.deleteByRoleId(id);
@@ -171,7 +174,7 @@ public class RoleServiceImpl implements RoleService {
     public void assignMenus(Long roleId, List<Long> menuIds) {
         SysRole role = sysRoleRepository.findById(roleId);
         if (role == null) {
-            throw new IllegalArgumentException("角色不存在");
+            throw new SystemSettingsException("角色不存在");
         }
 
         roleMenuRepository.deleteByRoleId(roleId);
@@ -192,9 +195,11 @@ public class RoleServiceImpl implements RoleService {
         if (userRoles.isEmpty()) {
             return List.of();
         }
-        return userRoles.stream()
-                .map(ur -> sysRoleRepository.findById(ur.getRoleId()))
-                .filter(role -> role != null && role.getStatus() == 1)
+        // 批量查询角色，避免 N+1
+        List<Long> roleIds = userRoles.stream().map(UserRole::getRoleId).toList();
+        List<SysRole> roles = sysRoleRepository.findByIds(roleIds);
+        return roles.stream()
+                .filter(role -> role.getStatus() == 1)
                 .toList();
     }
 
@@ -233,7 +238,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public void assignDefaultRole(String userId) {
-        SysRole normalRole = sysRoleRepository.findByRoleKey("normal");
+        SysRole normalRole = sysRoleRepository.findByRoleKey(DEFAULT_ROLE_KEY);
         if (normalRole != null) {
             userRoleRepository.save(userId, normalRole.getId());
             log.info("[角色分配] 为用户分配默认角色 normal: userId={}", userId);

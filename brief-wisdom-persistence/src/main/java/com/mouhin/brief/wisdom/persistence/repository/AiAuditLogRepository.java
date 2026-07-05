@@ -21,6 +21,8 @@ public class AiAuditLogRepository {
 
     /**
      * 保存审计日志
+     *
+     * @param log 审计日志实体
      */
     public void save(AiAuditLog log) {
         mapper.insert(log);
@@ -57,6 +59,11 @@ public class AiAuditLogRepository {
 
     /**
      * 根据会话ID查询审计日志
+     *
+     * @param sessionId 会话 ID
+     * @param page      页码（从 1 开始）
+     * @param size      每页大小
+     * @return 分页结果
      */
     public Page<AiAuditLog> findBySessionId(String sessionId, int page, int size) {
         LambdaQueryWrapper<AiAuditLog> wrapper = new LambdaQueryWrapper<>();
@@ -68,6 +75,9 @@ public class AiAuditLogRepository {
 
     /**
      * 统计指定用户的审计日志数量
+     *
+     * @param userId 用户 ID
+     * @return 审计日志数量
      */
     public long countByUserId(String userId) {
         LambdaQueryWrapper<AiAuditLog> wrapper = new LambdaQueryWrapper<>();
@@ -77,10 +87,32 @@ public class AiAuditLogRepository {
 
     /**
      * 统计指定风险等级的审计日志数量
+     *
+     * @param riskLevel 风险等级
+     * @return 审计日志数量
      */
     public long countByRiskLevel(String riskLevel) {
         LambdaQueryWrapper<AiAuditLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AiAuditLog::getRiskLevel, riskLevel);
         return mapper.selectCount(wrapper);
+    }
+
+    /**
+     * 按审计类型统计数量
+     *
+     * @param auditType 审计类型
+     * @return 审计日志数量
+     */
+    public long countByAuditType(String auditType) {
+        LambdaQueryWrapper<AiAuditLog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AiAuditLog::getAuditType, auditType);
+        return mapper.selectCount(wrapper);
+    }
+
+    /**
+     * 统计所有审计日志总数
+     */
+    public long countAll() {
+        return mapper.selectCount(new LambdaQueryWrapper<>());
     }
 }

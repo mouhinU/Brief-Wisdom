@@ -8,6 +8,8 @@ import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseRequest;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +30,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 @Slf4j
+@Tag(name = "知识库", description = "知识库管理与 RAG 检索相关接口")
 public class KnowledgeController {
 
     private final KnowledgeService knowledgeService;
@@ -37,6 +40,7 @@ public class KnowledgeController {
     /**
      * 获取所有知识库（树形结构）
      */
+    @Operation(summary = "获取知识库树")
     @GetMapping("/bases/tree")
     public List<KnowledgeBaseDTO> listBasesTree() {
         return knowledgeService.listBasesTree();
@@ -45,6 +49,7 @@ public class KnowledgeController {
     /**
      * 获取所有知识库（平铺列表）
      */
+    @Operation(summary = "获取知识库列表", description = "平铺列表")
     @GetMapping("/bases")
     public List<KnowledgeBaseDTO> listBases() {
         return knowledgeService.listBases();

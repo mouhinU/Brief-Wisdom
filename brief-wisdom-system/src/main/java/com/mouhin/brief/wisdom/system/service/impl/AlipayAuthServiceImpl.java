@@ -20,6 +20,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
+import com.mouhin.brief.wisdom.exception.AuthException;
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -74,6 +77,9 @@ public class AlipayAuthServiceImpl implements AlipayAuthService {
     public ChatUser handleAlipayCallback(String authCode) {
         // 1. auth_code 换取 access_token
         JsonNode tokenResp = fetchAccessToken(authCode);
+        if (tokenResp == null || !tokenResp.has("access_token") || !tokenResp.has("user_id")) {
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "支付宝授权响应缺少必要字段");
+        }
         String accessToken = tokenResp.get("access_token").asText();
         String userId = tokenResp.get("user_id").asText();
         log.info("[支付宝登录] 获取到 access_token, user_id={}", userId);
@@ -91,7 +97,7 @@ public class AlipayAuthServiceImpl implements AlipayAuthService {
         if (oauth != null) {
             ChatUser user = chatUserRepository.findByUserId(oauth.getUserId());
             if (user == null) {
-                throw new RuntimeException("[支付宝登录] 用户不存在，请联系管理员");
+                throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "用户不存在，请联系管理员");
             }
             oauth.setNickname(nickname);
             oauth.setAvatar(avatar);
@@ -143,16 +149,16 @@ public class AlipayAuthServiceImpl implements AlipayAuthService {
             String responseBody = callGateway(params);
             JsonNode json = objectMapper.readTree(responseBody);
             JsonNode response = json.get("alipay_system_oauth_token_response");
-            if (response == null || response.has("code") && !response.get("code").asText().equals("10000")) {
+            if (response == null || (response.has("code") && !"10000".equals(response.get("code").asText()))) {
                 String errMsg = response != null && response.has("sub_msg") ? response.get("sub_msg").asText() : responseBody;
-                throw new RuntimeException("[支付宝登录] 获取 access_token 失败: " + errMsg);
+                throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取 access_token 失败: " + errMsg);
             }
             return response;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
             log.error("[支付宝登录] 调用 token 接口异常", e);
-            throw new RuntimeException("[支付宝登录] 获取 access_token 异常: " + e.getMessage());
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取 access_token 异常: " + e.getMessage());
         }
     }
 
@@ -167,16 +173,16 @@ public class AlipayAuthServiceImpl implements AlipayAuthService {
             String responseBody = callGateway(params);
             JsonNode json = objectMapper.readTree(responseBody);
             JsonNode response = json.get("alipay_user_info_share_response");
-            if (response == null || response.has("code") && !response.get("code").asText().equals("10000")) {
+            if (response == null || (response.has("code") && !"10000".equals(response.get("code").asText()))) {
                 String errMsg = response != null && response.has("sub_msg") ? response.get("sub_msg").asText() : responseBody;
-                throw new RuntimeException("[支付宝登录] 获取用户信息失败: " + errMsg);
+                throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取用户信息失败: " + errMsg);
             }
             return response;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
             log.error("[支付宝登录] 调用 userinfo 接口异常", e);
-            throw new RuntimeException("[支付宝登录] 获取用户信息异常: " + e.getMessage());
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取用户信息异常: " + e.getMessage());
         }
     }
 
@@ -224,7 +230,7 @@ public class AlipayAuthServiceImpl implements AlipayAuthService {
             return Base64.getEncoder().encodeToString(signature.sign());
         } catch (Exception e) {
             log.error("[支付宝登录] RSA 签名失败", e);
-            throw new RuntimeException("[支付宝登录] 签名失败: " + e.getMessage());
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "签名失败: " + e.getMessage());
         }
     }
 

@@ -17,15 +17,33 @@ public class BizException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * 使用错误消息创建异常
+     *
+     * @param message 错误消息
+     */
     public BizException(String message) {
         super(message);
     }
 
+    /**
+     * 使用错误码和错误消息创建异常
+     *
+     * @param code    错误码
+     * @param message 错误消息
+     */
     public BizException(String code, String message) {
         super(message);
         this.code = code;
     }
 
+    /**
+     * 使用错误码、错误消息和原因异常创建异常
+     *
+     * @param code    错误码
+     * @param message 错误消息
+     * @param cause   原因异常
+     */
     public BizException(String code, String message, Throwable cause) {
         super(message, cause);
         this.code = code;

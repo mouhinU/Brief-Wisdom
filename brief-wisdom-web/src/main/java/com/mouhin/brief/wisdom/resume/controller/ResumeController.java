@@ -3,6 +3,8 @@ package com.mouhin.brief.wisdom.resume.controller;
 
 import com.mouhin.brief.wisdom.resume.dto.WorkExperienceVO;
 import com.mouhin.brief.wisdom.resume.service.ResumeService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -26,6 +28,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 @Slf4j
+@Tag(name = "简历展示", description = "简历公开展示接口")
 public class ResumeController {
 
     private final ResumeService resumeService;
@@ -35,6 +38,7 @@ public class ResumeController {
      * <p>
      * 返回结构与原 project.json 一致，前端无需修改渲染逻辑。
      */
+    @Operation(summary = "获取工作经历", description = "获取所有工作经历，含项目、成果、技术栈")
     @GetMapping("/experiences")
     public List<WorkExperienceVO> listExperiences() {
         return resumeService.listAllExperiences();

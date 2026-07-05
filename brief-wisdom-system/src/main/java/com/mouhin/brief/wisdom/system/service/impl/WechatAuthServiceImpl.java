@@ -2,6 +2,8 @@ package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
+import com.mouhin.brief.wisdom.exception.AuthException;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.UserOauth;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
@@ -61,6 +63,9 @@ public class WechatAuthServiceImpl implements WechatAuthService {
     public ChatUser handleWechatCallback(String code) {
         // 1. code 换 access_token
         JsonNode tokenResp = fetchAccessToken(code);
+        if (tokenResp == null || !tokenResp.has("access_token") || !tokenResp.has("openid")) {
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "微信授权响应缺少必要字段");
+        }
         String accessToken = tokenResp.get("access_token").asText();
         String openid = tokenResp.get("openid").asText();
         String unionid = tokenResp.has("unionid") ? tokenResp.get("unionid").asText() : null;
@@ -78,7 +83,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
         if (oauth != null) {
             ChatUser user = chatUserRepository.findByUserId(oauth.getUserId());
             if (user == null) {
-                throw new RuntimeException("[微信登录] 用户不存在，请联系管理员");
+                throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "用户不存在，请联系管理员");
             }
             oauth.setNickname(wxNickname);
             oauth.setAvatar(wxAvatar);
@@ -127,12 +132,12 @@ public class WechatAuthServiceImpl implements WechatAuthService {
             String responseBody = restTemplate.getForObject(url, String.class);
             JsonNode json = objectMapper.readTree(responseBody);
             if (json.has("errcode")) {
-                throw new RuntimeException("[微信登录] 获取 access_token 失败: " + json.get("errmsg").asText());
+                throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取 access_token 失败: " + json.get("errmsg").asText());
             }
             return json;
         } catch (Exception e) {
             log.error("[微信登录] 调用 token 接口异常", e);
-            throw new RuntimeException("[微信登录] 获取 access_token 异常: " + e.getMessage());
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取 access_token 异常: " + e.getMessage());
         }
     }
 
@@ -145,12 +150,12 @@ public class WechatAuthServiceImpl implements WechatAuthService {
             String responseBody = restTemplate.getForObject(url, String.class);
             JsonNode json = objectMapper.readTree(responseBody);
             if (json.has("errcode")) {
-                throw new RuntimeException("[微信登录] 获取用户信息失败: " + json.get("errmsg").asText());
+                throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取用户信息失败: " + json.get("errmsg").asText());
             }
             return json;
         } catch (Exception e) {
             log.error("[微信登录] 调用 userinfo 接口异常", e);
-            throw new RuntimeException("[微信登录] 获取用户信息异常: " + e.getMessage());
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取用户信息异常: " + e.getMessage());
         }
     }
 }

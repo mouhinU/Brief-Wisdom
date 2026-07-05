@@ -24,6 +24,11 @@ public class KnowledgeBaseRepository {
 
     private final KnowledgeBaseMapper knowledgeBaseMapper;
 
+    /**
+     * 查询所有知识库（按排序字段升序）
+     *
+     * @return 知识库列表
+     */
     public List<KnowledgeBase> findAll() {
         return knowledgeBaseMapper.selectList(
                 new LambdaQueryWrapper<KnowledgeBase>()
@@ -31,6 +36,12 @@ public class KnowledgeBaseRepository {
         );
     }
 
+    /**
+     * 查询指定父知识库下的子知识库
+     *
+     * @param parentId 父知识库 ID
+     * @return 子知识库列表
+     */
     public List<KnowledgeBase> findByParentId(Long parentId) {
         return knowledgeBaseMapper.selectList(
                 new LambdaQueryWrapper<KnowledgeBase>()
@@ -39,22 +50,49 @@ public class KnowledgeBaseRepository {
         );
     }
 
+    /**
+     * 根据 ID 查询知识库
+     *
+     * @param id 知识库 ID
+     * @return 匹配的知识库，不存在返回 null
+     */
     public KnowledgeBase findById(Long id) {
         return knowledgeBaseMapper.selectById(id);
     }
 
+    /**
+     * 保存新知识库
+     *
+     * @param base 知识库实体
+     */
     public void save(KnowledgeBase base) {
         knowledgeBaseMapper.insert(base);
     }
 
+    /**
+     * 更新知识库
+     *
+     * @param base 知识库实体
+     */
     public void update(KnowledgeBase base) {
         knowledgeBaseMapper.updateById(base);
     }
 
+    /**
+     * 根据 ID 删除知识库
+     *
+     * @param id 知识库 ID
+     */
     public void deleteById(Long id) {
         knowledgeBaseMapper.deleteById(id);
     }
 
+    /**
+     * 统计指定父知识库下的子知识库数量
+     *
+     * @param parentId 父知识库 ID
+     * @return 子知识库数量
+     */
     public long countByParentId(Long parentId) {
         LambdaQueryWrapper<KnowledgeBase> qw = new LambdaQueryWrapper<>();
         qw.eq(KnowledgeBase::getParentId, parentId);

@@ -108,10 +108,11 @@ public class ContentFilterService {
         String matchedPattern = null;
 
         for (Pattern pattern : OUTPUT_SENSITIVE_PATTERNS) {
-            if (pattern.matcher(filtered).find()) {
+            java.util.regex.Matcher matcher = pattern.matcher(filtered);
+            if (matcher.find()) {
                 matchCount++;
                 matchedPattern = pattern.pattern();
-                filtered = pattern.matcher(filtered).replaceAll(SENSITIVE_REPLACEMENT);
+                filtered = matcher.replaceAll(SENSITIVE_REPLACEMENT);
             }
         }
 
@@ -133,10 +134,18 @@ public class ContentFilterService {
     }
 
     /**
-     * 获取审计服务（供外部调用）
+     * 记录审计日志（供 AiAgentService 调用）
      */
-    public com.mouhin.brief.wisdom.ai.service.AiAuditService getAuditService() {
-        return auditService;
+    public void logOutputFiltered(String sessionId, String userId, Long messageId, String triggerPattern,
+                                  String originalContent, String filteredContent) {
+        auditService.logOutputFiltered(sessionId, userId, messageId, triggerPattern, originalContent, filteredContent);
+    }
+
+    /**
+     * 记录输入拦截审计日志
+     */
+    public void logInputBlocked(String sessionId, String userId, String keyword, String originalContent) {
+        auditService.logInputBlocked(sessionId, userId, keyword, originalContent);
     }
 
     /**

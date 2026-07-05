@@ -42,6 +42,12 @@ public class KnowledgeRagService {
     /** 中文分词的最小长度 */
     private static final int MIN_KEYWORD_LENGTH = 2;
 
+    /** 中文关键词提取正则（预编译） */
+    private static final Pattern CHINESE_PATTERN = Pattern.compile("[\\u4e00-\\u9fa5]{2,}");
+
+    /** 英文关键词提取正则（预编译） */
+    private static final Pattern ENGLISH_PATTERN = Pattern.compile("[a-zA-Z]{3,}");
+
     /**
      * 根据用户消息检索相关知识文档
      *
@@ -141,8 +147,7 @@ public class KnowledgeRagService {
         List<String> keywords = new ArrayList<>();
 
         // 提取中文关键词（2个及以上汉字）
-        Pattern chinesePattern = Pattern.compile("[\\u4e00-\\u9fa5]{2,}");
-        Matcher matcher = chinesePattern.matcher(text);
+        Matcher matcher = CHINESE_PATTERN.matcher(text);
         while (matcher.find()) {
             String word = matcher.group();
             if (word.length() >= MIN_KEYWORD_LENGTH && !isStopWord(word)) {
@@ -151,8 +156,7 @@ public class KnowledgeRagService {
         }
 
         // 提取英文关键词（3个及以上字母）
-        Pattern englishPattern = Pattern.compile("[a-zA-Z]{3,}");
-        matcher = englishPattern.matcher(text);
+        matcher = ENGLISH_PATTERN.matcher(text);
         while (matcher.find()) {
             String word = matcher.group().toLowerCase();
             if (!isEnglishStopWord(word)) {

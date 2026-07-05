@@ -23,6 +23,11 @@ public class SysMenuRepository {
 
     private final SysMenuMapper sysMenuMapper;
 
+    /**
+     * 查询所有可见菜单（按排序字段升序）
+     *
+     * @return 可见菜单列表
+     */
     public List<SysMenu> findVisibleOrderBySortOrderAsc() {
         return sysMenuMapper.selectList(
                 new LambdaQueryWrapper<SysMenu>()
@@ -45,6 +50,11 @@ public class SysMenuRepository {
         );
     }
 
+    /**
+     * 查询所有菜单（按排序字段升序，含隐藏）
+     *
+     * @return 全部菜单列表
+     */
     public List<SysMenu> findAllOrderBySortOrderAsc() {
         return sysMenuMapper.selectList(
                 new LambdaQueryWrapper<SysMenu>()
@@ -52,6 +62,12 @@ public class SysMenuRepository {
         );
     }
 
+    /**
+     * 根据 ID 列表批量查询菜单
+     *
+     * @param ids 菜单 ID 列表
+     * @return 菜单列表（按排序字段升序）
+     */
     public List<SysMenu> findByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return List.of();
@@ -79,6 +95,12 @@ public class SysMenuRepository {
         );
     }
 
+    /**
+     * 查询指定父菜单下的可见子菜单
+     *
+     * @param parentId 父菜单 ID
+     * @return 子菜单列表
+     */
     public List<SysMenu> findByParentId(Long parentId) {
         return sysMenuMapper.selectList(
                 new LambdaQueryWrapper<SysMenu>()
@@ -88,18 +110,39 @@ public class SysMenuRepository {
         );
     }
 
+    /**
+     * 根据 ID 查询菜单
+     *
+     * @param id 菜单 ID
+     * @return 匹配的菜单，不存在返回 null
+     */
     public SysMenu findById(Long id) {
         return sysMenuMapper.selectById(id);
     }
 
+    /**
+     * 保存新菜单
+     *
+     * @param menu 菜单实体
+     */
     public void save(SysMenu menu) {
         sysMenuMapper.insert(menu);
     }
 
+    /**
+     * 更新菜单
+     *
+     * @param menu 菜单实体
+     */
     public void update(SysMenu menu) {
         sysMenuMapper.updateById(menu);
     }
 
+    /**
+     * 根据 ID 删除菜单（逻辑删除）
+     *
+     * @param id 菜单 ID
+     */
     public void deleteById(Long id) {
         sysMenuMapper.deleteById(id);
     }

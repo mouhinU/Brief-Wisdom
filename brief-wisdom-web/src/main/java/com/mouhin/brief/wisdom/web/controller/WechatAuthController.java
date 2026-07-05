@@ -61,7 +61,7 @@ public class WechatAuthController {
         session.setAttribute("wechat_state", state);
 
         String authorizeUrl = wechatAuthService.buildAuthorizeUrl(state);
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = new HashMap<>(4);
         result.put("success", true);
         result.put("authorizeUrl", authorizeUrl);
         return ResponseEntity.ok(result);
@@ -104,7 +104,7 @@ public class WechatAuthController {
                             null,
                             authorities
                     );
-            Map<String, String> details = new HashMap<>();
+            Map<String, String> details = new HashMap<>(4);
             details.put("nickname", user.getNickname());
             details.put("avatar", user.getAvatar());
             authToken.setDetails(details);
@@ -120,8 +120,8 @@ public class WechatAuthController {
 
         } catch (Exception e) {
             log.error("[微信登录] 回调处理失败", e);
-            // 登录失败，重定向到首页并附带错误参数
-            response.sendRedirect("/?login_error=1&msg=" + e.getMessage());
+            // 登录失败，重定向到首页（不暴露内部异常信息）
+            response.sendRedirect("/?login_error=1");
         }
     }
 
@@ -132,13 +132,13 @@ public class WechatAuthController {
      */
     @GetMapping("/api/auth/status")
     public ResponseEntity<Map<String, Object>> authStatus(HttpServletRequest request) {
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = new HashMap<>(4);
         HttpSession session = request.getSession(false);
         if (session != null) {
             ChatUser user = (ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY);
             if (user != null) {
                 result.put("loggedIn", true);
-                Map<String, String> userInfo = new HashMap<>();
+                Map<String, String> userInfo = new HashMap<>(4);
                 userInfo.put("userId", user.getUserId());
                 userInfo.put("nickname", user.getNickname());
                 userInfo.put("avatar", user.getAvatar());
@@ -169,9 +169,9 @@ public class WechatAuthController {
         if (user == null) {
             return ResponseEntity.status(401).body(Map.of("success", false, "error", "未登录"));
         }
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = new HashMap<>(4);
         result.put("success", true);
-        Map<String, String> userInfo = new HashMap<>();
+        Map<String, String> userInfo = new HashMap<>(4);
         userInfo.put("userId", user.getUserId());
         userInfo.put("username", user.getUsername());
         userInfo.put("nickname", user.getNickname());

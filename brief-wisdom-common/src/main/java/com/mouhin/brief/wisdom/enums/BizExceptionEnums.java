@@ -69,6 +69,12 @@ public enum BizExceptionEnums {
     FILE_UPLOAD_FAILED("1603", "文件上传失败"),
     FILE_DOWNLOAD_FAILED("1604", "文件下载失败"),
 
+    // ==================== 简历模块异常 (1700-1799) ====================
+    RESUME_NOT_FOUND("1700", "简历不存在"),
+    RESUME_UPDATE_FAILED("1701", "简历更新失败"),
+    RESUME_AI_POLISH_FAILED("1702", "AI 简历润色失败，请稍后重试"),
+    RESUME_DATA_INVALID("1703", "简历数据格式不正确"),
+
     ;
 
     /**

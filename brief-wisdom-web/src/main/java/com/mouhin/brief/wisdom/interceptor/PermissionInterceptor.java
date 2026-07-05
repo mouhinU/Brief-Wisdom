@@ -42,6 +42,15 @@ public class PermissionInterceptor implements HandlerInterceptor {
     private final RoleService roleService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 请求处理前进行权限校验
+     *
+     * @param request  HTTP 请求
+     * @param response HTTP 响应
+     * @param handler  处理器
+     * @return true 表示放行，false 表示拦截
+     * @throws Exception 处理异常
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 非 Controller 方法直接放行

@@ -17,6 +17,11 @@ public class I18nUtils {
 
     private final MessageSource messageSource;
 
+    /**
+     * 构造国际化化工具类
+     *
+     * @param messageSource Spring MessageSource
+     */
     public I18nUtils(MessageSource messageSource) {
         this.messageSource = messageSource;
     }

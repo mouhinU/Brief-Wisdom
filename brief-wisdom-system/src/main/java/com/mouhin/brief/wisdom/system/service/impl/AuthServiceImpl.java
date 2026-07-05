@@ -1,6 +1,8 @@
 package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
+import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
+import com.mouhin.brief.wisdom.exception.AuthException;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import com.mouhin.brief.wisdom.system.service.AuthService;
@@ -36,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
     public UserDTO register(String username, String password, String nickname) {
         ChatUser existing = chatUserRepository.findByUsername(username);
         if (existing != null) {
-            throw new RuntimeException("用户名已存在");
+            throw new AuthException(BizExceptionEnums.PARAM_ERROR, "用户名已存在");
         }
 
         String userId = UUID.randomUUID().toString();
@@ -63,13 +65,13 @@ public class AuthServiceImpl implements AuthService {
     public UserDTO login(String username, String password) {
         ChatUser user = chatUserRepository.findByUsername(username);
         if (user == null) {
-            throw new RuntimeException("用户名或密码错误");
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "用户名或密码错误");
         }
         if (user.getPassword() == null || user.getPassword().isBlank()) {
-            throw new RuntimeException("该账号未设置密码，请使用其他方式登录");
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "该账号未设置密码，请使用其他方式登录");
         }
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("用户名或密码错误");
+            throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "用户名或密码错误");
         }
 
         log.info("[登录] 用户登录成功: userId={}, username={}", user.getUserId(), user.getUsername());

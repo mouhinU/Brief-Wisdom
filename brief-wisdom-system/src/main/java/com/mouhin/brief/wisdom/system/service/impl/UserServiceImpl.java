@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
+import com.mouhin.brief.wisdom.exception.SystemSettingsException;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.SysRole;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
@@ -26,6 +27,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
+    /** 重置密码默认值 */
+    private static final String DEFAULT_RESET_PASSWORD = "123456";
 
     private final ChatUserRepository chatUserRepository;
     private final RoleService roleService;
@@ -76,7 +80,7 @@ public class UserServiceImpl implements UserService {
     public void updateLevel(Long id, String level) {
         ChatUser user = chatUserRepository.findById(id);
         if (user == null) {
-            throw new IllegalArgumentException("用户不存在");
+            throw new SystemSettingsException("用户不存在");
         }
         user.setUserLevel(level);
         chatUserRepository.update(user);
@@ -90,7 +94,7 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long id) {
         ChatUser user = chatUserRepository.findById(id);
         if (user == null) {
-            throw new IllegalArgumentException("用户不存在");
+            throw new SystemSettingsException("用户不存在");
         }
         chatUserRepository.deleteById(id);
         log.info("删除用户: userId={}, username={}", user.getUserId(), user.getUsername());
@@ -103,11 +107,11 @@ public class UserServiceImpl implements UserService {
     public void resetPassword(Long id) {
         ChatUser user = chatUserRepository.findById(id);
         if (user == null) {
-            throw new IllegalArgumentException("用户不存在");
+            throw new SystemSettingsException("用户不存在");
         }
-        user.setPassword(passwordEncoder.encode("123456"));
+        user.setPassword(passwordEncoder.encode(DEFAULT_RESET_PASSWORD));
         chatUserRepository.update(user);
-        log.info("重置用户密码为123456: userId={}, username={}", user.getUserId(), user.getUsername());
+        log.info("重置用户密码: userId={}, username={}", user.getUserId(), user.getUsername());
     }
 
     /**

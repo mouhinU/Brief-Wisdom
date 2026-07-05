@@ -62,7 +62,7 @@ public class OauthCallbackController {
         session.setAttribute("dingtalk_state", state);
 
         String authorizeUrl = dingtalkAuthService.buildAuthorizeUrl(state);
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = new HashMap<>(4);
         result.put("success", true);
         result.put("authorizeUrl", authorizeUrl);
         return ResponseEntity.ok(result);
@@ -85,7 +85,7 @@ public class OauthCallbackController {
             doLoginSuccess(user, request, response);
         } catch (Exception e) {
             log.error("[钉钉登录] 回调处理失败", e);
-            response.sendRedirect("/?login_error=1&msg=" + URLEncode(e.getMessage()));
+            response.sendRedirect("/?login_error=1");
         }
     }
 
@@ -102,7 +102,7 @@ public class OauthCallbackController {
         session.setAttribute("alipay_state", state);
 
         String authorizeUrl = alipayAuthService.buildAuthorizeUrl(state);
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = new HashMap<>(4);
         result.put("success", true);
         result.put("authorizeUrl", authorizeUrl);
         return ResponseEntity.ok(result);
@@ -125,7 +125,7 @@ public class OauthCallbackController {
             doLoginSuccess(user, request, response);
         } catch (Exception e) {
             log.error("[支付宝登录] 回调处理失败", e);
-            response.sendRedirect("/?login_error=1&msg=" + URLEncode(e.getMessage()));
+            response.sendRedirect("/?login_error=1");
         }
     }
 
@@ -151,7 +151,7 @@ public class OauthCallbackController {
                         null,
                         authorities
                 );
-        Map<String, String> details = new HashMap<>();
+        Map<String, String> details = new HashMap<>(4);
         details.put("nickname", user.getNickname());
         details.put("avatar", user.getAvatar());
         authToken.setDetails(details);
@@ -166,7 +166,7 @@ public class OauthCallbackController {
     /**
      * URL 编码辅助方法
      */
-    private String URLEncode(String text) {
+    private String urlEncode(String text) {
         try {
             return java.net.URLEncoder.encode(text, java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {

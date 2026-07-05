@@ -2,7 +2,8 @@ package com.mouhin.brief.wisdom.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mouhin.brief.wisdom.constants.CachePrefix;
 import org.springframework.cache.CacheManager;
@@ -60,8 +61,15 @@ public class RedisConfig {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // 使用白名单验证器，仅允许项目包下的类进行多态反序列化
+        PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
+                .allowIfBaseType("java.")
+                .allowIfBaseType("com.mouhin.brief.wisdom.")
+                .allowIfSubType("java.")
+                .allowIfSubType("com.mouhin.brief.wisdom.")
+                .build();
         mapper.activateDefaultTyping(
-                LaissezFaireSubTypeValidator.instance,
+                typeValidator,
                 ObjectMapper.DefaultTyping.NON_FINAL
         );
         return mapper;
@@ -152,7 +160,7 @@ public class RedisConfig {
                 .disableCachingNullValues();
 
         // 各缓存域自定义 TTL
-        Map<String, RedisCacheConfiguration> configMap = new HashMap<>();
+        Map<String, RedisCacheConfiguration> configMap = new HashMap<>(8);
         configMap.put(CachePrefix.MENU_TREE_CACHE, defaultConfig.entryTtl(Duration.ofMinutes(10)));
         configMap.put(CachePrefix.MENU_PUBLIC_CACHE, defaultConfig.entryTtl(Duration.ofMinutes(10)));
         configMap.put(CachePrefix.USER_ROLES_CACHE, defaultConfig.entryTtl(Duration.ofMinutes(5)));

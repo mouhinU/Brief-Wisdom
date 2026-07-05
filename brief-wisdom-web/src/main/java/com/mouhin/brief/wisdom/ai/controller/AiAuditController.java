@@ -4,6 +4,9 @@ import com.mouhin.brief.wisdom.ai.service.AiAuditService;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.Result;
 import com.mouhin.brief.wisdom.common.ai.AiAuditLogDTO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/ai/audit")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "AI管理", description = "AI 安全审计日志查询与统计")
 public class AiAuditController {
 
     private final AiAuditService auditService;
@@ -34,13 +38,14 @@ public class AiAuditController {
      * @param riskLevel 风险等级（可选：LOW/MEDIUM/HIGH/CRITICAL）
      * @return 分页结果
      */
+    @Operation(summary = "分页查询审计日志")
     @GetMapping("/logs")
     public Result<PageResult<AiAuditLogDTO>> listAuditLogs(
-            @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "size", required = false) Integer size,
-            @RequestParam(value = "userId", required = false) String userId,
-            @RequestParam(value = "auditType", required = false) String auditType,
-            @RequestParam(value = "riskLevel", required = false) String riskLevel) {
+            @Parameter(description = "页码，从1开始") @RequestParam(value = "page", defaultValue = "1") int page,
+            @Parameter(description = "每页大小") @RequestParam(value = "size", required = false) Integer size,
+            @Parameter(description = "用户ID筛选") @RequestParam(value = "userId", required = false) String userId,
+            @Parameter(description = "审计类型筛选") @RequestParam(value = "auditType", required = false) String auditType,
+            @Parameter(description = "风险等级筛选") @RequestParam(value = "riskLevel", required = false) String riskLevel) {
         
         int resolvedSize = (size != null && size > 0) ? size : 20;
         PageResult<AiAuditLogDTO> result = auditService.listAuditLogs(page, resolvedSize, userId, auditType, riskLevel);
@@ -56,11 +61,12 @@ public class AiAuditController {
      * @param size      每页大小
      * @return 分页结果
      */
+    @Operation(summary = "获取会话审计日志")
     @GetMapping("/session/{sessionId}")
     public Result<PageResult<AiAuditLogDTO>> getAuditLogsBySession(
-            @PathVariable String sessionId,
-            @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "size", required = false) Integer size) {
+            @Parameter(description = "会话ID", required = true) @PathVariable String sessionId,
+            @Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "1") int page,
+            @Parameter(description = "每页大小") @RequestParam(value = "size", required = false) Integer size) {
         
         int resolvedSize = (size != null && size > 0) ? size : 20;
         PageResult<AiAuditLogDTO> result = auditService.getAuditLogsBySession(sessionId, page, resolvedSize);
@@ -73,6 +79,7 @@ public class AiAuditController {
      *
      * @return 统计数据
      */
+    @Operation(summary = "获取审计统计信息")
     @GetMapping("/statistics")
     public Result<AiAuditService.AuditStatisticsDTO> getAuditStatistics() {
         AiAuditService.AuditStatisticsDTO stats = auditService.getAuditStatistics();

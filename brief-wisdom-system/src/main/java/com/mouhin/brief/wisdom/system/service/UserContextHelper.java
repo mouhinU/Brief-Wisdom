@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.system.service;
 
+import com.mouhin.brief.wisdom.exception.SystemSettingsException;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -199,7 +200,7 @@ public class UserContextHelper {
         }
         String ua = userAgent.toLowerCase();
         if (ua.contains("tablet") || ua.contains("ipad")) return "tablet";
-        if (ua.contains("mobile") || ua.contains("android") && !ua.contains("tablet")
+        if (ua.contains("mobile") || (ua.contains("android") && !ua.contains("tablet"))
                 || ua.contains("iphone") || ua.contains("ipod")) return "mobile";
         return "pc";
     }
@@ -247,7 +248,7 @@ public class UserContextHelper {
             }
             return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 算法不可用", e);
+            throw new SystemSettingsException("SHA-256 算法不可用");
         }
     }
 }

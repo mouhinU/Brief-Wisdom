@@ -24,6 +24,12 @@ public class ChatSessionRepository {
 
     private final ChatSessionMapper chatSessionMapper;
 
+    /**
+     * 查询指定用户的所有会话（按更新时间降序）
+     *
+     * @param userId 用户 ID
+     * @return 会话列表
+     */
     public List<ChatSession> findByUserIdOrderByUpdateTimeDesc(String userId) {
         return chatSessionMapper.selectList(
                 new LambdaQueryWrapper<ChatSession>()
@@ -32,6 +38,14 @@ public class ChatSessionRepository {
         );
     }
 
+    /**
+     * 分页查询指定用户的会话（按更新时间降序）
+     *
+     * @param userId 用户 ID
+     * @param page   页码（从 1 开始）
+     * @param size   每页大小
+     * @return 分页结果
+     */
     public Page<ChatSession> findByUserIdOrderByUpdateTimeDesc(String userId, int page, int size) {
         Page<ChatSession> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<ChatSession> queryWrapper = new LambdaQueryWrapper<>();
@@ -40,6 +54,12 @@ public class ChatSessionRepository {
         return chatSessionMapper.selectPage(pageParam, queryWrapper);
     }
 
+    /**
+     * 批量查询多个用户的所有会话（按更新时间降序）
+     *
+     * @param userIds 用户 ID 列表
+     * @return 会话列表
+     */
     public List<ChatSession> findByUserIdsOrderByUpdateTimeDesc(List<String> userIds) {
         return chatSessionMapper.selectList(
                 new LambdaQueryWrapper<ChatSession>()
@@ -48,6 +68,12 @@ public class ChatSessionRepository {
         );
     }
 
+    /**
+     * 统计指定用户的会话数量
+     *
+     * @param userId 用户 ID
+     * @return 会话数量
+     */
     public long countByUserId(String userId) {
         return chatSessionMapper.selectCount(
                 new LambdaQueryWrapper<ChatSession>()
@@ -55,6 +81,12 @@ public class ChatSessionRepository {
         );
     }
 
+    /**
+     * 根据会话 ID 查询会话
+     *
+     * @param sessionId 会话 ID
+     * @return 匹配的会话，不存在返回 null
+     */
     public ChatSession findBySessionId(String sessionId) {
         return chatSessionMapper.selectOne(
                 new LambdaQueryWrapper<ChatSession>()
@@ -79,14 +111,29 @@ public class ChatSessionRepository {
         return chatSessionMapper.selectList(queryWrapper);
     }
 
+    /**
+     * 保存新会话
+     *
+     * @param session 会话实体
+     */
     public void save(ChatSession session) {
         chatSessionMapper.insert(session);
     }
 
+    /**
+     * 更新会话
+     *
+     * @param session 会话实体
+     */
     public void update(ChatSession session) {
         chatSessionMapper.updateById(session);
     }
 
+    /**
+     * 根据会话 ID 删除会话
+     *
+     * @param sessionId 会话 ID
+     */
     public void deleteBySessionId(String sessionId) {
         LambdaQueryWrapper<ChatSession> qw = new LambdaQueryWrapper<>();
         qw.eq(ChatSession::getSessionId, sessionId);

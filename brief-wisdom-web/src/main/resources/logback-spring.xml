@@ -92,14 +92,14 @@
 
     <!-- Logger 配置 -->
     
-    <!-- AI 模块日志 -->
-    <logger name="com.mouhin.brief.wisdom.ai" level="DEBUG" additivity="false">
+    <!-- AI 模块日志（开发环境 DEBUG，生产环境 INFO） -->
+    <logger name="com.mouhin.brief.wisdom.ai" additivity="false">
         <appender-ref ref="AI_FILE"/>
         <appender-ref ref="CONSOLE"/>
     </logger>
 
-    <!-- 简历模块日志 -->
-    <logger name="com.mouhin.brief.wisdom.resume" level="DEBUG" additivity="false">
+    <!-- 简历模块日志（开发环境 DEBUG，生产环境 INFO） -->
+    <logger name="com.mouhin.brief.wisdom.resume" additivity="false">
         <appender-ref ref="RESUME_FILE"/>
         <appender-ref ref="CONSOLE"/>
     </logger>
@@ -109,8 +109,8 @@
     <logger name="org.springframework.web" level="INFO"/>
     <logger name="org.springframework.security" level="WARN"/>
     
-    <!-- MyBatis SQL 日志 -->
-    <logger name="com.mouhin.brief.wisdom.persistence.mapper" level="DEBUG"/>
+    <!-- MyBatis SQL 日志（开发环境 DEBUG，生产环境 WARN） -->
+    <logger name="com.mouhin.brief.wisdom.persistence.mapper" level="WARN"/>
     
     <!-- 抑制 Chrome DevTools 探测请求的无资源告警 -->
     <logger name="org.springframework.web.servlet.resource.NoResourceFoundException" level="ERROR"/>
@@ -122,5 +122,19 @@
         <appender-ref ref="INFO_FILE"/>
         <appender-ref ref="ERROR_FILE"/>
     </root>
+
+    <!-- 开发环境：开启 DEBUG 日志 -->
+    <springProfile name="dev">
+        <logger name="com.mouhin.brief.wisdom.ai" level="DEBUG"/>
+        <logger name="com.mouhin.brief.wisdom.resume" level="DEBUG"/>
+        <logger name="com.mouhin.brief.wisdom.persistence.mapper" level="DEBUG"/>
+    </springProfile>
+
+    <!-- 生产环境：仅 INFO/WARN/ERROR -->
+    <springProfile name="prod">
+        <logger name="com.mouhin.brief.wisdom.ai" level="INFO"/>
+        <logger name="com.mouhin.brief.wisdom.resume" level="INFO"/>
+        <logger name="com.mouhin.brief.wisdom.persistence.mapper" level="WARN"/>
+    </springProfile>
 
 </configuration>

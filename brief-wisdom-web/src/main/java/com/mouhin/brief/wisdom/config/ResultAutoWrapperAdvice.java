@@ -35,10 +35,22 @@ public class ResultAutoWrapperAdvice implements ResponseBodyAdvice<Object> {
 
     private final ObjectMapper objectMapper;
 
+    /**
+     * 构造响应自动封装器
+     *
+     * @param objectMapper JSON 序列化工具
+     */
     public ResultAutoWrapperAdvice(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * 判断是否需要自动包装响应
+     *
+     * @param returnType    返回值类型
+     * @param converterType 消息转换器类型
+     * @return true 表示需要包装
+     */
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
         // void 方法不处理
@@ -49,6 +61,17 @@ public class ResultAutoWrapperAdvice implements ResponseBodyAdvice<Object> {
         return !ResponseEntity.class.isAssignableFrom(returnType.getParameterType());
     }
 
+    /**
+     * 响应体写入前自动包装为 Result
+     *
+     * @param body            原始返回值
+     * @param methodParameter 方法参数
+     * @param mediaType       媒体类型
+     * @param clazz           消息转换器类型
+     * @param request         HTTP 请求
+     * @param response        HTTP 响应
+     * @return 包装后的响应对象
+     */
     @Override
     @SneakyThrows
     public Object beforeBodyWrite(Object body, MethodParameter methodParameter,

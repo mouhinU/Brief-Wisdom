@@ -31,5 +31,5 @@ public class ChatSession extends BaseEntity {
     private String pageContext;  // 页面上下文（如 /about.html, /resume-manage.html）
 
     @TableField(value = "message_count")
-    private Integer messageCount = 0;  // 消息数量
+    private Integer messageCount;  // 消息数量
 }

@@ -145,16 +145,30 @@ public class SseChatSyncService implements ChatSyncService {
     }
 
     /**
-     * 构建事件 JSON 数据
+     * 构建事件 JSON 数据（安全转义，防止 JSON 注入）
      */
     private String buildEventData(String eventType, String sessionId) {
         StringBuilder data = new StringBuilder();
-        data.append("{\"type\":\"").append(eventType).append("\"");
+        data.append("{\"type\":\"").append(escapeJson(eventType)).append("\"");
         if (sessionId != null) {
-            data.append(",\"sessionId\":\"").append(sessionId).append("\"");
+            data.append(",\"sessionId\":\"").append(escapeJson(sessionId)).append("\"");
         }
         data.append("}");
         return data.toString();
+    }
+
+    /**
+     * 简单 JSON 字符串转义
+     */
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     /**

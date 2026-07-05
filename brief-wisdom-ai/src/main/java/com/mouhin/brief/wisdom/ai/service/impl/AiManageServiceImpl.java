@@ -111,8 +111,9 @@ public class AiManageServiceImpl implements AiManageService {
         dto.setAvatar(user.getAvatar());
         dto.setUserLevel(user.getUserLevel());
         dto.setCreateTime(user.getCreateTime());
-        // 统计会话数
-        dto.setSessionCount(Math.toIntExact(chatSessionRepository.countByUserId(user.getUserId())));
+        // 统计会话数（防御性处理，count 可能返回 null）
+        long sessionCount = chatSessionRepository.countByUserId(user.getUserId());
+        dto.setSessionCount((int) sessionCount);
         return dto;
     }
 
@@ -185,7 +186,7 @@ public class AiManageServiceImpl implements AiManageService {
                     item.setUserName(user.getNickname() != null ? user.getNickname() : user.getUsername());
                 }
             } catch (Exception e) {
-                log.debug("查找用户名失败: {}", item.getUserId());
+                log.info("查找用户名失败: {}", item.getUserId());
             }
             return item;
         }).toList());

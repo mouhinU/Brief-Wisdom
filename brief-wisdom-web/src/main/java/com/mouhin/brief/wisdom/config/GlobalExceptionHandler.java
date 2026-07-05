@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.config;
 
 import com.mouhin.brief.wisdom.common.Result;
 import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
+import com.mouhin.brief.wisdom.exception.AuthException;
 import com.mouhin.brief.wisdom.exception.BizException;
 import com.mouhin.brief.wisdom.exception.ContentSecurityException;
 import com.mouhin.brief.wisdom.exception.RateLimitException;
@@ -158,6 +159,18 @@ public class GlobalExceptionHandler {
         log.debug("[资源未找到] {}", e.getResourcePath());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Result.fail(BizExceptionEnums.DATA_NOT_FOUND, "资源不存在"));
+    }
+
+    /**
+     * 认证授权异常 —— 返回 401
+     */
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<Result<?>> handleAuthException(AuthException e, HttpServletRequest request) {
+        clearProducibleMediaTypes(request);
+        String code = e.getCode() != null ? e.getCode() : BizExceptionEnums.UNAUTHORIZED.getCode();
+        log.warn("[认证异常] code={}, message={}", code, e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Result.fail(code, e.getMessage()));
     }
 
     /**

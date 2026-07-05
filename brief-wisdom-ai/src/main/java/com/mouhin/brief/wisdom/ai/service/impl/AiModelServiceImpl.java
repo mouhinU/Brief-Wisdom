@@ -25,6 +25,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AiModelServiceImpl implements AiModelService {
 
+    /** 默认模型名称（当无激活模型时使用） */
+    private static final String DEFAULT_MODEL_NAME = "qwen-plus";
+
     private final AiModelRepository aiModelRepository;
 
     /**
@@ -61,7 +64,7 @@ public class AiModelServiceImpl implements AiModelService {
     @Override
     public String getActiveModelName() {
         AiModelDTO model = getActiveModel();
-        return model != null ? model.getModelName() : "qwen-plus";
+        return model != null ? model.getModelName() : DEFAULT_MODEL_NAME;
     }
 
     /**

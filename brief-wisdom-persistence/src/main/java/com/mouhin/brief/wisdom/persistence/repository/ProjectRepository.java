@@ -24,6 +24,11 @@ public class ProjectRepository {
 
     private final ProjectMapper projectMapper;
 
+    /**
+     * 查询所有项目（按排序字段升序）
+     *
+     * @return 项目列表
+     */
     public List<Project> findAllOrderBySortOrderAsc() {
         return projectMapper.selectList(
                 new LambdaQueryWrapper<Project>()
@@ -31,6 +36,12 @@ public class ProjectRepository {
         );
     }
 
+    /**
+     * 查询指定工作经历下的项目（按排序字段升序）
+     *
+     * @param experienceId 工作经历 ID
+     * @return 项目列表
+     */
     public List<Project> findByExperienceIdOrderBySortOrderAsc(Long experienceId) {
         return projectMapper.selectList(
                 new LambdaQueryWrapper<Project>()
@@ -39,6 +50,12 @@ public class ProjectRepository {
         );
     }
 
+    /**
+     * 批量查询多个工作经历下的项目（按排序字段升序）
+     *
+     * @param experienceIds 工作经历 ID 集合
+     * @return 项目列表
+     */
     public List<Project> findByExperienceIdInOrderBySortOrderAsc(Collection<Long> experienceIds) {
         return projectMapper.selectList(
                 new LambdaQueryWrapper<Project>()
@@ -47,18 +64,39 @@ public class ProjectRepository {
         );
     }
 
+    /**
+     * 根据 ID 查询项目
+     *
+     * @param id 项目 ID
+     * @return 匹配的项目，不存在返回 null
+     */
     public Project findById(Long id) {
         return projectMapper.selectById(id);
     }
 
+    /**
+     * 保存新项目
+     *
+     * @param project 项目实体
+     */
     public void save(Project project) {
         projectMapper.insert(project);
     }
 
+    /**
+     * 更新项目
+     *
+     * @param project 项目实体
+     */
     public void update(Project project) {
         projectMapper.updateById(project);
     }
 
+    /**
+     * 根据 ID 删除项目
+     *
+     * @param id 项目 ID
+     */
     public void deleteById(Long id) {
         projectMapper.deleteById(id);
     }
