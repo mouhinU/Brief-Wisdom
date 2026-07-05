@@ -203,10 +203,12 @@ CREATE TABLE sys_role (
     role_key VARCHAR(100) NOT NULL UNIQUE COMMENT '角色标识，如 super_admin',
     description VARCHAR(500) COMMENT '角色描述',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 1-启用, 0-禁用',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_role_key (role_key),
-    INDEX idx_status (status)
+    INDEX idx_status (status),
+    INDEX idx_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统角色表';
 
 -- ============================================

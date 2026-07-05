@@ -26,6 +26,7 @@ CREATE TABLE ai_audit_log (
     filtered_content TEXT COMMENT '过滤后的内容',
     action_taken VARCHAR(100) NOT NULL COMMENT '采取的动作: BLOCKED-拦截, FILTERED-过滤, WARNED-警告, ALLOWED-放行',
     confidence_score DOUBLE COMMENT '置信度分数 (0-1)',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     
     -- 索引优化查询性能
@@ -33,7 +34,8 @@ CREATE TABLE ai_audit_log (
     INDEX idx_user_id (user_id),
     INDEX idx_audit_type (audit_type),
     INDEX idx_risk_level (risk_level),
-    INDEX idx_create_time (create_time)
+    INDEX idx_create_time (create_time),
+    INDEX idx_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI 安全审计日志表';
 
 -- ============================================

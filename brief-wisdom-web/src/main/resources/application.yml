@@ -50,11 +50,7 @@ spring:
     redis:
       namespace: bw:session
 
-# 日志配置 - 抑制 Chrome DevTools 探测请求的无资源告警
-logging:
-  level:
-    org.springframework.web.servlet.resource.NoResourceFoundException: ERROR
-    org.springframework.web.servlet.resource.ResourceHttpRequestHandler: ERROR
+# 日志配置已移至 logback-spring.xml
 
 # MyBatis-Plus 配置
 mybatis-plus:

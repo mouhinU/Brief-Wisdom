@@ -145,7 +145,10 @@
             </div>
             <div class="form-group">
                 <label>成果内容 *</label>
-                <textarea name="content" id="ach-f-content" rows="4" required>${escapeHtml(data?.content || '')}</textarea>
+                <div class="form-field-with-ai">
+                    <textarea name="content" id="ach-f-content" rows="4" required>${escapeHtml(data?.content || '')}</textarea>
+                    <button type="button" class="ai-polish-btn" onclick="window.achievementManagement.polishAchievement()" title="AI润色">✨ AI</button>
+                </div>
             </div>
             <div class="form-group">
                 <label>排序序号</label>
@@ -293,6 +296,103 @@
     }
 
     /**
+     * AI 润色项目成果
+     */
+    async function polishAchievement() {
+        const textarea = document.getElementById('ach-f-content');
+        if (!textarea) return;
+
+        const originalText = textarea.value.trim();
+        if (!originalText) {
+            alert('请先输入需要润色的文本');
+            return;
+        }
+
+        // 获取关联的项目名称作为上下文
+        const projectId = document.getElementById('ach-f-projectId')?.value;
+        let context = '';
+        if (projectId) {
+            const project = projects.find(p => p.id == projectId);
+            if (project) {
+                context = project.name || '';
+            }
+        }
+
+        // 显示加载状态
+        const btn = textarea.parentElement.querySelector('.ai-polish-btn');
+        const originalBtnText = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '⏳ 润色中...';
+            btn.style.opacity = '0.6';
+        }
+        textarea.style.borderColor = '#6366f1';
+
+        try {
+            const response = await fetch('/api/resume/ai/polish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: originalText,
+                    fieldType: 'achievement',
+                    context: context
+                })
+            });
+
+            if (!response.ok) throw new Error('请求失败: ' + response.status);
+
+            const responseJson = await response.json();
+            
+            // 处理 Result 包装格式: { success, code, msg, data }
+            let polishedText;
+            let errorMsg;
+            
+            if (responseJson.data && typeof responseJson.data === 'object') {
+                // Result 包装格式
+                polishedText = responseJson.data.result;
+                errorMsg = responseJson.data.error;
+            } else if (responseJson.result) {
+                // 直接格式（兼容旧版本）
+                polishedText = responseJson.result;
+                errorMsg = responseJson.error;
+            } else {
+                throw new Error('响应数据格式异常');
+            }
+            
+            if (errorMsg) {
+                alert(errorMsg);
+            } else if (polishedText) {
+                // 使用在线编辑器的对比弹窗
+                if (window.OnlineEditor && window.OnlineEditor.showPolishComparison) {
+                    window.OnlineEditor.showPolishComparison(originalText, polishedText, textarea);
+                } else {
+                    // 降级方案：使用简单的 confirm
+                    const confirmed = confirm(
+                        'AI 润色结果：\n\n' + polishedText + '\n\n' +
+                        '点击"确定"替换原文本，点击"取消"保留原文。'
+                    );
+                    if (confirmed) {
+                        textarea.value = polishedText;
+                    }
+                }
+            } else {
+                alert('AI 润色结果为空');
+            }
+        } catch (error) {
+            console.error('[AchievementManagement] AI润色失败:', error);
+            alert('AI 润色失败: ' + error.message);
+        } finally {
+            // 恢复按钮状态
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+                btn.style.opacity = '1';
+            }
+            textarea.style.borderColor = '';
+        }
+    }
+
+    /**
      * 销毁组件
      */
     function destroy() {
@@ -305,7 +405,8 @@
         showAchievementForm,
         editAchievement,
         deleteAchievement,
-        closeModal
+        closeModal,
+        polishAchievement
     };
 
     // 注册组件

@@ -324,9 +324,14 @@
                 </div>
                 <div class="editor-form-group">
                     <label>描述</label>
-                    <div class="editor-field-with-ai">
+                    <div class="form-field-with-ai">
                         <textarea id="editor-field-description" rows="4">${escapeHtml(exp.description || '')}</textarea>
-                        <button class="editor-ai-polish-btn" onclick="OnlineEditor.polishText('editor-field-description', 'description', '${escapeAttr(exp.title || '')}')" title="AI润色">✨ AI</button>
+                        <button type="button" 
+                                class="ai-polish-btn" 
+                                onclick="window.AiPolishComponent.polish('editor-field-description', 'description', '${escapeAttr(exp.title || '')}')" 
+                                title="AI润色">
+                            ✨ AI
+                        </button>
                     </div>
                 </div>
                 <div class="editor-form-group">
@@ -395,16 +400,26 @@
                 </div>
                 <div class="editor-form-group">
                     <label>项目背景</label>
-                    <div class="editor-field-with-ai">
+                    <div class="form-field-with-ai">
                         <textarea id="editor-proj-background" rows="3">${escapeHtml(proj.background || '')}</textarea>
-                        <button class="editor-ai-polish-btn" onclick="OnlineEditor.polishText('editor-proj-background', 'background', '${escapeAttr(proj.name || '')}')" title="AI润色">✨ AI</button>
+                        <button type="button" 
+                                class="ai-polish-btn" 
+                                onclick="window.AiPolishComponent.polish('editor-proj-background', 'background', '${escapeAttr(proj.name || '')}')" 
+                                title="AI润色">
+                            ✨ AI
+                        </button>
                     </div>
                 </div>
                 <div class="editor-form-group">
                     <label>个人职责</label>
-                    <div class="editor-field-with-ai">
+                    <div class="form-field-with-ai">
                         <textarea id="editor-proj-duty" rows="3">${escapeHtml(proj.duty || '')}</textarea>
-                        <button class="editor-ai-polish-btn" onclick="OnlineEditor.polishText('editor-proj-duty', 'duty', '${escapeAttr(proj.name || '')}')" title="AI润色">✨ AI</button>
+                        <button type="button" 
+                                class="ai-polish-btn" 
+                                onclick="window.AiPolishComponent.polish('editor-proj-duty', 'duty', '${escapeAttr(proj.name || '')}')" 
+                                title="AI润色">
+                            ✨ AI
+                        </button>
                     </div>
                 </div>
                 <div class="editor-form-group">
@@ -938,18 +953,32 @@
 
             if (!response.ok) throw new Error('请求失败: ' + response.status);
 
-            const data = await response.json();
-            if (data.error) {
-                alert(data.error);
-            } else if (data.result) {
-                // 弹出对比确认
-                const confirmed = confirm(
-                    'AI 润色结果：\n\n' + data.result + '\n\n' +
-                    '点击"确定"替换原文本，点击"取消"保留原文。'
-                );
-                if (confirmed) {
-                    textarea.value = data.result;
-                }
+            const responseJson = await response.json();
+            
+            // 处理 Result 包装格式: { success, code, msg, data }
+            // data 中包含实际的 Map: { result, error }
+            let polishedText;
+            let errorMsg;
+            
+            if (responseJson.data && typeof responseJson.data === 'object') {
+                // Result 包装格式
+                polishedText = responseJson.data.result;
+                errorMsg = responseJson.data.error;
+            } else if (responseJson.result) {
+                // 直接格式（兼容旧版本）
+                polishedText = responseJson.result;
+                errorMsg = responseJson.error;
+            } else {
+                throw new Error('响应数据格式异常');
+            }
+            
+            if (errorMsg) {
+                alert(errorMsg);
+            } else if (polishedText) {
+                // 显示对比弹窗
+                showPolishComparison(originalText, polishedText, textarea);
+            } else {
+                alert('AI 润色结果为空');
             }
         } catch (error) {
             console.error('[OnlineEditor] AI润色失败:', error);
@@ -963,6 +992,129 @@
             }
             textarea.style.borderColor = '';
         }
+    }
+
+    /**
+     * 显示 AI 润色对比弹窗
+     * @param {string} originalText - 原始文本
+     * @param {string} polishedText - 润色后的文本
+     * @param {HTMLElement} targetTextarea - 目标 textarea 元素
+     */
+    function showPolishComparison(originalText, polishedText, targetTextarea) {
+        // 创建遮罩层
+        const overlay = document.createElement('div');
+        overlay.className = 'editor-polish-modal-overlay';
+        
+        // 创建弹窗
+        const modal = document.createElement('div');
+        modal.className = 'editor-polish-modal';
+        
+        modal.innerHTML = `
+            <div class="editor-polish-modal-header">
+                <div class="editor-polish-modal-title">
+                    <span>✨</span>
+                    <span>AI 润色结果对比</span>
+                </div>
+                <button class="editor-polish-modal-close" onclick="this.closest('.editor-polish-modal-overlay').remove()">×</button>
+            </div>
+            <div class="editor-polish-modal-body">
+                <div class="editor-polish-comparison">
+                    <div class="editor-polish-section">
+                        <div class="editor-polish-section-label">
+                            <span class="label-icon">📝</span>
+                            <span>原文内容</span>
+                        </div>
+                        <div class="editor-polish-text original">${escapeHtml(originalText)}</div>
+                    </div>
+                    <div class="editor-polish-section">
+                        <div class="editor-polish-section-label">
+                            <span class="label-icon">✨</span>
+                            <span>AI 润色后</span>
+                        </div>
+                        <div class="editor-polish-text polished">${escapeHtml(polishedText)}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="editor-polish-footer">
+                <button class="editor-polish-btn reject" id="polish-reject-btn">
+                    <span>✕</span>
+                    <span>保留原文</span>
+                </button>
+                <button class="editor-polish-btn accept" id="polish-accept-btn">
+                    <span>✓</span>
+                    <span>采纳润色</span>
+                </button>
+            </div>
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // 绑定按钮事件
+        const acceptBtn = overlay.querySelector('#polish-accept-btn');
+        const rejectBtn = overlay.querySelector('#polish-reject-btn');
+        
+        acceptBtn.addEventListener('click', () => {
+            targetTextarea.value = polishedText;
+            overlay.remove();
+            // 可选：显示成功提示
+            showToast('已采纳 AI 润色结果', 'success');
+        });
+        
+        rejectBtn.addEventListener('click', () => {
+            overlay.remove();
+            showToast('已保留原文', 'info');
+        });
+        
+        // 点击遮罩层关闭
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        });
+    }
+
+    /**
+     * 显示轻量级提示消息
+     * @param {string} message - 提示消息
+     * @param {string} type - 类型：success/info/warning/error
+     */
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        const colors = {
+            success: { bg: '#10b981', icon: '✓' },
+            info: { bg: '#3b82f6', icon: 'ℹ' },
+            warning: { bg: '#f59e0b', icon: '⚠' },
+            error: { bg: '#ef4444', icon: '✕' }
+        };
+        const color = colors[type] || colors.info;
+        
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: ${color.bg};
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        
+        toast.innerHTML = `<span>${color.icon}</span><span>${message}</span>`;
+        document.body.appendChild(toast);
+        
+        // 3秒后自动消失
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
 
     /**
@@ -1013,7 +1165,9 @@
         deleteProject,
         saveExperienceForm,
         saveProjectForm,
-        polishText
+        polishText,
+        showPolishComparison,
+        showToast
     };
 
     // 注册组件
