@@ -1,6 +1,6 @@
 package com.mouhin.brief.wisdom.config;
 
-import com.mouhin.brief.wisdom.ai.websocket.WebSocketSyncHandler;
+import com.mouhin.brief.wisdom.websocket.WebSocketSyncHandler;
 import com.mouhin.brief.wisdom.interceptor.WebSocketSyncHandshakeInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

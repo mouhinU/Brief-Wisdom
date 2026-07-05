@@ -129,9 +129,14 @@ function renderModelSelector() {
     const selector = document.getElementById('modelSelector');
     if (!selector) return;
     
-    selector.innerHTML = availableModels.map(m => 
-        `<option value="${m.modelName}" ${m.isActive === 1 ? 'selected' : ''}>${m.displayName}</option>`
-    ).join('');
+    selector.innerHTML = availableModels.map(m => {
+        // 根据思考模式添加标识
+        let displayName = m.displayName;
+        if (m.thinkingMode === 'thinking') {
+            displayName += ' 🧠';  // 大脑图标表示思考模式
+        }
+        return `<option value="${m.modelName}" ${m.isActive === 1 ? 'selected' : ''}>${displayName}</option>`;
+    }).join('');
     
     // 设置当前模型为激活的模型
     const activeModel = availableModels.find(m => m.isActive === 1);
@@ -1380,7 +1385,15 @@ function addMessage(text, sender, scroll = true, modelName = null) {
         if (modelName) {
             const modelLabel = document.createElement('div');
             modelLabel.className = 'message-model-label';
-            modelLabel.textContent = modelName;
+            
+            // 查找当前模型的配置，判断是否有思考模式
+            const modelConfig = availableModels.find(m => m.modelName === modelName);
+            let displayModelName = modelName;
+            if (modelConfig && modelConfig.thinkingMode === 'thinking') {
+                displayModelName += ' 🧠';  // 大脑图标表示思考模式
+            }
+            
+            modelLabel.textContent = displayModelName;
             messageDiv.appendChild(modelLabel);
         }
     } else {

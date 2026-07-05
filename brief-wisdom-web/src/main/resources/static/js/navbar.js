@@ -341,7 +341,7 @@ function loadChatScriptsIfNeeded() {
   // 加载 chat.js
   if (typeof toggleChat === 'undefined') {
     const chatScript = document.createElement('script');
-    chatScript.src = 'js/chat.js?v=7';
+    chatScript.src = 'js/chat.js?v=8';  // v8: 修复流式输出NPE + 添加思考模式标识
     chatScript.onload = function() {
       // chat.js 加载完成后初始化（会话列表、模型列表等）
       if (typeof initChatApp === 'function') initChatApp();

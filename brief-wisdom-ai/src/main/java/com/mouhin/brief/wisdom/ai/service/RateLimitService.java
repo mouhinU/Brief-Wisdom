@@ -33,7 +33,7 @@ public class RateLimitService {
     /**
      * 天级限流乘数（天级限制 = MAX_REQUESTS_PER_SECOND × DAILY_MULTIPLIER）
      */
-    private static final int DAILY_MULTIPLIER = 1000;
+    private static final int DAILY_MULTIPLIER = 20 * 60 * 60 * 24;
 
     /**
      * 天级最大请求数（基于秒级限制计算）

@@ -16,6 +16,7 @@ import com.mouhin.brief.wisdom.persistence.repository.AiModelRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatMessageRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatSessionRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.anthropic.AnthropicChatOptions;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -42,6 +43,7 @@ import java.util.*;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class AiAgentService {
 
     // 默认用户ID（用于未登录场景）
@@ -58,28 +60,6 @@ public class AiAgentService {
     private final RateLimitService rateLimitService;
     private final KnowledgeRagService knowledgeRagService;
     private final ChatMemoryService chatMemoryService;
-
-    public AiAgentService(ChatModelRegistry chatModelRegistry,
-                          ChatSessionRepository sessionRepository,
-                          ChatMessageRepository messageRepository,
-                          ChatUserRepository userRepository,
-                          AiModelRepository aiModelRepository,
-                          ChatSyncService chatSyncService,
-                          ContentFilterService contentFilterService,
-                          RateLimitService rateLimitService,
-                          KnowledgeRagService knowledgeRagService,
-                          ChatMemoryService chatMemoryService) {
-        this.chatModelRegistry = chatModelRegistry;
-        this.sessionRepository = sessionRepository;
-        this.messageRepository = messageRepository;
-        this.userRepository = userRepository;
-        this.aiModelRepository = aiModelRepository;
-        this.chatSyncService = chatSyncService;
-        this.contentFilterService = contentFilterService;
-        this.rateLimitService = rateLimitService;
-        this.knowledgeRagService = knowledgeRagService;
-        this.chatMemoryService = chatMemoryService;
-    }
 
     /**
      * 创建新会话（无参版本，使用默认用户ID）
@@ -435,6 +415,18 @@ public class AiAgentService {
     }
 
     /**
+     * 根据模型名称查询对应的思考模式
+     *
+     * @param modelName 模型名称
+     * @return 思考模式: normal-普通模式, thinking-思考模式
+     */
+    private String resolveThinkingMode(String modelName) {
+        AiModel aiModel = aiModelRepository.findByModelName(modelName);
+        return (aiModel != null && aiModel.getThinkingMode() != null)
+                ? aiModel.getThinkingMode() : "normal";
+    }
+
+    /**
      * 根据提供商构建对应的 ChatOptions
      *
      * @param provider  提供商标识
@@ -474,8 +466,10 @@ public class AiAgentService {
         log.info("收到用户消息: {}, 模型: {}", message, modelName);
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
         String provider = resolveProvider(model);
+        String thinkingMode = resolveThinkingMode(model);
 
-        ChatModel chatModel = chatModelRegistry.getChatModel(provider);
+        // 使用带思考模式的 ChatModel
+        ChatModel chatModel = chatModelRegistry.getChatModel(provider, model, thinkingMode);
         Prompt prompt = new Prompt(
                 List.of(new SystemMessage(SystemPrompts.BASE_SYSTEM_PROMPT), new UserMessage(message)),
                 buildChatOptions(provider, model)
@@ -486,7 +480,7 @@ public class AiAgentService {
 
         // 输出过滤（无 sessionId/userId/messageId，使用占位符）
         response = contentFilterService.filterOutput(response, "N/A", "N/A", null);
-        log.info("AI 回复(模型: {}, 提供商: {}): {}", model, provider, response);
+        log.info("AI 回复(模型: {}, 提供商: {}, 思考模式: {}): {}", model, provider, thinkingMode, response);
         return response;
     }
 
@@ -624,9 +618,10 @@ public class AiAgentService {
             log.warn("记忆提取失败: {}", e.getMessage());
         }
 
-        // 根据模型查询提供商，路由到对应的 ChatModel
+        // 根据模型查询提供商和思考模式，路由到对应的 ChatModel
         String provider = resolveProvider(model);
-        ChatModel chatModel = chatModelRegistry.getChatModel(provider);
+        String thinkingMode = resolveThinkingMode(model);
+        ChatModel chatModel = chatModelRegistry.getChatModel(provider, model, thinkingMode);
 
         // 调用 AI，获取完整响应（包含 token 用量）
         Prompt prompt = new Prompt(
@@ -767,7 +762,8 @@ public class AiAgentService {
 
         String systemPrompt = SystemPrompts.getSystemPromptWithContext(effectivePageContext);
         String provider = resolveProvider(model);
-        ChatModel chatModel = chatModelRegistry.getChatModel(provider);
+        String thinkingMode = resolveThinkingMode(model);
+        ChatModel chatModel = chatModelRegistry.getChatModel(provider, model, thinkingMode);
 
         Prompt prompt = new Prompt(
                 List.of(new SystemMessage(systemPrompt), new UserMessage(context.toString())),
@@ -777,9 +773,21 @@ public class AiAgentService {
         // 使用 stream() 获取流式响应
         return chatModel.stream(prompt)
                 .map(chatResponse -> {
-                    String text = chatResponse.getResult().getOutput().getText();
+                    // 防御性编程：流式响应中某些 chunk 可能没有 result
+                    var generation = chatResponse.getResult();
+                    if (generation == null) {
+                        log.debug("[流式] 收到空 result 的 chunk，跳过");
+                        return "";
+                    }
+                    var output = generation.getOutput();
+                    if (output == null) {
+                        log.debug("[流式] 收到空 output 的 chunk，跳过");
+                        return "";
+                    }
+                    String text = output.getText();
                     return text != null ? text : "";
                 })
+                .filter(text -> !text.isEmpty()) // 过滤掉空字符串
                 .doOnComplete(() -> {
                     log.info("[流式] 完成");
                     // 流式完成后，通知其他设备

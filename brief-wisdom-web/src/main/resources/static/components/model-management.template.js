@@ -24,6 +24,7 @@
                             <th>显示名称</th>
                             <th>服务商</th>
                             <th>描述</th>
+                            <th>思考模式</th>
                             <th>状态</th>
                             <th>激活</th>
                             <th>操作</th>
@@ -58,6 +59,13 @@
                         <div class="form-group">
                             <label>描述</label>
                             <input type="text" id="model-description" placeholder="模型描述">
+                        </div>
+                        <div class="form-group">
+                            <label>思考模式</label>
+                            <select id="model-thinking-mode">
+                                <option value="normal">普通模式</option>
+                                <option value="thinking">思考模式</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>排序</label>

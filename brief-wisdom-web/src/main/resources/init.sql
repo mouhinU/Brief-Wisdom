@@ -94,6 +94,8 @@ CREATE TABLE chat_message (
     cost DOUBLE COMMENT '费用',
     timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '消息时间',
     message_type VARCHAR(50) COMMENT '消息类型: text/image/code等',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
     INDEX idx_session_id (session_id),
     INDEX idx_user_id (user_id),

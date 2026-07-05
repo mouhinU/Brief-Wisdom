@@ -447,6 +447,16 @@ header h1 {
   font-weight: 700;
 }
 
+.status-thinking {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.status-normal {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
 .btn-sm {
   padding: 4px 10px;
   font-size: 12px;

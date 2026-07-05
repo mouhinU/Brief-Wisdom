@@ -16,7 +16,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 基于 WebSocket 的聊天同步服务实现
  * <p>
  * 通过 WebSocket 双向通信实现多端同步，仅在 {@code app.sync.transport=websocket} 时激活。
- * 连接管理由 {@link com.mouhin.brief.wisdom.ai.websocket.WebSocketSyncHandler} 负责，
+ * 连接管理由 {@link com.mouhin.brief.wisdom.websocket.WebSocketSyncHandler} 负责，
  * 本类通过注册表维护 userId 与 WebSocket 会话的映射关系。
  *
  * @author Brief-Wisdom

@@ -41,4 +41,7 @@ public class AiModel extends BaseEntity {
 
     @TableField(value = "output_price_per_million")
     private Double outputPricePerMillion;  // 每百万输出token价格(元)
+
+    @TableField(value = "thinking_mode")
+    private String thinkingMode;  // 思考模式: normal-普通模式, thinking-思考模式
 }

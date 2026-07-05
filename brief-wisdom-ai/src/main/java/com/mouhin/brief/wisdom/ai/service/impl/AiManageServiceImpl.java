@@ -168,7 +168,7 @@ public class AiManageServiceImpl implements AiManageService {
             item.setTotalCost(toDouble(row.get("totalCost")));
             item.setTotalTokens(toLong(row.get("totalTokens")));
             return item;
-        }).collect(Collectors.toList()));
+        }).toList());
 
         // 按用户统计
         List<Map<String, Object>> userRows = chatMessageRepository.getCostByUser();
@@ -188,7 +188,7 @@ public class AiManageServiceImpl implements AiManageService {
                 log.debug("查找用户名失败: {}", item.getUserId());
             }
             return item;
-        }).collect(Collectors.toList()));
+        }).toList());
 
         // 按日期统计
         List<Map<String, Object>> dateRows = chatMessageRepository.getCostByDate(days);
@@ -199,7 +199,7 @@ public class AiManageServiceImpl implements AiManageService {
             item.setTotalCost(toDouble(row.get("totalCost")));
             item.setTotalTokens(toLong(row.get("totalTokens")));
             return item;
-        }).collect(Collectors.toList()));
+        }).toList());
 
         // 按模型+日期统计
         List<Map<String, Object>> dateModelRows = chatMessageRepository.getCostByDateAndModel(days);
@@ -210,7 +210,7 @@ public class AiManageServiceImpl implements AiManageService {
             item.setMessageCount(toLong(row.get("messageCount")));
             item.setTotalCost(toDouble(row.get("totalCost")));
             return item;
-        }).collect(Collectors.toList()));
+        }).toList());
 
         return dto;
     }

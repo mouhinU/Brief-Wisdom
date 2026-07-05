@@ -118,7 +118,15 @@
             </div>
             <div class="form-group">
                 <label>整体描述</label>
-                <textarea name="description" id="exp-f-description" rows="4">${escapeHtml(data?.description || '')}</textarea>
+                <div class="form-field-with-ai">
+                    <textarea name="description" id="exp-f-description" rows="4">${escapeHtml(data?.description || '')}</textarea>
+                    <button type="button" 
+                            class="ai-polish-btn" 
+                            onclick="window.AiPolishComponent.polish('exp-f-description', 'description', '${escapeAttr(data?.title || '')}')" 
+                            title="AI润色">
+                        ✨ AI
+                    </button>
+                </div>
             </div>
             <div class="form-group">
                 <label>排序序号</label>

@@ -95,6 +95,8 @@ CREATE TABLE chat_message (
     cost DOUBLE COMMENT '费用',
     timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '消息时间',
     message_type VARCHAR(50) COMMENT '消息类型: text/image/code等',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息表';
 
@@ -169,6 +171,7 @@ CREATE TABLE ai_model (
     sort_order INT NOT NULL DEFAULT 0 COMMENT '排序序号',
     input_price_per_million DOUBLE COMMENT '每百万输入token价格(元)',
     output_price_per_million DOUBLE COMMENT '每百万输出token价格(元)',
+    thinking_mode VARCHAR(20) DEFAULT 'normal' COMMENT '思考模式: normal-普通模式, thinking-思考模式',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除'

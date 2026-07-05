@@ -49,6 +49,9 @@ spring:
     store-type: redis
     redis:
       namespace: bw:session
+  # Thymeleaf 配置（项目使用静态HTML，不使用模板引擎）
+  thymeleaf:
+    check-template-location: false  # 禁用模板位置检查
 
 # 日志配置已移至 logback-spring.xml
 

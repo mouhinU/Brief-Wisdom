@@ -24,6 +24,9 @@ public class AiModelDTO implements Serializable {
     private Integer isActive;
     private Integer isEnabled;
     private Integer sortOrder;
+    private Double inputPricePerMillion;  // 每百万输入token价格(元)
+    private Double outputPricePerMillion;  // 每百万输出token价格(元)
+    private String thinkingMode;  // 思考模式: normal-普通模式, thinking-思考模式
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

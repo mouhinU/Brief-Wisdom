@@ -135,6 +135,9 @@ public class AiModelServiceImpl implements AiModelService {
         dto.setIsActive(m.getIsActive());
         dto.setIsEnabled(m.getIsEnabled());
         dto.setSortOrder(m.getSortOrder());
+        dto.setInputPricePerMillion(m.getInputPricePerMillion());
+        dto.setOutputPricePerMillion(m.getOutputPricePerMillion());
+        dto.setThinkingMode(m.getThinkingMode());
         dto.setCreateTime(m.getCreateTime());
         dto.setUpdateTime(m.getUpdateTime());
         return dto;

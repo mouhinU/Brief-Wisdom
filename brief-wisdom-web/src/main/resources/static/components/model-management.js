@@ -78,6 +78,11 @@
                 <td>${escapeHtml(m.provider)}</td>
                 <td>${escapeHtml(m.description || '-')}</td>
                 <td>
+                    <span class="status-badge ${m.thinkingMode === 'thinking' ? 'status-thinking' : 'status-normal'}">
+                        ${m.thinkingMode === 'thinking' ? '思考模式' : '普通模式'}
+                    </span>
+                </td>
+                <td>
                     <span class="status-badge ${m.isEnabled === 1 ? 'status-enabled' : 'status-disabled'}">
                         ${m.isEnabled === 1 ? '启用' : '禁用'}
                     </span>
@@ -109,6 +114,7 @@
         document.getElementById('model-display-name').value = '';
         document.getElementById('model-provider').value = 'dashscope';
         document.getElementById('model-description').value = '';
+        document.getElementById('model-thinking-mode').value = 'normal';
         document.getElementById('model-sort-order').value = '0';
         document.getElementById('model-modal').style.display = 'flex';
     }
@@ -123,6 +129,7 @@
         document.getElementById('model-display-name').value = model.displayName;
         document.getElementById('model-provider').value = model.provider;
         document.getElementById('model-description').value = model.description || '';
+        document.getElementById('model-thinking-mode').value = model.thinkingMode || 'normal';
         document.getElementById('model-sort-order').value = model.sortOrder ?? 0;
         document.getElementById('model-modal').style.display = 'flex';
     }
@@ -138,6 +145,7 @@
             displayName: document.getElementById('model-display-name').value.trim(),
             provider: document.getElementById('model-provider').value.trim(),
             description: document.getElementById('model-description').value.trim(),
+            thinkingMode: document.getElementById('model-thinking-mode').value,
             sortOrder: parseInt(document.getElementById('model-sort-order').value) || 0
         };
 

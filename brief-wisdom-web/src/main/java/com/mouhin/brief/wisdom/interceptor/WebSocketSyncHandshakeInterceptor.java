@@ -1,6 +1,6 @@
 package com.mouhin.brief.wisdom.interceptor;
 
-import com.mouhin.brief.wisdom.ai.websocket.WebSocketSyncHandler;
+import com.mouhin.brief.wisdom.websocket.WebSocketSyncHandler;
 import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

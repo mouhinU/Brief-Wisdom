@@ -122,11 +122,27 @@
             </div>
             <div class="form-group">
                 <label>项目背景</label>
-                <textarea name="background" id="proj-f-background" rows="3">${escapeHtml(data?.background || '')}</textarea>
+                <div class="form-field-with-ai">
+                    <textarea name="background" id="proj-f-background" rows="3">${escapeHtml(data?.background || '')}</textarea>
+                    <button type="button" 
+                            class="ai-polish-btn" 
+                            onclick="window.AiPolishComponent.polish('proj-f-background', 'background', '${escapeAttr(data?.name || '')}')" 
+                            title="AI润色">
+                        ✨ AI
+                    </button>
+                </div>
             </div>
             <div class="form-group">
                 <label>职责描述</label>
-                <textarea name="duty" id="proj-f-duty" rows="3">${escapeHtml(data?.duty || '')}</textarea>
+                <div class="form-field-with-ai">
+                    <textarea name="duty" id="proj-f-duty" rows="3">${escapeHtml(data?.duty || '')}</textarea>
+                    <button type="button" 
+                            class="ai-polish-btn" 
+                            onclick="window.AiPolishComponent.polish('proj-f-duty', 'duty', '${escapeAttr(data?.name || '')}')" 
+                            title="AI润色">
+                        ✨ AI
+                    </button>
+                </div>
             </div>
             <div class="form-group">
                 <label>排序序号</label>

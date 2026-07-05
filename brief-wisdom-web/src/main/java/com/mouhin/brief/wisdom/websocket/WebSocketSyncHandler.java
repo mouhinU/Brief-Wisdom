@@ -1,6 +1,7 @@
-package com.mouhin.brief.wisdom.ai.websocket;
+package com.mouhin.brief.wisdom.websocket;
 
 import com.mouhin.brief.wisdom.ai.service.WebSocketChatSyncService;
+import com.mouhin.brief.wisdom.interceptor.WebSocketSyncHandshakeInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -75,15 +76,13 @@ public class WebSocketSyncHandler extends TextWebSocketHandler {
         if (userId != null) {
             syncService.unregisterSession(userId, session);
         }
-        log.info("[WebSocket] 连接关闭 - userId: {}, sessionId: {}, status: {}",
-                userId, session.getId(), status);
+        log.info("[WebSocket] 连接关闭 - userId: {}, sessionId: {}, status: {}", userId, session.getId(), status);
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         String userId = (String) session.getAttributes().get(ATTR_USER_ID);
-        log.warn("[WebSocket] 传输错误 - userId: {}, sessionId: {}, error: {}",
-                userId, session.getId(), exception.getMessage());
+        log.warn("[WebSocket] 传输错误 - userId: {}, sessionId: {}, error: {}", userId, session.getId(), exception.getMessage());
 
         if (session.isOpen()) {
             session.close(CloseStatus.SERVER_ERROR);

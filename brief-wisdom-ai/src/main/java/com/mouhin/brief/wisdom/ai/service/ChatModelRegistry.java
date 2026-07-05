@@ -80,6 +80,44 @@ public class ChatModelRegistry {
     }
 
     /**
+     * 根据提供商和模型名称获取 ChatModel（支持思考模式）
+     *
+     * @param provider     提供商标识
+     * @param modelName    模型名称
+     * @param thinkingMode 思考模式: normal-普通模式, thinking-思考模式
+     * @return ChatModel 实例
+     */
+    public ChatModel getChatModel(String provider, String modelName, String thinkingMode) {
+        // 思考模式下使用不同的缓存 key
+        String cacheKey = buildCacheKey(provider, modelName, thinkingMode);
+        
+        ChatModel chatModel = modelCache.get(cacheKey);
+        if (chatModel != null) {
+            return chatModel;
+        }
+        
+        // 创建带思考模式配置的 ChatModel
+        chatModel = createChatModelWithThinkingMode(provider, modelName, thinkingMode);
+        if (chatModel != null) {
+            modelCache.put(cacheKey, chatModel);
+            log.info("[AI] 创建带思考模式的 ChatModel: provider={}, model={}, mode={}", 
+                    provider, modelName, thinkingMode);
+        }
+        
+        return chatModel;
+    }
+
+    /**
+     * 构建缓存 key
+     */
+    private String buildCacheKey(String provider, String modelName, String thinkingMode) {
+        if ("thinking".equals(thinkingMode)) {
+            return provider + ":" + modelName + ":thinking";
+        }
+        return provider + ":" + modelName;
+    }
+
+    /**
      * 获取默认 ChatModel
      */
     public ChatModel getDefaultChatModel() {
@@ -155,6 +193,94 @@ public class ChatModelRegistry {
         return AnthropicChatModel.builder()
                 .anthropicApi(api)
                 .defaultOptions(options)
+                .build();
+    }
+
+    /**
+     * 创建带思考模式配置的 ChatModel
+     *
+     * @param provider     提供商标识
+     * @param modelName    模型名称
+     * @param thinkingMode 思考模式: normal-普通模式, thinking-思考模式
+     * @return ChatModel 实例
+     */
+    private ChatModel createChatModelWithThinkingMode(String provider, String modelName, String thinkingMode) {
+        AiProviderProperties.ProviderConfig props = properties.getProviders().get(provider);
+        if (props == null) {
+            log.warn("[AI] 未找到提供商 {} 的配置", provider);
+            return null;
+        }
+
+        String apiKey = props.getApiKey();
+        String baseUrl = props.getBaseUrl();
+        
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("[AI] 提供商 {} 未配置 api-key", provider);
+            return null;
+        }
+
+        // 根据提供商类型创建不同的 ChatModel
+        String type = props.getType() != null ? props.getType() : "openai";
+        
+        if ("anthropic".equals(type)) {
+            return createAnthropicChatModelWithThinking(baseUrl, apiKey, modelName, thinkingMode);
+        } else {
+            return createOpenAiCompatibleChatModelWithThinking(baseUrl, apiKey, modelName, thinkingMode);
+        }
+    }
+
+    /**
+     * 创建 OpenAI 兼容协议的 ChatModel（支持思考模式）
+     */
+    private OpenAiChatModel createOpenAiCompatibleChatModelWithThinking(
+            String baseUrl, String apiKey, String model, String thinkingMode) {
+        OpenAiApi api = OpenAiApi.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .build();
+        
+        OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
+                .model(model != null ? model : "gpt-4o");
+        
+        // 思考模式下启用 reasoning_effort
+        if ("thinking".equals(thinkingMode)) {
+            optionsBuilder.reasoningEffort("high");
+            log.debug("[AI] OpenAI 兼容协议启用思考模式: reasoning_effort=high");
+        }
+        
+        return OpenAiChatModel.builder()
+                .openAiApi(api)
+                .defaultOptions(optionsBuilder.build())
+                .build();
+    }
+
+    /**
+     * 创建 Anthropic ChatModel（支持思考模式）
+     */
+    private AnthropicChatModel createAnthropicChatModelWithThinking(
+            String baseUrl, String apiKey, String model, String thinkingMode) {
+        AnthropicApi.Builder apiBuilder = AnthropicApi.builder()
+                .apiKey(apiKey);
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            apiBuilder.baseUrl(baseUrl);
+        }
+        AnthropicApi api = apiBuilder.build();
+
+        AnthropicChatOptions.Builder optionsBuilder = AnthropicChatOptions.builder()
+                .model(model != null ? model : "claude-sonnet-4-20250514");
+        
+        // 思考模式下启用 extended thinking
+        // 注意：Spring AI 1.0.0 的 AnthropicChatOptions 可能不支持直接的 thinking 配置
+        // 如果 Claude 3.7+ 需要思考模式，建议升级到更高版本的 Spring AI
+        if ("thinking".equals(thinkingMode)) {
+            log.warn("[AI] Anthropic 思考模式在当前 Spring AI 版本中暂不支持，使用默认配置");
+            // TODO: 升级到 Spring AI 1.1.0+ 后启用以下代码
+            // optionsBuilder.thinkingBudgetTokens(4096);
+        }
+        
+        return AnthropicChatModel.builder()
+                .anthropicApi(api)
+                .defaultOptions(optionsBuilder.build())
                 .build();
     }
 }
