@@ -35,7 +35,7 @@ public class RateLimitService {
     /**
      * 天级限流乘数（天级限制 = MAX_REQUESTS_PER_SECOND × DAILY_MULTIPLIER）
      */
-    private static final int DAILY_MULTIPLIER = 20 * 60 * 60 * 24;
+    private static final int DAILY_MULTIPLIER = 20 * 60 * 60;
 
     /**
      * 天级最大请求数（基于秒级限制计算）
@@ -89,7 +89,7 @@ public class RateLimitService {
                 Collections.singletonList(secondKey),
                 String.valueOf(5) // 5秒过期
         );
-        if (secondCount != null && secondCount > MAX_REQUESTS_PER_SECOND) {
+        if (secondCount > MAX_REQUESTS_PER_SECOND) {
             log.warn("[限流] 用户 {} 秒级请求超限: {}/{}", userId, secondCount, MAX_REQUESTS_PER_SECOND);
             return true;
         }
@@ -101,7 +101,7 @@ public class RateLimitService {
                 Collections.singletonList(dayKey),
                 String.valueOf(172800) // 2天=172800秒
         );
-        if (dayCount != null && dayCount > MAX_REQUESTS_PER_DAY) {
+        if (dayCount > MAX_REQUESTS_PER_DAY) {
             log.warn("[限流] 用户 {} 天级请求超限: {}/{}", userId, dayCount, MAX_REQUESTS_PER_DAY);
             return true;
         }

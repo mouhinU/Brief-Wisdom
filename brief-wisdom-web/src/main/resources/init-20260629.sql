@@ -521,6 +521,7 @@ CREATE TABLE ai_audit_log (
     confidence_score DOUBLE COMMENT '置信度分数 (0-1)',
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_session_id (session_id),
     INDEX idx_user_id (user_id),
     INDEX idx_audit_type (audit_type),

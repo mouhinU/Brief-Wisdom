@@ -27,6 +27,7 @@
 - [前端页面](#前端页面)
 - [常见问题排查](#常见问题排查)
 - [编译与运行](#编译与运行)
+- [📚 文档索引](#-文档索引)
 
 ---
 
@@ -1523,6 +1524,38 @@ redis-cli KEYS "bw:*" | xargs redis-cli DEL
 - **提交信息**：使用清晰的 commit message，说明修改内容
 - **分支管理**：feature 分支开发，完成后合并到 main 分支
 - **测试**：新功能需包含单元测试或集成测试
+
+---
+
+## 📚 文档索引
+
+项目技术文档已整理到 `docs/` 目录,按类型分类:
+
+### 👶 新手入门
+
+- **[docs/guides/developer-guide.md](docs/guides/developer-guide.md)** - 开发者快速入门(环境准备、快速启动、常见问题)
+- **[AGENTS.md](AGENTS.md)** - 编码规范(命名、注释、异常处理、日志等)
+
+### 🏗️ 架构设计
+
+- **[docs/architecture/sync-architecture.md](docs/architecture/sync-architecture.md)** - 实时同步架构(SSE/WebSocket)
+
+### 🔧 功能特性
+
+- **[docs/features/ai-polish/](docs/features/ai-polish/)** - AI 润色功能完整文档(组件设计、集成流程、验证报告)
+
+### 📊 开发指南
+
+- **[docs/guides/LOG_CONFIGURATION.md](docs/guides/LOG_CONFIGURATION.md)** - 日志配置说明
+- **[docs/README.md](docs/README.md)** - 技术文档总索引
+
+### 🐛 故障修复
+
+- **[FIX_SUMMARY.md](FIX_SUMMARY.md)** - StackOverflowError 修复总结(Redisson 递归冲突)
+
+### 💡 项目分析
+
+- **[docs/analysis/项目能力分析与改进建议.md](docs/analysis/项目能力分析与改进建议.md)** - 当前能力总结、改进优先级、未来规划
 
 ---
 
