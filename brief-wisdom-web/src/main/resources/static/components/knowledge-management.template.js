@@ -42,6 +42,7 @@
                                 <button class="knowledge-filter-btn" data-type="FILE" onclick="KnowledgeManagement.filterByType('FILE')">📎 文件</button>
                                 <button class="knowledge-filter-btn" data-type="LINK" onclick="KnowledgeManagement.filterByType('LINK')">🔗 外部链接</button>
                             </div>
+                            <button class="btn btn-secondary" id="knowledge-import-md-btn" onclick="KnowledgeManagement.showImportMdModal()" style="display:none;">📥 导入 MD</button>
                             <button class="btn btn-primary" id="knowledge-add-doc-btn" onclick="KnowledgeManagement.showDocForm()" style="display:none;">+ 新建文档</button>
                         </div>
                     </div>
@@ -215,6 +216,50 @@
                         <button class="knowledge-modal-close" onclick="KnowledgeManagement.closeDocDetail()">&times;</button>
                     </div>
                     <div id="knowledge-doc-detail-body" class="knowledge-doc-detail-body"></div>
+                </div>
+            </div>
+
+            <!-- Markdown 导入弹窗 -->
+            <div id="knowledge-import-md-modal" class="knowledge-modal" style="display:none;">
+                <div class="knowledge-modal-content">
+                    <div class="knowledge-modal-header">
+                        <h3>导入 Markdown 文件</h3>
+                        <button class="knowledge-modal-close" onclick="KnowledgeManagement.closeImportMdModal()">&times;</button>
+                    </div>
+                    <div class="knowledge-import-md-form">
+                        <div class="knowledge-form-group">
+                            <label>导入方式</label>
+                            <select id="knowledge-import-md-mode" onchange="KnowledgeManagement.onImportModeChange()">
+                                <option value="docs">导入 docs 目录（推荐）</option>
+                                <option value="agents">导入 AGENTS.md</option>
+                                <option value="custom">自定义目录</option>
+                            </select>
+                        </div>
+                        <div id="knowledge-import-custom-dir" style="display:none;">
+                            <div class="knowledge-form-group">
+                                <label>源目录路径</label>
+                                <input type="text" id="knowledge-import-source-dir" placeholder="如: docs/guides" value="docs">
+                            </div>
+                            <div class="knowledge-form-group">
+                                <label>
+                                    <input type="checkbox" id="knowledge-import-recursive" checked>
+                                    递归子目录
+                                </label>
+                            </div>
+                        </div>
+                        <div class="knowledge-form-info">
+                            <p>💡 提示：</p>
+                            <ul>
+                                <li>Markdown 文件将作为“内部文档”导入</li>
+                                <li>文件名（不含扩展名）将作为文档标题</li>
+                                <li>文件内容将原样保存为 Markdown 格式</li>
+                            </ul>
+                        </div>
+                        <div class="knowledge-form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="KnowledgeManagement.closeImportMdModal()">取消</button>
+                            <button type="button" class="btn btn-primary" onclick="KnowledgeManagement.importMarkdown()">开始导入</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;

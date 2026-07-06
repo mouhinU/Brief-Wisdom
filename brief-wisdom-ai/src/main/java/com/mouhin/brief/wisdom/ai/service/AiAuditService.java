@@ -3,6 +3,9 @@ package com.mouhin.brief.wisdom.ai.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.AiAuditLogDTO;
+import com.mouhin.brief.wisdom.enums.AiActionTakenEnum;
+import com.mouhin.brief.wisdom.enums.AiAuditTypeEnum;
+import com.mouhin.brief.wisdom.enums.AiRiskLevelEnum;
 import com.mouhin.brief.wisdom.persistence.model.AiAuditLog;
 import com.mouhin.brief.wisdom.persistence.repository.AiAuditLogRepository;
 import lombok.RequiredArgsConstructor;
@@ -46,11 +49,11 @@ public class AiAuditService {
         AiAuditLog auditLog = new AiAuditLog();
         auditLog.setSessionId(sessionId);
         auditLog.setUserId(userId);
-        auditLog.setAuditType("INPUT_BLOCKED");
-        auditLog.setRiskLevel("HIGH");
+        auditLog.setAuditType(AiAuditTypeEnum.INPUT_BLOCKED.getCode());
+        auditLog.setRiskLevel(AiRiskLevelEnum.HIGH.getCode());
         auditLog.setTriggerKeyword(keyword);
         auditLog.setOriginalContent(truncateContent(originalContent, 500));
-        auditLog.setActionTaken("BLOCKED");
+        auditLog.setActionTaken(AiActionTakenEnum.BLOCKED.getCode());
         auditLog.setConfidenceScore(1.0);
         auditLog.setCreateTime(LocalDateTime.now());
 
@@ -75,12 +78,12 @@ public class AiAuditService {
         auditLog.setSessionId(sessionId);
         auditLog.setUserId(userId);
         auditLog.setMessageId(messageId);
-        auditLog.setAuditType("OUTPUT_FILTERED");
-        auditLog.setRiskLevel("MEDIUM");
+        auditLog.setAuditType(AiAuditTypeEnum.OUTPUT_FILTERED.getCode());
+        auditLog.setRiskLevel(AiRiskLevelEnum.MEDIUM.getCode());
         auditLog.setTriggerKeyword(triggerPattern);
         auditLog.setOriginalContent(truncateContent(originalContent, 500));
         auditLog.setFilteredContent(truncateContent(filteredContent, 500));
-        auditLog.setActionTaken("FILTERED");
+        auditLog.setActionTaken(AiActionTakenEnum.FILTERED.getCode());
         auditLog.setConfidenceScore(0.9);
         auditLog.setCreateTime(LocalDateTime.now());
 
@@ -102,10 +105,10 @@ public class AiAuditService {
         AiAuditLog auditLog = new AiAuditLog();
         auditLog.setSessionId(sessionId);
         auditLog.setUserId(userId);
-        auditLog.setAuditType("RISK_DETECTED");
-        auditLog.setRiskLevel(riskLevel != null ? riskLevel : "MEDIUM");
+        auditLog.setAuditType(AiAuditTypeEnum.RISK_DETECTED.getCode());
+        auditLog.setRiskLevel(riskLevel != null ? riskLevel : AiRiskLevelEnum.MEDIUM.getCode());
         auditLog.setTriggerKeyword(description);
-        auditLog.setActionTaken("WARNED");
+        auditLog.setActionTaken(AiActionTakenEnum.WARNED.getCode());
         auditLog.setConfidenceScore(confidenceScore != null ? confidenceScore : 0.5);
         auditLog.setCreateTime(LocalDateTime.now());
 

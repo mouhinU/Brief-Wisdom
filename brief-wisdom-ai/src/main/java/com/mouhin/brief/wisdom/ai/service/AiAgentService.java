@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.prompt.SystemPrompts;
+import com.mouhin.brief.wisdom.ai.service.ChatModelRegistry;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
@@ -82,6 +83,7 @@ public class AiAgentService {
     private final RateLimitService rateLimitService;
     private final KnowledgeRagService knowledgeRagService;
     private final ChatMemoryService chatMemoryService;
+    private final AiAuditService auditService;
 
     /**
      * 创建新会话（无参版本，使用默认用户ID）
@@ -800,6 +802,18 @@ public class AiAgentService {
         }
 
         String systemPrompt = SystemPrompts.getSystemPromptWithContext(effectivePageContext);
+
+        // 注入知识库 RAG 上下文（基于用户消息检索相关文档）
+        try {
+            var relevantDocs = knowledgeRagService.retrieveRelevantDocuments(message);
+            String ragContext = knowledgeRagService.buildContextFromDocuments(relevantDocs);
+            if (!ragContext.isBlank()) {
+                systemPrompt += ragContext;
+            }
+        } catch (Exception e) {
+            log.warn("知识库 RAG 检索失败，跳过上下文注入: {}", e.getMessage());
+        }
+
         String provider = resolveProvider(model);
         String thinkingMode = resolveThinkingMode(model);
         ChatModel chatModel = chatModelRegistry.getChatModel(provider, model, thinkingMode);
@@ -935,12 +949,21 @@ public class AiAgentService {
      * @param userId    用户ID（用于审计日志）
      */
     public void checkInputSafety(String message, String sessionId, String userId) {
-        // 仅检测，不记录日志
+        // 1. 检测敏感关键词
         String blockedKeyword = contentFilterService.checkInputBlocked(message);
         if (blockedKeyword != null) {
             // 被拦截，按正确顺序保存
             saveBlockedMessages(sessionId, userId, message, blockedKeyword);
             throw new ContentSecurityException(contentFilterService.getBlockedMessage());
+        }
+
+        // 2. 检测 Prompt 注入攻击
+        String injectionType = contentFilterService.detectPromptInjection(message);
+        if (injectionType != null) {
+            log.warn("[Prompt注入防护] 检测到攻击 - type: {}, sessionId: {}, userId: {}", injectionType, sessionId, userId);
+            // 保存拦截记录
+            savePromptInjectionBlocked(sessionId, userId, message, injectionType);
+            throw new ContentSecurityException("抱歉，检测到潜在的安全风险请求，无法处理。请遵守使用规范。");
         }
     }
 
@@ -1018,6 +1041,74 @@ public class AiAgentService {
         } catch (Exception e) {
             // 即使保存失败，也不影响拦截逻辑
             log.error("[内容安全] 保存被拦截消息失败: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 保存 Prompt 注入攻击拦截记录
+     * <p>
+     * 与 saveBlockedMessages 类似，但专门用于 Prompt 注入攻击。
+     *
+     * @param sessionId   会话ID
+     * @param userId      用户ID
+     * @param message     用户消息内容
+     * @param attackType  攻击类型
+     */
+    @Transactional
+    public void savePromptInjectionBlocked(String sessionId, String userId, String message, String attackType) {
+        log.info("[Prompt注入防护] 开始保存拦截记录 - sessionId: {}, userId: {}, attackType: {}", sessionId, userId, attackType);
+
+        try {
+            // 第一步：保存用户消息
+            LocalDateTime userMsgTime = LocalDateTime.now();
+            ChatMessage userMsg = new ChatMessage();
+            userMsg.setSessionId(sessionId);
+            userMsg.setUserId(userId);
+            userMsg.setRole(ROLE_USER);
+            userMsg.setContent(message);
+            userMsg.setMessageType(MESSAGE_TYPE_TEXT);
+            userMsg.setTimestamp(userMsgTime);
+            userMsg.setTokens(0);
+            userMsg.setCost(0.0);
+            messageRepository.save(userMsg);
+
+            // 第二步：保存系统拦截回复
+            LocalDateTime systemMsgTime = userMsgTime.plusNanos(1_000_000);
+            ChatMessage systemMsg = new ChatMessage();
+            systemMsg.setSessionId(sessionId);
+            systemMsg.setUserId(userId);
+            systemMsg.setRole(ROLE_ASSISTANT);
+            systemMsg.setContent("抱歉，检测到潜在的安全风险请求，无法处理。请遵守使用规范。");
+            systemMsg.setModel("prompt-injection-filter"); // 标记为 Prompt 注入过滤
+            systemMsg.setMessageType(MESSAGE_TYPE_TEXT);
+            systemMsg.setTimestamp(systemMsgTime);
+            systemMsg.setTokens(0);
+            systemMsg.setCost(0.0);
+            messageRepository.save(systemMsg);
+
+            // 第三步：更新会话统计
+            long messageCount = messageRepository.countBySessionId(sessionId);
+            ChatSession session = sessionRepository.findBySessionId(sessionId);
+            if (session != null) {
+                session.setMessageCount((int) messageCount);
+                if (messageCount == 2) {
+                    session.setTitle(message.length() > TITLE_MAX_LENGTH ? message.substring(0, TITLE_MAX_LENGTH) + "..." : message);
+                }
+                session.setUpdateTime(LocalDateTime.now());
+                sessionRepository.update(session);
+            }
+
+            // 第四步：记录审计日志
+            auditService.logInputBlocked(
+                    sessionId,
+                    userId,
+                    "PROMPT_INJECTION:" + attackType,
+                    maskContentForAudit(message)
+            );
+            log.info("[Prompt注入防护] 审计日志已记录 - sessionId: {}, attackType: {}", sessionId, attackType);
+
+        } catch (Exception e) {
+            log.error("[Prompt注入防护] 保存拦截记录失败: {}", e.getMessage(), e);
         }
     }
 

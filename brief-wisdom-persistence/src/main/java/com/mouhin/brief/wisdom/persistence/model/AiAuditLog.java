@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.persistence.model;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -82,7 +83,5 @@ public class AiAuditLog extends BaseEntity {
      */
     private Double confidenceScore;
 
-    /**
-     * 创建时间（由 BaseEntity 自动管理）
-     */
+
 }

@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.knowledge.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
+import com.mouhin.brief.wisdom.ai.service.MarkdownImportService;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseRequest;
@@ -34,6 +35,7 @@ import java.util.List;
 public class KnowledgeController {
 
     private final KnowledgeService knowledgeService;
+    private final MarkdownImportService markdownImportService;
 
     // ==================== 知识库 ====================
 
@@ -158,6 +160,47 @@ public class KnowledgeController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
         return knowledgeService.searchDocuments(keyword, page, size);
+    }
+
+    // ==================== Markdown 导入 ====================
+
+    /**
+     * 批量导入指定目录下的 Markdown 文件
+     */
+    @Operation(summary = "导入 Markdown 文件", description = "批量导入指定目录下的所有 .md 文件到知识库")
+    @PostMapping("/import/markdown")
+    public Integer importMarkdownFiles(
+            @RequestParam("baseId") Long baseId,
+            @RequestParam("sourceDir") String sourceDir,
+            @RequestParam(value = "recursive", defaultValue = "true") boolean recursive) {
+        log.info("开始导入 Markdown 文件 - baseId: {}, sourceDir: {}, recursive: {}", baseId, sourceDir, recursive);
+        int count = markdownImportService.importMarkdownFiles(baseId, sourceDir, recursive);
+        log.info("Markdown 文件导入完成 - 成功导入 {} 个文件", count);
+        return count;
+    }
+
+    /**
+     * 导入 docs 目录下的所有 Markdown 文件
+     */
+    @Operation(summary = "导入 docs 目录", description = "导入项目 docs 目录下的所有 Markdown 文件")
+    @PostMapping("/import/docs")
+    public Integer importDocsDirectory(@RequestParam("baseId") Long baseId) {
+        log.info("开始导入 docs 目录 - baseId: {}", baseId);
+        int count = markdownImportService.importDocsDirectory(baseId);
+        log.info("docs 目录导入完成 - 成功导入 {} 个文件", count);
+        return count;
+    }
+
+    /**
+     * 导入 AGENTS.md 文件
+     */
+    @Operation(summary = "导入 AGENTS.md", description = "导入项目根目录的 AGENTS.md 文件")
+    @PostMapping("/import/agents")
+    public Integer importAgentsMd(@RequestParam("baseId") Long baseId) {
+        log.info("开始导入 AGENTS.md - baseId: {}", baseId);
+        int count = markdownImportService.importAgentsMd(baseId);
+        log.info("AGENTS.md 导入完成 - 成功导入 {} 个文件", count);
+        return count;
     }
 
     // ==================== 私有转换方法 ====================

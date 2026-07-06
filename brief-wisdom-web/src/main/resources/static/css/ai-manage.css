@@ -1365,7 +1365,8 @@ header h1 {
 
 #knowledge-doc-modal .knowledge-modal-content,
 #knowledge-doc-detail-modal .knowledge-modal-content {
-  width: 700px;
+  width: 900px;
+  max-width: 95vw;
 }
 
 /* ===== Knowledge Doc Type Selector ===== */
@@ -1413,14 +1414,14 @@ header h1 {
 
 /* ===== Knowledge Doc Detail ===== */
 .knowledge-doc-detail-body {
-  padding: 20px 24px;
-  max-height: calc(85vh - 60px);
+  padding: 24px 32px;
+  max-height: calc(90vh - 70px);
   overflow-y: auto;
 }
 
 .knowledge-doc-detail-content {
   line-height: 1.8;
-  font-size: 14px;
+  font-size: 15px;
   color: #333;
 }
 
@@ -1939,4 +1940,205 @@ header h1 {
   text-align: center;
   padding: 40px;
   color: #999;
+}
+
+/* Markdown 导入相关样式 */
+.knowledge-import-md-form {
+  padding: 20px;
+}
+
+.knowledge-form-info {
+  margin: 16px 0;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #666;
+}
+
+.knowledge-form-info p {
+  margin: 0 0 8px 0;
+  font-weight: 500;
+  color: #333;
+}
+
+.knowledge-form-info ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.knowledge-form-info li {
+  margin: 4px 0;
+}
+
+/* Markdown 内容样式 */
+.markdown-content {
+  line-height: 1.8;
+  color: #333;
+  font-size: 15px;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #1a1a1a;
+}
+
+.markdown-content h1 {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #eaecef;
+}
+
+.markdown-content h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #eaecef;
+}
+
+.markdown-content h3 {
+  font-size: 1.25em;
+}
+
+.markdown-content h4 {
+  font-size: 1em;
+}
+
+.markdown-content p {
+  margin-top: 0;
+  margin-bottom: 16px;
+  line-height: 1.8;
+}
+
+.markdown-content a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+.markdown-content code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: rgba(27, 31, 35, 0.05);
+  border-radius: 3px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.markdown-content pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.markdown-content pre code {
+  padding: 0;
+  margin: 0;
+  font-size: 100%;
+  word-break: normal;
+  white-space: pre;
+  background: transparent;
+  border: 0;
+}
+
+.markdown-content blockquote {
+  padding: 0 1em;
+  color: #6a737d;
+  border-left: 0.25em solid #dfe2e5;
+  margin: 0 0 16px 0;
+}
+
+.markdown-content blockquote > :first-child {
+  margin-top: 0;
+}
+
+.markdown-content blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-left: 2em;
+}
+
+.markdown-content ul ul,
+.markdown-content ul ol,
+.markdown-content ol ul,
+.markdown-content ol ol {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-content li {
+  margin: 0.25em 0;
+}
+
+.markdown-content li > p {
+  margin-top: 16px;
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+  display: block;
+  overflow: auto;
+}
+
+.markdown-content table th,
+.markdown-content table td {
+  padding: 6px 13px;
+  border: 1px solid #dfe2e5;
+}
+
+.markdown-content table tr {
+  background-color: #fff;
+  border-top: 1px solid #c6cbd1;
+}
+
+.markdown-content table tr:nth-child(2n) {
+  background-color: #f6f8fa;
+}
+
+.markdown-content table th {
+  font-weight: 600;
+  background-color: #f6f8fa;
+}
+
+.markdown-content img {
+  max-width: 100%;
+  box-sizing: border-box;
+  background-color: #fff;
+}
+
+.markdown-content hr {
+  height: 0.25em;
+  padding: 0;
+  margin: 24px 0;
+  background-color: #e1e4e8;
+  border: 0;
+}
+
+.markdown-content strong {
+  font-weight: 600;
+}
+
+.markdown-content del {
+  color: #6a737d;
 }

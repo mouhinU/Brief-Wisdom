@@ -314,6 +314,7 @@
 
         document.getElementById('knowledge-current-base-name').textContent = baseName || '知识库';
         document.getElementById('knowledge-add-doc-btn').style.display = '';
+        document.getElementById('knowledge-import-md-btn').style.display = ''; // 显示导入按钮
 
         document.querySelectorAll('.knowledge-filter-btn').forEach(b => b.classList.remove('active'));
         document.querySelector('.knowledge-filter-btn[data-type=""]').classList.add('active');
@@ -731,7 +732,29 @@
         </div>`;
 
         if (doc.docType === 'INTERNAL') {
-            html += `<div class="knowledge-doc-detail-content">${doc.content || '<p style="color:#999;">暂无内容</p>'}</div>`;
+            // 检测是否为 Markdown 内容（包含 Markdown 语法特征）
+            const isMarkdown = detectMarkdown(doc.content);
+            if (isMarkdown && typeof marked !== 'undefined') {
+                // 使用 marked.js 渲染 Markdown
+                try {
+                    // 配置 marked 选项
+                    marked.setOptions({
+                        breaks: true,           // 支持换行符
+                        gfm: true,              // 启用 GitHub Flavored Markdown
+                        headerIds: false,       // 不生成标题 ID
+                        mangle: false,          // 不转义邮箱
+                        sanitize: false         // 允许 HTML（信任内部内容）
+                    });
+                    const renderedContent = marked.parse(doc.content || '');
+                    html += `<div class="knowledge-doc-detail-content markdown-content">${renderedContent}</div>`;
+                } catch (err) {
+                    console.error('[KnowledgeManagement] Markdown 渲染失败:', err);
+                    html += `<div class="knowledge-doc-detail-content">${doc.content || '<p style="color:#999;">暂无内容</p>'}</div>`;
+                }
+            } else {
+                // 非 Markdown 内容或 marked 未加载，直接显示
+                html += `<div class="knowledge-doc-detail-content">${doc.content || '<p style="color:#999;">暂无内容</p>'}</div>`;
+            }
         } else if (doc.docType === 'FILE') {
             html += `<div class="knowledge-doc-detail-content">
                 <p><strong>文件名:</strong> ${escapeHtml(doc.fileName || '-')}</p>
@@ -758,6 +781,31 @@
     }
 
     /**
+     * 检测内容是否为 Markdown 格式
+     */
+    function detectMarkdown(content) {
+        if (!content) return false;
+        
+        // 检测常见的 Markdown 语法特征
+        const markdownPatterns = [
+            /^#{1,6}\s+/m,           // 标题 # ## ###
+            /^\s*[-*+]\s+/m,         // 无序列表
+            /^\s*\d+\.\s+/m,        // 有序列表
+            /\[.+?\]\(.+?\)/,        // 链接 [text](url)
+            /\!\[.+?\]\(.+?\)/,      // 图片 ![alt](url)
+            /`{1,3}[^`]+`{1,3}/,     // 代码块 `code` 或 ```code```
+            /^\|.+\|$/m,             // 表格 | col | col |
+            /^\s*>\s+/m,             // 引用 > quote
+            /\*\*.+?\*\*/,           // 粗体 **text**
+            /\*.+?\*/,               // 斜体 *text*
+            /^---+$/m,               // 分隔线 ---
+            /^\*\*\*+$/m             // 分隔线 ***
+        ];
+        
+        return markdownPatterns.some(pattern => pattern.test(content));
+    }
+
+    /**
      * 文档类型变化
      */
     function onDocTypeChange() {
@@ -772,6 +820,77 @@
      */
     function closeDocModal() {
         document.getElementById('knowledge-doc-modal').style.display = 'none';
+    }
+
+    /**
+     * 显示 Markdown 导入弹窗
+     */
+    function showImportMdModal() {
+        if (!state.currentBaseId) {
+            showToast('请先选择一个知识库', 'error');
+            return;
+        }
+        document.getElementById('knowledge-import-md-mode').value = 'docs';
+        document.getElementById('knowledge-import-source-dir').value = 'docs';
+        document.getElementById('knowledge-import-recursive').checked = true;
+        onImportModeChange();
+        document.getElementById('knowledge-import-md-modal').style.display = 'flex';
+    }
+
+    /**
+     * 关闭 Markdown 导入弹窗
+     */
+    function closeImportMdModal() {
+        document.getElementById('knowledge-import-md-modal').style.display = 'none';
+    }
+
+    /**
+     * 导入方式变化
+     */
+    function onImportModeChange() {
+        const mode = document.getElementById('knowledge-import-md-mode').value;
+        document.getElementById('knowledge-import-custom-dir').style.display = mode === 'custom' ? '' : 'none';
+    }
+
+    /**
+     * 导入 Markdown 文件
+     */
+    async function importMarkdown() {
+        const mode = document.getElementById('knowledge-import-md-mode').value;
+        let url;
+        let params = new URLSearchParams();
+        params.append('baseId', state.currentBaseId);
+
+        if (mode === 'docs') {
+            url = `${KNOWLEDGE_API_BASE}/import/docs`;
+        } else if (mode === 'agents') {
+            url = `${KNOWLEDGE_API_BASE}/import/agents`;
+        } else {
+            url = `${KNOWLEDGE_API_BASE}/import/markdown`;
+            const sourceDir = document.getElementById('knowledge-import-source-dir').value.trim();
+            const recursive = document.getElementById('knowledge-import-recursive').checked;
+            if (!sourceDir) {
+                showToast('请输入源目录路径', 'error');
+                return;
+            }
+            params.append('sourceDir', sourceDir);
+            params.append('recursive', recursive);
+        }
+
+        try {
+            showToast('正在导入...', 'info');
+            const res = await fetch(`${url}?${params.toString()}`, {
+                method: 'POST'
+            });
+            const count = await res.json();
+            
+            closeImportMdModal();
+            await loadDocuments();
+            await loadBases();
+            showToast(`成功导入 ${count} 个 Markdown 文件`, 'success');
+        } catch (err) {
+            showToast('导入失败: ' + err.message, 'error');
+        }
     }
 
     /**
@@ -856,7 +975,12 @@
         closeDocModal,
         filterByType,
         handleSearch,
-        goToPage
+        goToPage,
+        // Markdown 导入相关
+        showImportMdModal,
+        closeImportMdModal,
+        onImportModeChange,
+        importMarkdown
     };
 
 })();

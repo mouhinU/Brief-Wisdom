@@ -1,5 +1,7 @@
 package com.mouhin.brief.wisdom.exception;
 
+import java.io.Serial;
+
 /**
  * 限流异常（请求超频时抛出）
  *
@@ -8,6 +10,7 @@ package com.mouhin.brief.wisdom.exception;
  */
 public class RateLimitException extends AIException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**
