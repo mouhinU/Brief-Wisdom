@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/menu")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 @Tag(name = "菜单管理", description = "系统菜单管理相关接口")
 public class MenuController {

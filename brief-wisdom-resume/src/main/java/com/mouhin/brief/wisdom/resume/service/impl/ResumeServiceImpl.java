@@ -83,6 +83,7 @@ public class ResumeServiceImpl implements ResumeService {
         // 6. 组装 VO
         return experiences.stream().map(exp -> {
             WorkExperienceVO vo = new WorkExperienceVO();
+            vo.setId(exp.getId());
             vo.setTitle(exp.getTitle());
             vo.setJob(exp.getJob());
             vo.setDescription(exp.getDescription());
@@ -90,6 +91,7 @@ public class ResumeServiceImpl implements ResumeService {
             List<Project> projects = projectsByExpId.getOrDefault(exp.getId(), Collections.emptyList());
             vo.setProjects(projects.stream().map(p -> {
                 ProjectVO pvo = new ProjectVO();
+                pvo.setId(p.getId());
                 pvo.setName(p.getName());
                 pvo.setLifecycle(p.getLifecycle());
                 pvo.setBackground(p.getBackground());

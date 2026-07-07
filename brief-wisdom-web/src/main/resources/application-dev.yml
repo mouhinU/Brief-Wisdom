@@ -1,9 +1,56 @@
-# Spring AI Configuration - 通过 OpenAI 兼容协议对接 DashScope（通义千问）
+# ============================================
+# 开发环境配置 (application-dev.yml)
+# 仅在 SPRING_PROFILES_ACTIVE=dev 时生效
+# ============================================
+
 spring:
+  # DevTools 热部署配置
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+      exclude: static/**,templates/**
+    livereload:
+      enabled: true
+      port: 35729
+  # 静态资源缓存控制（开发阶段禁用缓存）
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
+          must-revalidate: true
+  # 开发环境数据库配置（覆盖 base 中的默认值）
+  datasource:
+    url: jdbc:mysql://localhost:3306/brief_wisdom?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+  # 开发环境 Redis 配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD:123456}
+      database: 0
+#  # Spring AI 开发环境配置
+#  ai:
+#    openai:
+#      api-key: ${DASHSCOPE_API_KEY:sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg}
+#      base-url: https://dashscope.aliyuncs.com/compatible-mode
+#      chat:
+#        options:
+#          model: qwen-max
+
+# MyBatis 开发环境 SQL 日志（生产环境请勿开启）
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 开发环境 AI 提供商 API Key（通过环境变量覆盖）
+app:
   ai:
-    openai:
-      api-key: sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg
-      base-url: https://dashscope.aliyuncs.com/compatible-mode
-      chat:
-        options:
-          model: qwen-max
+    providers:
+      dashscope:
+        api-key: ${DASHSCOPE_API_KEY:sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg}
+      deepseek:
+        api-key: ${DEEPSEEK_API_KEY:sk-026f1b97c4a5430f947b8259d2f5ebd8}

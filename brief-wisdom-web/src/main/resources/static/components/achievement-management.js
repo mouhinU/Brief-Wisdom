@@ -262,11 +262,29 @@
         }
         
         const response = await fetch(url, options);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        
+        // 尝试解析响应体为JSON
+        let result;
+        try {
+            result = await response.json();
+        } catch (e) {
+            result = null;
         }
         
-        return response.json();
+        if (!response.ok) {
+            // 优先使用后端返回的错误消息
+            const errorMsg = result?.msg || result?.message || `HTTP error! status: ${response.status}`;
+            console.error('[AchievementManagement] API请求失败:', {
+                url,
+                method,
+                status: response.status,
+                error: errorMsg,
+                fullResponse: result
+            });
+            throw new Error(errorMsg);
+        }
+        
+        return result;
     }
 
     /**
@@ -362,11 +380,14 @@
             if (errorMsg) {
                 alert(errorMsg);
             } else if (polishedText) {
-                // 使用在线编辑器的对比弹窗
-                if (window.OnlineEditor && window.OnlineEditor.showPolishComparison) {
+                // 优先使用 AiPolishComponent 的对比弹窗
+                if (window.AiPolishComponent && window.AiPolishComponent.showComparisonModal) {
+                    window.AiPolishComponent.showComparisonModal(originalText, polishedText, textarea);
+                } else if (window.OnlineEditor && window.OnlineEditor.showPolishComparison) {
+                    // 降级：使用在线编辑器的对比弹窗
                     window.OnlineEditor.showPolishComparison(originalText, polishedText, textarea);
                 } else {
-                    // 降级方案：使用简单的 confirm
+                    // 最终降级：使用简单的 confirm
                     const confirmed = confirm(
                         'AI 润色结果：\n\n' + polishedText + '\n\n' +
                         '点击"确定"替换原文本，点击"取消"保留原文。'

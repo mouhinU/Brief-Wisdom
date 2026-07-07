@@ -38,6 +38,22 @@ public class ChatUserRepository {
     }
 
     /**
+     * 批量根据用户 ID 查询用户（单次 IN 查询）
+     *
+     * @param userIds 用户 ID 列表
+     * @return 匹配的用户列表
+     */
+    public List<ChatUser> findByUserIdIn(List<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return chatUserMapper.selectList(
+                new LambdaQueryWrapper<ChatUser>()
+                        .in(ChatUser::getUserId, userIds)
+        );
+    }
+
+    /**
      * 根据用户名查询用户
      *
      * @param username 用户名
@@ -47,6 +63,19 @@ public class ChatUserRepository {
         return chatUserMapper.selectOne(
                 new LambdaQueryWrapper<ChatUser>()
                         .eq(ChatUser::getUsername, username)
+        );
+    }
+
+    /**
+     * 根据手机号查询用户
+     *
+     * @param phone 手机号
+     * @return 匹配的用户，不存在返回 null
+     */
+    public ChatUser findByPhone(String phone) {
+        return chatUserMapper.selectOne(
+                new LambdaQueryWrapper<ChatUser>()
+                        .eq(ChatUser::getPhone, phone)
         );
     }
 

@@ -16,6 +16,7 @@ import java.util.List;
 @Data
 public class ProjectVO {
 
+    private Long id;
     private String name;
     private String lifecycle;
     private String background;

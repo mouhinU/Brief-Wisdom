@@ -26,7 +26,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/resume/ai")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 @RequiresPermission("resume:manage")
 public class ResumeAiController {

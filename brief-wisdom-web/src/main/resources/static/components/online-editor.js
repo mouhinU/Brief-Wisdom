@@ -401,7 +401,7 @@
                 <div class="editor-form-group">
                     <label>项目背景</label>
                     <div class="form-field-with-ai">
-                        <textarea id="editor-proj-background" rows="3">${escapeHtml(proj.background || '')}</textarea>
+                        <textarea id="editor-proj-background" rows="6">${escapeHtml(proj.background || '')}</textarea>
                         <button type="button" 
                                 class="ai-polish-btn" 
                                 onclick="window.AiPolishComponent.polish('editor-proj-background', 'background', '${escapeAttr(proj.name || '')}')" 
@@ -413,7 +413,7 @@
                 <div class="editor-form-group">
                     <label>个人职责</label>
                     <div class="form-field-with-ai">
-                        <textarea id="editor-proj-duty" rows="3">${escapeHtml(proj.duty || '')}</textarea>
+                        <textarea id="editor-proj-duty" rows="6">${escapeHtml(proj.duty || '')}</textarea>
                         <button type="button" 
                                 class="ai-polish-btn" 
                                 onclick="window.AiPolishComponent.polish('editor-proj-duty', 'duty', '${escapeAttr(proj.name || '')}')" 

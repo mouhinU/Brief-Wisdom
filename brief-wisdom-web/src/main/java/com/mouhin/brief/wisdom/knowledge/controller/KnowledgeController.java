@@ -3,14 +3,14 @@ package com.mouhin.brief.wisdom.knowledge.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
 import com.mouhin.brief.wisdom.ai.service.MarkdownImportService;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseBO;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseRequest;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentDTO;
-import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentRequest;
+import com.mouhin.brief.wisdom.common.knowledge.*;
+import com.mouhin.brief.wisdom.knowledge.req.DocumentListQueryRequest;
+import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
+import com.mouhin.brief.wisdom.exception.BizException;
+import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -29,13 +29,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/knowledge")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 @Tag(name = "知识库", description = "知识库管理与 RAG 检索相关接口")
 public class KnowledgeController {
 
     private final KnowledgeService knowledgeService;
     private final MarkdownImportService markdownImportService;
+    private final UserContextHelper userContextHelper;
 
     // ==================== 知识库 ====================
 
@@ -110,10 +110,8 @@ public class KnowledgeController {
     @GetMapping("/bases/{baseId}/documents")
     public Page<KnowledgeDocumentDTO> listDocuments(
             @PathVariable Long baseId,
-            @RequestParam(value = "docType", required = false) String docType,
-            @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size) {
-        return knowledgeService.listDocuments(baseId, docType, page, size);
+            DocumentListQueryRequest request) {
+        return knowledgeService.listDocuments(baseId, request.getDocType(), request.getPage(), request.getSize());
     }
 
     /**
@@ -154,11 +152,15 @@ public class KnowledgeController {
     /**
      * 搜索文档
      */
+    @Operation(summary = "搜索文档", description = "需要登录才能访问")
     @GetMapping("/documents/search")
     public Page<KnowledgeDocumentDTO> searchDocuments(
             @RequestParam("keyword") String keyword,
             @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size) {
+            @RequestParam(value = "size", defaultValue = "20") int size,
+            HttpServletRequest request) {
+        // 检查用户是否登录
+        checkLoginRequired(request);
         return knowledgeService.searchDocuments(keyword, page, size);
     }
 
@@ -204,6 +206,31 @@ public class KnowledgeController {
     }
 
     // ==================== 私有转换方法 ====================
+
+    /**
+     * 检查用户是否已登录，未登录则抛出异常
+     */
+    private void checkLoginRequired(HttpServletRequest request) {
+        if (!userContextHelper.isLoggedIn()) {
+            log.warn("[知识库检索] 访客尝试访问受限接口 - ip: {}", getClientIp(request));
+            throw new BizException(BizExceptionEnums.UNAUTHORIZED, "需要登录后才能检索知识库内容");
+        }
+    }
+
+    /**
+     * 获取客户端 IP 地址（用于日志记录）
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+            return ip.split(",")[0].trim();
+        }
+        ip = request.getHeader("X-Real-IP");
+        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+            return ip;
+        }
+        return request.getRemoteAddr();
+    }
 
     /**
      * Request -> BO (知识库)

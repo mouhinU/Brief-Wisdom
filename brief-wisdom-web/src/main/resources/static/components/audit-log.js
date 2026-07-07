@@ -62,7 +62,10 @@
         const riskLevel = getElementValue('audit-filter-level');
         const userId = getElementValue('audit-filter-user');
         
-        const url = `/api/ai/audit/logs?page=${page}&size=${pageSize}` +
+        // 确保 page 是数字类型
+        const pageNum = parseInt(page) || 1;
+        
+        const url = `/api/ai/audit/logs?page=${pageNum}&size=${pageSize}` +
                    (auditType ? `&auditType=${auditType}` : '') +
                    (riskLevel ? `&riskLevel=${riskLevel}` : '') +
                    (userId ? `&userId=${encodeURIComponent(userId)}` : '');
@@ -118,7 +121,7 @@
         const pagination = document.getElementById('audit-pagination');
         if (!pagination) return;
         
-        const { current, pages } = pageData;
+        const { page: current, pages } = pageData;
         
         if (pages <= 1) {
             pagination.innerHTML = '';

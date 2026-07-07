@@ -362,7 +362,10 @@ function updateParentOptions() {
 async function loadDocuments() {
   if (!currentBaseId) return;
 
-  const url = `${KNOWLEDGE_API_BASE}/bases/${currentBaseId}/documents?page=${currentPage}&size=20${currentDocType ? '&docType=' + currentDocType : ''}`;
+  // 确保 page 是数字类型
+  currentPage = parseInt(currentPage) || 1;
+
+  const url = `${KNOWLEDGE_API_BASE}/bases/${currentBaseId}/documents?page=${currentPage}&size=20${currentDocType ? '&docType=' + encodeURIComponent(currentDocType) : ''}`;
   try {
     const res = await fetch(url);
     const result = await res.json();
@@ -456,6 +459,12 @@ function handleSearch(event) {
 }
 
 async function searchDocuments(keyword) {
+  // 检查是否登录
+  if (!isLoggedIn) {
+    showGlobalToast('需要登录后才能检索知识库内容', 'login');
+    return;
+  }
+
   const url = `${KNOWLEDGE_API_BASE}/documents/search?keyword=${encodeURIComponent(keyword)}&page=${currentPage}&size=20`;
   try {
     const res = await fetch(url);

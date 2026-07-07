@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +12,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Spring Security 配置
@@ -21,9 +28,9 @@ import org.springframework.web.client.RestTemplate;
  *   <li>管理接口需要对应角色权限</li>
  *   <li>超级管理员 (super_admin) 拥有所有权限</li>
  * </ul>
- */
-/**
- * SecurityConfig
+ * <p>
+ * CORS 统一配置：通过 app.cors.allowed-origins 指定允许的域名，
+ * 开发环境默认为 localhost:*，生产环境应配置为实际域名。
  *
  * @author Brief-Wisdom
  * @date 2026-06-30
@@ -32,11 +39,17 @@ import org.springframework.web.client.RestTemplate;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    /** CORS 允许的域名列表，逗号分隔 */
+    @Value("${app.cors.allowed-origins:http://localhost:8090,http://localhost:3000}")
+    private String allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 // 禁用 CSRF（前后端分离，使用 Session 认证）
                 .csrf(AbstractHttpConfigurer::disable)
+                // 启用统一 CORS 配置
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // 允许 H2 Console 使用 frame
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 // 路由权限配置
@@ -52,6 +65,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/ai/**").permitAll()
                         // WebSocket 同步端点公开
                         .requestMatchers("/ws/**").permitAll()
+                        // 知识库管理需要 admin 或 super_admin 角色
+                        .requestMatchers("/api/knowledge/**").hasAnyRole("admin", "super_admin")
                         // 简历数据接口公开
                         .requestMatchers("/api/resume/experiences/**").permitAll()
                         // 菜单接口公开
@@ -68,8 +83,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/user/**").hasAnyRole("admin", "super_admin")
                         // 角色管理需要 super_admin 角色
                         .requestMatchers("/api/role/**").hasRole("super_admin")
-                        // 认证相关接口公开
-                        .requestMatchers("/auth/**", "/api/auth/status", "/api/auth/login/wechat", "/api/auth/register", "/api/auth/login").permitAll()
+                        // 认证相关接口公开（含手机号登录、短信验证码、SSO）
+                        .requestMatchers("/auth/**", "/api/auth/status", "/api/auth/login/wechat",
+                                "/api/auth/register", "/api/auth/login", "/api/auth/login/phone",
+                                "/api/auth/sms/**", "/api/auth/sso/**").permitAll()
                         // 获取当前用户信息需要登录
                         .requestMatchers("/api/auth/user").authenticated()
                         // 当前用户菜单需要登录
@@ -109,6 +126,27 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    /**
+     * 统一 CORS 配置源
+     * <p>
+     * 通过 app.cors.allowed-origins 配置允许的域名（逗号分隔），
+     * 替代各 Controller 上分散的 @CrossOrigin(origins = "*") 注解。
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        config.setAllowedOrigins(origins);
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     /**

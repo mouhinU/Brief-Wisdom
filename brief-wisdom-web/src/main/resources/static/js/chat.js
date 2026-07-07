@@ -180,6 +180,19 @@ if (typeof marked !== 'undefined') {
     });
 }
 
+/**
+ * 安全渲染 Markdown 为 HTML（防 XSS）
+ * 使用 DOMPurify 过滤 marked.parse() 输出中的恶意脚本
+ */
+function renderMarkdown(text) {
+    if (!text) return '';
+    const html = (typeof marked !== 'undefined') ? marked.parse(text) : text;
+    if (typeof DOMPurify !== 'undefined') {
+        return DOMPurify.sanitize(html, { ADD_ATTR: ['target'] });
+    }
+    return html;
+}
+
 // 显示会话列表加载中提示
 function showSessionListLoading() {
     const list = getEl('sessionList');
@@ -959,7 +972,7 @@ function prependMessages(records) {
             messageContent.textContent = msg.content;
         } else {
             try {
-                messageContent.innerHTML = marked.parse(msg.content);
+                messageContent.innerHTML = renderMarkdown(msg.content);
             } catch (e) {
                 messageContent.textContent = msg.content;
             }
@@ -1256,7 +1269,7 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
                 fullText += chunk;
                 // 实时更新消息内容（带 Markdown 渲染）
                 try {
-                    messageContent.innerHTML = marked.parse(fullText) + '<span class="typing-cursor">|</span>';
+                    messageContent.innerHTML = renderMarkdown(fullText) + '<span class="typing-cursor">|</span>';
                 } catch (e) {
                     messageContent.textContent = fullText + '|';
                 }
@@ -1299,7 +1312,7 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
             if (fullText && fullText.length > 0) {
                 eventSource.close();
                 // 移除光标
-                messageContent.innerHTML = marked.parse(fullText);
+                messageContent.innerHTML = renderMarkdown(fullText);
                 
                 // 保存 AI 回复到数据库（后台静默完成）
                 saveStreamedMessage(sessionId, fullText, model).then(() => {
@@ -1321,7 +1334,7 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
         eventSource.addEventListener('complete', function() {
             eventSource.close();
             // 移除光标
-            messageContent.innerHTML = marked.parse(fullText);
+            messageContent.innerHTML = renderMarkdown(fullText);
             
             // 保存 AI 回复到数据库（后台静默完成）
             saveStreamedMessage(sessionId, fullText, model).then(() => {
@@ -1376,7 +1389,7 @@ function addMessage(text, sender, scroll = true, modelName = null) {
     // 对 AI 消息进行 Markdown 渲染，用户消息保持纯文本
     if (sender === 'ai') {
         try {
-            messageContent.innerHTML = marked.parse(text);
+            messageContent.innerHTML = renderMarkdown(text);
         } catch (error) {
             console.error('Markdown 解析错误:', error);
             messageContent.textContent = text;

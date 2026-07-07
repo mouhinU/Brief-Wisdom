@@ -4,6 +4,7 @@ import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.system.service.AlipayAuthService;
 import com.mouhin.brief.wisdom.system.service.DingtalkAuthService;
 import com.mouhin.brief.wisdom.system.service.RoleService;
+import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -43,7 +44,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OauthCallbackController {
 
-    private static final String SESSION_USER_KEY = "AUTH_USER";
+    private static final String SESSION_USER_KEY = UserContextHelper.SESSION_USER_KEY;
     private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
     private final DingtalkAuthService dingtalkAuthService;
     private final AlipayAuthService alipayAuthService;

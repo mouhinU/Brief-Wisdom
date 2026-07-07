@@ -113,6 +113,21 @@
         const modal = document.createElement('div');
         modal.className = 'ai-polish-modal';
         
+        // 渲染内容：优先使用 Markdown，降级为纯文本
+        const renderContent = (text) => {
+            if (typeof marked !== 'undefined' && marked.parse) {
+                try {
+                    return marked.parse(text);
+                } catch (e) {
+                    console.warn('[AiPolish] Markdown 渲染失败，降级为纯文本:', e);
+                }
+            }
+            return escapeHtml(text);
+        };
+
+        const originalRendered = renderContent(originalText);
+        const polishedRendered = renderContent(polishedText);
+
         modal.innerHTML = `
             <div class="ai-polish-modal-header">
                 <div class="ai-polish-modal-title">
@@ -128,14 +143,14 @@
                             <span class="label-icon">📝</span>
                             <span>原文内容</span>
                         </div>
-                        <div class="ai-polish-text original">${escapeHtml(originalText)}</div>
+                        <div class="ai-polish-text original">${originalRendered}</div>
                     </div>
                     <div class="ai-polish-section">
                         <div class="ai-polish-section-label">
                             <span class="label-icon">✨</span>
                             <span>AI 润色后</span>
                         </div>
-                        <div class="ai-polish-text polished">${escapeHtml(polishedText)}</div>
+                        <div class="ai-polish-text polished">${polishedRendered}</div>
                     </div>
                 </div>
             </div>

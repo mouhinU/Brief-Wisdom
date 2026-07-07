@@ -20,7 +20,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RestController
 @RequestMapping("/api/ai/sync")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 @ConditionalOnProperty(name = "app.sync.transport", havingValue = "sse", matchIfMissing = true)
 public class SseSyncController {

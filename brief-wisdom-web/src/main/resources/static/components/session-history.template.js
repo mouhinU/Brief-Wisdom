@@ -48,7 +48,7 @@
 
             <!-- 消息详情弹窗 -->
             <div id="sh-detail-modal" class="modal" style="display:none;">
-                <div class="modal-content modal-lg">
+                <div class="modal-content detail-modal-content">
                     <div class="modal-header">
                         <h3 id="sh-detail-modal-title">消息详情</h3>
                         <button class="modal-close" onclick="SessionHistory.closeDetailModal()">×</button>

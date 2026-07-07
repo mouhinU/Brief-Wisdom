@@ -30,7 +30,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/resume/manage")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 @RequiresPermission("resume:manage")
 @Tag(name = "简历管理", description = "简历数据 CRUD 管理接口")

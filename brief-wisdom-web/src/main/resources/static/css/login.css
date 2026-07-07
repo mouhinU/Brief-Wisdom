@@ -214,6 +214,57 @@ body {
     text-align: center;
 }
 
+/* SMS 验证码输入组 */
+.sms-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.sms-code-input {
+    flex: 1;
+}
+
+.sms-send-btn {
+    flex-shrink: 0;
+    padding: 14px 16px;
+    background: #f0f2f5;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.sms-send-btn:hover:not(:disabled) {
+    background: #e8ebf0;
+    border-color: #667eea;
+}
+
+.sms-send-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    color: #999;
+}
+
+/* 表单内分隔线 */
+.auth-form-divider {
+    height: 1px;
+    background: #e8e8e8;
+    margin: 4px 0;
+}
+
+/* 提示文字 */
+.auth-hint {
+    font-size: 13px;
+    color: #999;
+    text-align: center;
+    margin-top: -4px;
+}
+
 /* 分隔线 */
 .auth-divider {
     text-align: center;
@@ -402,5 +453,24 @@ body {
     .auth-alipay-btn {
         background: #333;
         border-color: #444;
+    }
+
+    .sms-send-btn {
+        background: #333;
+        border-color: #444;
+        color: #6aabf0;
+    }
+
+    .sms-send-btn:hover:not(:disabled) {
+        background: #3a3a3a;
+        border-color: #6aabf0;
+    }
+
+    .auth-form-divider {
+        background: #444;
+    }
+
+    .auth-hint {
+        color: #666;
     }
 }

@@ -581,6 +581,15 @@ public class AiAgentService {
         userMsg.setMessageType(MESSAGE_TYPE_TEXT);
         messageRepository.save(userMsg);
 
+        // 如果是第一条消息，立即用用户消息作为标题
+        long currentCount = messageRepository.countBySessionId(sessionId);
+        if (currentCount == 1) {
+            session.setTitle(message.length() > TITLE_MAX_LENGTH ? message.substring(0, TITLE_MAX_LENGTH) + "..." : message);
+            session.setUpdateTime(LocalDateTime.now());
+            sessionRepository.update(session);
+            log.info("设置会话标题为用户首条消息: {}", session.getTitle());
+        }
+
         // 获取当前会话最近消息作为上下文
         List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, RECENT_MESSAGES_COUNT);
         Collections.reverse(recentMessages);  // 反转为正序
@@ -712,11 +721,6 @@ public class AiAgentService {
         long messageCount = messageRepository.countBySessionId(sessionId);
         session.setMessageCount((int) messageCount);
 
-        // 如果是第一条消息，用用户消息作为标题
-        if (messageCount == 2) {
-            session.setTitle(message.length() > TITLE_MAX_LENGTH ? message.substring(0, TITLE_MAX_LENGTH) + "..." : message);
-        }
-
         // 手动设置更新时间为当前时间（即最后一条消息的时间）
         session.setUpdateTime(LocalDateTime.now());
         sessionRepository.update(session);
@@ -768,6 +772,15 @@ public class AiAgentService {
         userMsg.setContent(message);
         userMsg.setMessageType(MESSAGE_TYPE_TEXT);
         messageRepository.save(userMsg);
+
+        // 如果是第一条消息，立即用用户消息作为标题
+        long currentCount = messageRepository.countBySessionId(sessionId);
+        if (currentCount == 1) {
+            session.setTitle(message.length() > TITLE_MAX_LENGTH ? message.substring(0, TITLE_MAX_LENGTH) + "..." : message);
+            session.setUpdateTime(LocalDateTime.now());
+            sessionRepository.update(session);
+            log.info("设置会话标题为用户首条消息（流式）: {}", session.getTitle());
+        }
 
         // 构建上下文（与非流式相同逻辑）
         List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, RECENT_MESSAGES_COUNT);
@@ -1020,10 +1033,6 @@ public class AiAgentService {
             ChatSession session = sessionRepository.findBySessionId(sessionId);
             if (session != null) {
                 session.setMessageCount((int) messageCount);
-                // 如果是第一条消息，用用户消息作为标题
-                if (messageCount == 2) {
-                    session.setTitle(message.length() > TITLE_MAX_LENGTH ? message.substring(0, TITLE_MAX_LENGTH) + "..." : message);
-                }
                 session.setUpdateTime(LocalDateTime.now());
                 sessionRepository.update(session);
                 log.debug("[内容安全] 会话统计已更新");
@@ -1223,13 +1232,12 @@ public class AiAgentService {
         long messageCount = messageRepository.countBySessionId(sessionId);
         session.setMessageCount((int) messageCount);
 
-        // 如果是第一条消息，用用户消息作为标题
+        // 如果是第一条对话（用户消息+AI回复=2条），用用户的首条消息作为标题
         if (messageCount == 2) {
-            // 获取用户的第一条消息作为标题
-            List<ChatMessage> firstMessages = messageRepository.findRecentMessages(sessionId, 1);
-            if (!firstMessages.isEmpty()) {
-                String firstMessage = firstMessages.get(0).getContent();
-                session.setTitle(firstMessage.length() > TITLE_MAX_LENGTH ? firstMessage.substring(0, TITLE_MAX_LENGTH) + "..." : firstMessage);
+            ChatMessage firstUserMsg = messageRepository.findFirstUserMessage(sessionId);
+            if (firstUserMsg != null) {
+                String title = firstUserMsg.getContent();
+                session.setTitle(title.length() > TITLE_MAX_LENGTH ? title.substring(0, TITLE_MAX_LENGTH) + "..." : title);
             }
         }
 

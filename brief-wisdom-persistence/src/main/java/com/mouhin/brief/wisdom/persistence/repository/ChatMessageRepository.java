@@ -115,6 +115,23 @@ public class ChatMessageRepository {
     }
 
     /**
+     * 查询指定会话的第一条用户消息（用于自动生成会话标题）
+     *
+     * @param sessionId 会话 ID
+     * @return 第一条用户消息，不存在返回 null
+     */
+    public ChatMessage findFirstUserMessage(String sessionId) {
+        List<ChatMessage> messages = chatMessageMapper.selectList(
+                new LambdaQueryWrapper<ChatMessage>()
+                        .eq(ChatMessage::getSessionId, sessionId)
+                        .eq(ChatMessage::getRole, "user")
+                        .orderByAsc(ChatMessage::getTimestamp)
+                        .last("LIMIT 1")
+        );
+        return messages.isEmpty() ? null : messages.get(0);
+    }
+
+    /**
      * 查询指定会话的最后一条消息时间
      *
      * @param sessionId 会话 ID
@@ -142,6 +159,19 @@ public class ChatMessageRepository {
      */
     public List<Map<String, Object>> findLastMessageTimesByUserId(String userId) {
         return chatMessageMapper.selectLastMessageTimesByUserId(userId);
+    }
+
+    /**
+     * 批量获取多个会话的最后消息时间（单次聚合查询）
+     *
+     * @param sessionIds 会话 ID 列表
+     * @return 每行包含 session_id 和 last_time 的映射列表
+     */
+    public List<Map<String, Object>> findLastMessageTimesBySessionIds(List<String> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return List.of();
+        }
+        return chatMessageMapper.selectLastMessageTimesBySessionIds(sessionIds);
     }
 
     /**

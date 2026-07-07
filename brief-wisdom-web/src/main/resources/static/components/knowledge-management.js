@@ -426,12 +426,16 @@
     async function loadDocuments() {
         if (!state.currentBaseId) return;
 
-        const url = `${KNOWLEDGE_API_BASE}/bases/${state.currentBaseId}/documents?page=${state.currentPage}&size=20${state.currentDocType ? '&docType=' + state.currentDocType : ''}`;
+        // 确保 page 是数字类型
+        const pageNum = parseInt(state.currentPage) || 1;
+        state.currentPage = pageNum;
+
+        const url = `${KNOWLEDGE_API_BASE}/bases/${state.currentBaseId}/documents?page=${pageNum}&size=20${state.currentDocType ? '&docType=' + encodeURIComponent(state.currentDocType) : ''}`;
         try {
             const res = await fetch(url);
             const result = await res.json();
             
-            // 兼容两种返回格式
+            // 兼容 Result 包装和非包装两种返回格式
             let data;
             if (result.success !== undefined && result.data) {
                 data = result.data;
@@ -542,6 +546,12 @@
      * 搜索文档
      */
     async function searchDocuments(keyword) {
+        // 检查是否登录
+        if (!isLoggedIn) {
+            showGlobalToast('需要登录后才能检索知识库内容', 'login');
+            return;
+        }
+
         const url = `${KNOWLEDGE_API_BASE}/documents/search?keyword=${encodeURIComponent(keyword)}&page=${state.currentPage}&size=20`;
         try {
             const res = await fetch(url);

@@ -16,6 +16,7 @@ import java.util.List;
 @Data
 public class WorkExperienceVO {
 
+    private Long id;
     private String title;
     private String job;
     private String description;

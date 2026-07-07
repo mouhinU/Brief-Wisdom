@@ -41,7 +41,8 @@
      * 加载用户列表
      */
     async function loadUsers(page) {
-        if (page) currentPage = page;
+        // 确保 page 是数字类型
+        currentPage = parseInt(page) || 1;
         
         const levelFilter = document.getElementById('user-level-filter');
         const searchInput = document.getElementById('user-search-input');
@@ -50,7 +51,7 @@
         const keyword = searchInput ? searchInput.value.trim() : '';
 
         let url = `${USER_API}/list?page=${currentPage}&size=20`;
-        if (level) url += `&level=${level}`;
+        if (level) url += `&level=${encodeURIComponent(level)}`;
         if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
 
         try {

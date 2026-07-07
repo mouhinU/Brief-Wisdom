@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 public class KnowledgeRagService {
 
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
+    private final ProjectCodeIndexService projectCodeIndexService;
 
     /** 注入上下文的最大字符数（避免超出 token 限制） */
     private static final int MAX_CONTEXT_LENGTH = 3000;
@@ -104,7 +105,8 @@ public class KnowledgeRagService {
      */
     public String buildContextFromDocuments(List<KnowledgeDocument> documents) {
         if (documents == null || documents.isEmpty()) {
-            return "";
+            // 即使没有知识库文档，也尝试提供项目代码上下文
+            return buildProjectCodeContext("");
         }
 
         StringBuilder sb = new StringBuilder();
@@ -134,7 +136,64 @@ public class KnowledgeRagService {
         }
 
         sb.append("--- 参考信息结束 ---\n");
+
+        // 附加项目代码上下文
+        String projectContext = buildProjectCodeContext(String.join(", ", 
+                documents.stream().map(KnowledgeDocument::getTitle).toList()));
+        sb.append(projectContext);
+
         return sb.toString();
+    }
+
+    /**
+     * 构建项目代码上下文
+     *
+     * @param queryKeywords 查询关键词
+     * @return 项目代码上下文信息
+     */
+    private String buildProjectCodeContext(String queryKeywords) {
+        if (queryKeywords == null || queryKeywords.isBlank()) {
+            return "";
+        }
+
+        try {
+            var codeFiles = projectCodeIndexService.searchCodeFiles(queryKeywords);
+            if (codeFiles.isEmpty()) {
+                return "";
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("\n\n--- 项目代码参考 ---\n");
+            sb.append("以下是项目中相关的代码文件，供你理解项目结构时参考：\n\n");
+
+            int count = 0;
+            for (var file : codeFiles) {
+                if (count >= 5) break; // 最多展示5个相关文件
+                
+                sb.append("**").append(file.getFileName()).append("**\n");
+                sb.append("- 路径: `").append(file.getFilePath()).append("`\n");
+                if (file.getFileType() != null) {
+                    sb.append("- 类型: ").append(file.getFileType()).append("\n");
+                }
+                if (file.getClassName() != null) {
+                    sb.append("- 类名: ").append(file.getClassName()).append("\n");
+                }
+                if (file.getPackageName() != null) {
+                    sb.append("- 包名: ").append(file.getPackageName()).append("\n");
+                }
+                if (file.getSummary() != null && !file.getSummary().isBlank()) {
+                    sb.append("- 说明: ").append(file.getSummary().replaceAll("\\s+", " ")).append("\n");
+                }
+                sb.append("\n");
+                count++;
+            }
+
+            sb.append("--- 项目代码参考结束 ---\n");
+            return sb.toString();
+        } catch (Exception e) {
+            log.warn("构建项目代码上下文失败: {}", e.getMessage());
+            return "";
+        }
     }
 
     /**

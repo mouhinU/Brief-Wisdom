@@ -120,30 +120,35 @@
                 const experiencesData = await response.json();
                 experiences = Array.isArray(experiencesData) ? experiencesData : (experiencesData.data || []);
                 
-                expOptions = experiences.map(e => 
-                    `<option value="${e.id}" ${data?.experienceId === e.id ? 'selected' : ''}>${escapeHtml((e.title || '未命名').substring(0, 40))}</option>`
-                ).join('');
+                console.log('[TechStackManagement] 加载工作经历:', experiences);
+                
+                if (experiences.length === 0) {
+                    expOptions = '<option value="">请先创建工作经历</option>';
+                } else {
+                    expOptions = experiences.map(e => 
+                        `<option value="${e.id}" ${data?.experienceId === e.id ? 'selected' : ''}>${escapeHtml((e.title || '未命名').substring(0, 40))}</option>`
+                    ).join('');
+                }
+            } else {
+                console.error('[TechStackManagement] 加载工作经历失败, status:', response.status);
+                expOptions = '<option value="">加载失败</option>';
             }
         } catch (error) {
-            console.error('[TechStackManagement] 加载工作经历失败:', error);
+            console.error('[TechStackManagement] 加载工作经历异常:', error);
+            expOptions = '<option value="">加载异常</option>';
         }
         
         const formHtml = `
             <div class="form-group">
                 <label>关联工作经历 *</label>
-                <select name="experienceId" id="stack-f-experienceId" required>${expOptions}</select>
+                <select name="experienceId" id="stack-f-experienceId" required>
+                    <option value="">-- 请选择工作经历 --</option>
+                    ${expOptions}
+                </select>
             </div>
             <div class="form-group">
                 <label>技术名称 *</label>
                 <input type="text" name="techName" id="stack-f-techName" value="${escapeAttr(data?.techName || '')}" required>
-            </div>
-            <div class="form-group">
-                <label>熟练度</label>
-                <select name="proficiency" id="stack-f-proficiency">
-                    <option value="了解" ${data?.proficiency === '了解' ? 'selected' : ''}>了解</option>
-                    <option value="熟悉" ${data?.proficiency === '熟悉' ? 'selected' : ''}>熟悉</option>
-                    <option value="精通" ${data?.proficiency === '精通' ? 'selected' : ''}>精通</option>
-                </select>
             </div>
             <div class="form-group">
                 <label>排序序号</label>
@@ -172,25 +177,37 @@
                     console.log(`  ${key}: ${value}`);
                 }
                 
+                // 验证必填字段
+                const experienceIdValue = fd.get('experienceId');
+                if (!experienceIdValue || experienceIdValue === '') {
+                    alert('请选择关联的工作经历');
+                    return;
+                }
+                
                 const payload = {
-                    experienceId: parseInt(fd.get('experienceId')),
+                    experienceId: parseInt(experienceIdValue),
                     techName: fd.get('techName'),
-                    proficiency: fd.get('proficiency'),
                     sortOrder: parseInt(fd.get('sortOrder')) || 0
                 };
                 
                 console.log('[TechStackManagement] 最终提交数据:', payload);
                 
                 try {
+                    console.log('[TechStackManagement] 开始保存, isEdit:', isEdit);
+                    let result;
                     if (isEdit) {
-                        await apiRequest(`/api/resume/manage/stacks/${data.id}`, 'PUT', payload);
+                        console.log('[TechStackManagement] 调用更新接口:', `/api/resume/manage/stacks/${data.id}`);
+                        result = await apiRequest(`/api/resume/manage/stacks/${data.id}`, 'PUT', payload);
                     } else {
-                        await apiRequest('/api/resume/manage/stacks', 'POST', payload);
+                        console.log('[TechStackManagement] 调用创建接口:', '/api/resume/manage/stacks');
+                        result = await apiRequest('/api/resume/manage/stacks', 'POST', payload);
                     }
+                    console.log('[TechStackManagement] 保存成功, 返回结果:', result);
                     closeModal();
                     loadData();
                 } catch (error) {
                     console.error('[TechStackManagement] 保存失败:', error);
+                    console.error('[TechStackManagement] 错误堆栈:', error.stack);
                     alert('保存失败: ' + error.message);
                 }
             };
@@ -258,11 +275,29 @@
         }
         
         const response = await fetch(url, options);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        
+        // 尝试解析响应体为JSON
+        let result;
+        try {
+            result = await response.json();
+        } catch (e) {
+            result = null;
         }
         
-        return response.json();
+        if (!response.ok) {
+            // 优先使用后端返回的错误消息
+            const errorMsg = result?.msg || result?.message || `HTTP error! status: ${response.status}`;
+            console.error('[TechStackManagement] API请求失败:', {
+                url,
+                method,
+                status: response.status,
+                error: errorMsg,
+                fullResponse: result
+            });
+            throw new Error(errorMsg);
+        }
+        
+        return result;
     }
 
     /**

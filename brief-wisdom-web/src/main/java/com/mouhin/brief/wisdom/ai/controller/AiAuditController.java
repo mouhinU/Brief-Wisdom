@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
+import com.mouhin.brief.wisdom.ai.req.AiAuditLogQueryRequest;
 import com.mouhin.brief.wisdom.ai.service.AiAuditService;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.Result;
@@ -31,25 +32,19 @@ public class AiAuditController {
     /**
      * 分页查询审计日志
      *
-     * @param page      页码（从1开始）
-     * @param size      每页大小
-     * @param userId    用户ID（可选，筛选指定用户）
-     * @param auditType 审计类型（可选：INPUT_BLOCKED/OUTPUT_FILTERED/RISK_DETECTED）
-     * @param riskLevel 风险等级（可选：LOW/MEDIUM/HIGH/CRITICAL）
+     * @param request 查询请求（包含页码、每页大小、用户ID、审计类型、风险等级筛选）
      * @return 分页结果
      */
     @Operation(summary = "分页查询审计日志")
     @GetMapping("/logs")
-    public Result<PageResult<AiAuditLogDTO>> listAuditLogs(
-            @Parameter(description = "页码，从1开始") @RequestParam(value = "page", defaultValue = "1") int page,
-            @Parameter(description = "每页大小") @RequestParam(value = "size", required = false) Integer size,
-            @Parameter(description = "用户ID筛选") @RequestParam(value = "userId", required = false) String userId,
-            @Parameter(description = "审计类型筛选") @RequestParam(value = "auditType", required = false) String auditType,
-            @Parameter(description = "风险等级筛选") @RequestParam(value = "riskLevel", required = false) String riskLevel) {
-        
-        int resolvedSize = (size != null && size > 0) ? size : 20;
-        PageResult<AiAuditLogDTO> result = auditService.listAuditLogs(page, resolvedSize, userId, auditType, riskLevel);
-        
+    public Result<PageResult<AiAuditLogDTO>> listAuditLogs(AiAuditLogQueryRequest request) {
+
+        int pageNum = Math.max(request.getPage(), 1);
+        int resolvedSize = (request.getSize() >= 1 && request.getSize() <= 100) ? request.getSize() : 20;
+
+        PageResult<AiAuditLogDTO> result = auditService.listAuditLogs(
+                pageNum, resolvedSize, request.getUserId(), request.getAuditType(), request.getRiskLevel());
+
         return Result.success(result);
     }
 
@@ -57,7 +52,7 @@ public class AiAuditController {
      * 获取指定会话的审计日志
      *
      * @param sessionId 会话ID
-     * @param page      页码
+     * @param page      页码（从1开始）
      * @param size      每页大小
      * @return 分页结果
      */
@@ -66,11 +61,13 @@ public class AiAuditController {
     public Result<PageResult<AiAuditLogDTO>> getAuditLogsBySession(
             @Parameter(description = "会话ID", required = true) @PathVariable String sessionId,
             @Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "1") int page,
-            @Parameter(description = "每页大小") @RequestParam(value = "size", required = false) Integer size) {
-        
-        int resolvedSize = (size != null && size > 0) ? size : 20;
-        PageResult<AiAuditLogDTO> result = auditService.getAuditLogsBySession(sessionId, page, resolvedSize);
-        
+            @Parameter(description = "每页大小") @RequestParam(value = "size", defaultValue = "20") int size) {
+
+        int pageNum = Math.max(page, 1);
+        int resolvedSize = (size >= 1 && size <= 100) ? size : 20;
+
+        PageResult<AiAuditLogDTO> result = auditService.getAuditLogsBySession(sessionId, pageNum, resolvedSize);
+
         return Result.success(result);
     }
 

@@ -338,6 +338,12 @@ function loadChatScriptsIfNeeded() {
     markedScript.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
     document.head.appendChild(markedScript);
   }
+  // 加载 DOMPurify（防止 Markdown 渲染 XSS 攻击）
+  if (typeof DOMPurify === 'undefined') {
+    const purifyScript = document.createElement('script');
+    purifyScript.src = 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js';
+    document.head.appendChild(purifyScript);
+  }
   // 加载 chat.js
   if (typeof toggleChat === 'undefined') {
     const chatScript = document.createElement('script');

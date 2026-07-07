@@ -15,8 +15,6 @@ import java.util.List;
 
 /**
  * AI模型管理 REST 接口
- */
-/**
  * AiModelController
  *
  * @author Brief-Wisdom
@@ -25,7 +23,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/ai/models")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 @RequiresPermission("ai:manage")
 @Tag(name = "AI管理", description = "AI 模型配置管理接口")

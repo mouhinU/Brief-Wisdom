@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 聊天会话数据访问层
@@ -79,6 +80,28 @@ public class ChatSessionRepository {
                 new LambdaQueryWrapper<ChatSession>()
                         .eq(ChatSession::getUserId, userId)
         );
+    }
+
+    /**
+     * 批量统计多个用户的会话数量（单次查询 + 内存分组计数）
+     *
+     * @param userIds 用户 ID 列表
+     * @return 每个用户 ID 对应的会话数量映射
+     */
+    public Map<String, Long> countSessionsGroupedByUserIds(List<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        List<ChatSession> sessions = chatSessionMapper.selectList(
+                new LambdaQueryWrapper<ChatSession>()
+                        .select(ChatSession::getUserId)
+                        .in(ChatSession::getUserId, userIds)
+        );
+        Map<String, Long> result = new java.util.HashMap<>(userIds.size());
+        for (ChatSession s : sessions) {
+            result.merge(s.getUserId(), 1L, Long::sum);
+        }
+        return result;
     }
 
     /**

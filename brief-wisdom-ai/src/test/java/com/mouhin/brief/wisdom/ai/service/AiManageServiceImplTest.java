@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -48,7 +49,8 @@ class AiManageServiceImplTest {
     void testListUsers() {
         ChatUser user = buildUser(1L, "user-001", "张三");
         when(chatUserRepository.findAllOrderByCreateTimeDesc()).thenReturn(List.of(user));
-        when(chatSessionRepository.countByUserId("user-001")).thenReturn(5L);
+        when(chatSessionRepository.countSessionsGroupedByUserIds(List.of("user-001")))
+                .thenReturn(Map.of("user-001", 5L));
 
         List<UserDTO> result = aiManageService.listUsers();
         assertEquals(1, result.size());
@@ -61,7 +63,8 @@ class AiManageServiceImplTest {
     void testListUsersByLevel() {
         ChatUser user = buildUser(1L, "user-001", "张三");
         when(chatUserRepository.findByUserLevelOrderByCreateTimeDesc("vip")).thenReturn(List.of(user));
-        when(chatSessionRepository.countByUserId("user-001")).thenReturn(3L);
+        when(chatSessionRepository.countSessionsGroupedByUserIds(List.of("user-001")))
+                .thenReturn(Map.of("user-001", 3L));
 
         List<UserDTO> result = aiManageService.listUsersByLevel("vip");
         assertEquals(1, result.size());
@@ -83,7 +86,8 @@ class AiManageServiceImplTest {
     void testListSessionsByUserId() {
         ChatSession session = buildSession("session-001", "user-001", "测试会话");
         when(chatSessionRepository.findByUserIdOrderByUpdateTimeDesc("user-001")).thenReturn(List.of(session));
-        when(chatMessageRepository.findLastMessageTime("session-001")).thenReturn(null);
+        when(chatMessageRepository.findLastMessageTimesBySessionIds(List.of("session-001")))
+                .thenReturn(List.of());
 
         List<SessionDTO> result = aiManageService.listSessionsByUserId("user-001");
         assertEquals(1, result.size());

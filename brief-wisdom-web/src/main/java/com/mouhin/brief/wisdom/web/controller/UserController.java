@@ -4,6 +4,7 @@ import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.web.req.UpdateLevelRequest;
+import com.mouhin.brief.wisdom.web.req.UserListQueryRequest;
 import com.mouhin.brief.wisdom.system.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,12 +37,9 @@ public class UserController {
      */
     @Operation(summary = "分页获取用户列表")
     @GetMapping("/list")
-    public PageResult<UserDTO> listUsers(
-            @Parameter(description = "当前页码") @RequestParam(value = "page", defaultValue = "1") int page,
-            @Parameter(description = "每页大小") @RequestParam(value = "size", defaultValue = "20") int size,
-            @Parameter(description = "用户级别筛选") @RequestParam(value = "level", required = false) String level,
-            @Parameter(description = "关键词搜索") @RequestParam(value = "keyword", required = false) String keyword) {
-        return userService.listUsersPaged(page, size, level, keyword);
+    public PageResult<UserDTO> listUsers(UserListQueryRequest request) {
+        return userService.listUsersPaged(
+                request.getPage(), request.getSize(), request.getLevel(), request.getKeyword());
     }
 
     /**

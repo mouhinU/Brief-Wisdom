@@ -3,6 +3,7 @@ package com.mouhin.brief.wisdom.persistence.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
@@ -32,6 +33,17 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessage> {
     // 批量获取指定用户所有会话的最后消息时间（用于同步状态检测）
     @Select("SELECT session_id, MAX(timestamp) as last_time FROM chat_message WHERE user_id = #{userId} AND is_deleted = 0 GROUP BY session_id")
     List<Map<String, Object>> selectLastMessageTimesByUserId(String userId);
+
+    // 批量获取多个会话的最后消息时间
+    @Select("<script>" +
+            "SELECT session_id, MAX(timestamp) as last_time FROM chat_message " +
+            "WHERE is_deleted = 0 AND session_id IN " +
+            "<foreach collection='sessionIds' item='id' open='(' separator=',' close=')'>" +
+            "#{id}" +
+            "</foreach> " +
+            "GROUP BY session_id" +
+            "</script>")
+    List<Map<String, Object>> selectLastMessageTimesBySessionIds(@Param("sessionIds") List<String> sessionIds);
 
     // ========== 费用统计聚合查询 ==========
 

@@ -17,8 +17,6 @@ import java.util.List;
 
 /**
  * AI助手管理 REST 接口 - 按用户级别查询会话历史
- */
-/**
  * AiManageController
  *
  * @author Brief-Wisdom
@@ -27,7 +25,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/ai/manage")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 @RequiresPermission("ai:manage")
 @Tag(name = "AI管理", description = "AI 会话历史管理、费用统计等管理接口")
