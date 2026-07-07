@@ -68,7 +68,7 @@ app:
     providers:
       dashscope:
         type: openai               # DashScope 走 OpenAI 兼容协议
-        api-key: ${DASHSCOPE_API_KEY:sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg}
+        api-key: ${DASHSCOPE_API_KEY:}
         base-url: https://dashscope.aliyuncs.com/compatible-mode
         model: qwen-max
 #      openai:
@@ -83,7 +83,7 @@ app:
 #        model: claude-sonnet-4-20250514
       deepseek:
         type: openai
-        api-key: ${DEEPSEEK_API_KEY:sk-026f1b97c4a5430f947b8259d2f5ebd8}
+        api-key: ${DEEPSEEK_API_KEY:}
         base-url: https://api.deepseek.com
         model: deepseek-chat
   sync:
