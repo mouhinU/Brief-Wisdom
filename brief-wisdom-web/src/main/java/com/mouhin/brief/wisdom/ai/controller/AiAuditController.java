@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
 import com.mouhin.brief.wisdom.ai.req.AiAuditLogQueryRequest;
+import com.mouhin.brief.wisdom.ai.req.SessionAuditLogQueryRequest;
 import com.mouhin.brief.wisdom.ai.service.AiAuditService;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.Result;
@@ -52,19 +53,17 @@ public class AiAuditController {
      * 获取指定会话的审计日志
      *
      * @param sessionId 会话ID
-     * @param page      页码（从1开始）
-     * @param size      每页大小
+     * @param request   查询请求（包含页码、每页大小）
      * @return 分页结果
      */
     @Operation(summary = "获取会话审计日志")
-    @GetMapping("/session/{sessionId}")
+    @PostMapping("/session/{sessionId}")
     public Result<PageResult<AiAuditLogDTO>> getAuditLogsBySession(
             @Parameter(description = "会话ID", required = true) @PathVariable String sessionId,
-            @Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "1") int page,
-            @Parameter(description = "每页大小") @RequestParam(value = "size", defaultValue = "20") int size) {
+            @RequestBody SessionAuditLogQueryRequest request) {
 
-        int pageNum = Math.max(page, 1);
-        int resolvedSize = (size >= 1 && size <= 100) ? size : 20;
+        int pageNum = Math.max(request.getPage(), 1);
+        int resolvedSize = (request.getSize() >= 1 && request.getSize() <= 100) ? request.getSize() : 20;
 
         PageResult<AiAuditLogDTO> result = auditService.getAuditLogsBySession(sessionId, pageNum, resolvedSize);
 

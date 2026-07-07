@@ -51,7 +51,11 @@ async function loadBases() {
   container.innerHTML = '<div class="knowledge-base-loading">加载中...</div>';
 
   try {
-    const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/paged?page=1&size=${BASE_PAGE_SIZE}`);
+    const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/paged`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page: 1, size: BASE_PAGE_SIZE })
+    });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const result = await res.json();
     if (!result.success) {
@@ -88,7 +92,11 @@ async function loadMoreBases() {
   container.appendChild(loadingEl);
 
   try {
-    const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/paged?page=${basePage}&size=${BASE_PAGE_SIZE}`);
+    const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/paged`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page: basePage, size: BASE_PAGE_SIZE })
+    });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const result = await res.json();
     if (!result.success) {
@@ -365,9 +373,20 @@ async function loadDocuments() {
   // 确保 page 是数字类型
   currentPage = parseInt(currentPage) || 1;
 
-  const url = `${KNOWLEDGE_API_BASE}/bases/${currentBaseId}/documents?page=${currentPage}&size=20${currentDocType ? '&docType=' + encodeURIComponent(currentDocType) : ''}`;
+  const payload = {
+    page: currentPage,
+    size: 20
+  };
+  if (currentDocType) {
+    payload.docType = currentDocType;
+  }
+
   try {
-    const res = await fetch(url);
+    const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/${currentBaseId}/documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
     const result = await res.json();
     if (!result.success) {
       showToast('加载文档失败: ' + result.msg, 'error');
@@ -465,9 +484,18 @@ async function searchDocuments(keyword) {
     return;
   }
 
-  const url = `${KNOWLEDGE_API_BASE}/documents/search?keyword=${encodeURIComponent(keyword)}&page=${currentPage}&size=20`;
+  const payload = {
+    keyword: keyword,
+    page: currentPage,
+    size: 20
+  };
+
   try {
-    const res = await fetch(url);
+    const res = await fetch(`${KNOWLEDGE_API_BASE}/documents/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
     const result = await res.json();
     if (!result.success) {
       showToast('搜索失败: ' + result.msg, 'error');

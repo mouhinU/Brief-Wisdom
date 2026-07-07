@@ -315,8 +315,11 @@ async function loadSessions(autoSelect = false) {
 
     try {
         const pageSize = paginationConfig.sessionList.defaultSize;
-        const url = `/api/ai/sessions?page=1&size=${pageSize}`;
-        const response = await fetch(url);
+        const response = await fetch('/api/ai/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page: 1, size: pageSize })
+        });
         const data = await response.json();
         
         if (data.success) {
@@ -348,8 +351,11 @@ async function loadSessions(autoSelect = false) {
 async function updateSessionListSilently() {
     try {
         const pageSize = paginationConfig.sessionList.defaultSize;
-        const url = `/api/ai/sessions?page=1&size=${pageSize}`;
-        const response = await fetch(url);
+        const response = await fetch('/api/ai/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page: 1, size: pageSize })
+        });
         const data = await response.json();
         
         if (data.success) {
@@ -426,8 +432,11 @@ async function addNewSessionToList(newSessionId) {
     try {
         // 获取新会话的信息
         const pageSize = paginationConfig.sessionList.defaultSize;
-        const url = `/api/ai/sessions?page=1&size=${pageSize}`;
-        const response = await fetch(url);
+        const response = await fetch('/api/ai/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page: 1, size: pageSize })
+        });
         const data = await response.json();
         
         if (!data.success || !data.data || !data.data.records) {
@@ -541,8 +550,11 @@ async function loadMoreSessions() {
     try {
         const nextPage = sessionCurrentPage + 1;
         const pageSize = paginationConfig.sessionList.defaultSize;
-        const url = `/api/ai/sessions?page=${nextPage}&size=${pageSize}`;
-        const response = await fetch(url);
+        const response = await fetch('/api/ai/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page: nextPage, size: pageSize })
+        });
         const data = await response.json();
 
         if (data.success) {

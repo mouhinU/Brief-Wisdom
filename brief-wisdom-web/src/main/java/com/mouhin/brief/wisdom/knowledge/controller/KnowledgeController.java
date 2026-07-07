@@ -5,6 +5,8 @@ import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
 import com.mouhin.brief.wisdom.ai.service.MarkdownImportService;
 import com.mouhin.brief.wisdom.common.knowledge.*;
 import com.mouhin.brief.wisdom.knowledge.req.DocumentListQueryRequest;
+import com.mouhin.brief.wisdom.knowledge.req.DocumentSearchQueryRequest;
+import com.mouhin.brief.wisdom.knowledge.req.KnowledgeBasePagedQueryRequest;
 import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
 import com.mouhin.brief.wisdom.exception.BizException;
 import com.mouhin.brief.wisdom.system.service.UserContextHelper;
@@ -60,11 +62,9 @@ public class KnowledgeController {
     /**
      * 分页获取顶级知识库
      */
-    @GetMapping("/bases/paged")
-    public Page<KnowledgeBaseDTO> listBasesPaged(
-            @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size) {
-        return knowledgeService.listTopBasesPaged(page, size);
+    @PostMapping("/bases/paged")
+    public Page<KnowledgeBaseDTO> listBasesPaged(@RequestBody KnowledgeBasePagedQueryRequest request) {
+        return knowledgeService.listTopBasesPaged(request.getPage(), request.getSize());
     }
 
     /**
@@ -107,10 +107,10 @@ public class KnowledgeController {
     /**
      * 获取知识库下的文档列表（分页）
      */
-    @GetMapping("/bases/{baseId}/documents")
+    @PostMapping("/bases/{baseId}/documents")
     public Page<KnowledgeDocumentDTO> listDocuments(
             @PathVariable Long baseId,
-            DocumentListQueryRequest request) {
+            @RequestBody DocumentListQueryRequest request) {
         return knowledgeService.listDocuments(baseId, request.getDocType(), request.getPage(), request.getSize());
     }
 
@@ -153,15 +153,13 @@ public class KnowledgeController {
      * 搜索文档
      */
     @Operation(summary = "搜索文档", description = "需要登录才能访问")
-    @GetMapping("/documents/search")
+    @PostMapping("/documents/search")
     public Page<KnowledgeDocumentDTO> searchDocuments(
-            @RequestParam("keyword") String keyword,
-            @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size,
-            HttpServletRequest request) {
+            @RequestBody DocumentSearchQueryRequest request,
+            HttpServletRequest httpRequest) {
         // 检查用户是否登录
-        checkLoginRequired(request);
-        return knowledgeService.searchDocuments(keyword, page, size);
+        checkLoginRequired(httpRequest);
+        return knowledgeService.searchDocuments(request.getKeyword(), request.getPage(), request.getSize());
     }
 
     // ==================== Markdown 导入 ====================

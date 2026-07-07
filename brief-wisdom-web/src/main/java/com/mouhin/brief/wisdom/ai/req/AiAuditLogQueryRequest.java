@@ -1,6 +1,8 @@
 package com.mouhin.brief.wisdom.ai.req;
 
+import com.mouhin.brief.wisdom.common.PageRequest;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * AI 审计日志分页查询请求
@@ -9,13 +11,8 @@ import lombok.Data;
  * @date 2026-07-07
  */
 @Data
-public class AiAuditLogQueryRequest {
-
-    /** 页码，从1开始，默认1 */
-    private int page = 1;
-
-    /** 每页大小，默认20，最大100 */
-    private int size = 20;
+@EqualsAndHashCode(callSuper = true)
+public class AiAuditLogQueryRequest extends PageRequest {
 
     /** 用户ID筛选（可选） */
     private String userId;

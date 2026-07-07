@@ -99,7 +99,7 @@ public class SmsServiceImpl implements SmsService {
 
         // 检查发送间隔
         String rateKey = RATE_KEY_PREFIX + phone;
-        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(rateKey))) {
+        if (stringRedisTemplate.hasKey(rateKey)) {
             return false;
         }
 

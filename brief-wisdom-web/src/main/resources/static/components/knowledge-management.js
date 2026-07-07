@@ -74,10 +74,13 @@
         container.innerHTML = '<div class="knowledge-base-loading">加载中...</div>';
 
         try {
-            const url = `${KNOWLEDGE_API_BASE}/bases/paged?page=${state.basePage}&size=20`;
-            console.log('[KnowledgeManagement] 请求 URL:', url);
+            console.log('[KnowledgeManagement] 请求知识库分页:', { page: state.basePage, size: 20 });
             
-            const res = await fetch(url);
+            const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/paged`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page: state.basePage, size: 20 })
+            });
             console.log('[KnowledgeManagement] HTTP 状态码:', res.status);
             
             const result = await res.json();
@@ -134,7 +137,11 @@
         container.appendChild(loadingEl);
 
         try {
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/paged?page=${state.basePage}&size=20`);
+            const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/paged`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page: state.basePage, size: 20 })
+            });
             const result = await res.json();
 
             // 兼容两种返回格式
@@ -430,9 +437,20 @@
         const pageNum = parseInt(state.currentPage) || 1;
         state.currentPage = pageNum;
 
-        const url = `${KNOWLEDGE_API_BASE}/bases/${state.currentBaseId}/documents?page=${pageNum}&size=20${state.currentDocType ? '&docType=' + encodeURIComponent(state.currentDocType) : ''}`;
+        const payload = {
+            page: pageNum,
+            size: 20
+        };
+        if (state.currentDocType) {
+            payload.docType = state.currentDocType;
+        }
+
         try {
-            const res = await fetch(url);
+            const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/${state.currentBaseId}/documents`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             const result = await res.json();
             
             // 兼容 Result 包装和非包装两种返回格式
@@ -552,9 +570,18 @@
             return;
         }
 
-        const url = `${KNOWLEDGE_API_BASE}/documents/search?keyword=${encodeURIComponent(keyword)}&page=${state.currentPage}&size=20`;
+        const payload = {
+            keyword: keyword,
+            page: state.currentPage,
+            size: 20
+        };
+
         try {
-            const res = await fetch(url);
+            const res = await fetch(`${KNOWLEDGE_API_BASE}/documents/search`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             const result = await res.json();
             
             // 兼容两种返回格式

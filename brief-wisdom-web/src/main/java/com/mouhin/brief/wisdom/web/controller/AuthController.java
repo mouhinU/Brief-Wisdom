@@ -170,7 +170,7 @@ public class AuthController {
         }
 
         // 开发环境在日志中打印验证码（生产环境应删除此日志）
-        log.debug("[验证码] phone={} 的验证码: {}", maskPhone(phone), code);
+        log.debug("[短信验证码] phone={}, code={}（生产环境此验证码通过短信发送）", phone, code);
         return Map.of("success", true, "message", "验证码已发送");
     }
 

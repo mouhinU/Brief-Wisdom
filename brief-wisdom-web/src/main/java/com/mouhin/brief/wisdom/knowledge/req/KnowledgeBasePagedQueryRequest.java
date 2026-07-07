@@ -5,18 +5,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 知识库文档列表查询请求
+ * 知识库分页查询请求
  *
  * @author Brief-Wisdom
  * @date 2026-07-07
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class DocumentListQueryRequest extends PageRequest {
-
-    /** 知识库ID */
-    private Long baseId;
-
-    /** 文档类型筛选（可选） */
-    private String docType;
+public class KnowledgeBasePagedQueryRequest extends PageRequest {
+    // 可扩展其他筛选条件
 }

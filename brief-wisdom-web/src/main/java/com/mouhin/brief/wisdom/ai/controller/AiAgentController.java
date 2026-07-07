@@ -2,9 +2,11 @@ package com.mouhin.brief.wisdom.ai.controller;
 
 import com.mouhin.brief.wisdom.ai.req.ChatRequest;
 import com.mouhin.brief.wisdom.ai.req.ChatWithPromptRequest;
+import com.mouhin.brief.wisdom.ai.req.MessageHistoryQueryRequest;
 import com.mouhin.brief.wisdom.ai.req.QuestionRequest;
 import com.mouhin.brief.wisdom.ai.req.SaveStreamedMessageRequest;
 import com.mouhin.brief.wisdom.ai.req.SessionCreateRequest;
+import com.mouhin.brief.wisdom.ai.req.SessionListQueryRequest;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService;
 import com.mouhin.brief.wisdom.ai.service.AiModelService;
 import com.mouhin.brief.wisdom.common.PageResult;
@@ -206,18 +208,15 @@ public class AiAgentController {
      * <p>
      * 默认每页条数和最大值由 application.yml 中 app.pagination.session-list 配置
      *
-     * @param page 当前页码，从 1 开始，默认 1
-     * @param size 每页大小，不传则使用配置的默认值，超过配置的最大值会被截断
+     * @param request 查询请求（包含页码、每页大小）
      */
     @Operation(summary = "获取会话列表", description = "获取当前登录用户的会话列表，支持分页")
-    @GetMapping("/sessions")
-    public PageResult<SessionMetaDTO> listSessions(
-            @Parameter(description = "当前页码，从 1 开始") @RequestParam(value = "page", defaultValue = "1") int page,
-            @Parameter(description = "每页大小，不传则使用配置默认值") @RequestParam(value = "size", required = false) Integer size) {
+    @PostMapping("/sessions")
+    public PageResult<SessionMetaDTO> listSessions(@RequestBody SessionListQueryRequest request) {
         String userId = userContextHelper.getCurrentUserId();
         PaginationProperties.PageConfig config = paginationProperties.getSessionList();
-        int resolvedSize = config.resolveSize(size);
-        return aiAgentService.listSessionsPaged(userId, page, resolvedSize);
+        int resolvedSize = config.resolveSize(request.getSize());
+        return aiAgentService.listSessionsPaged(userId, request.getPage(), resolvedSize);
     }
 
     /**
@@ -226,18 +225,16 @@ public class AiAgentController {
      * 默认每页条数由 application.yml 中 app.pagination.message-history 配置
      *
      * @param sessionId 会话ID
-     * @param page      当前页码，从 1 开始，默认 1
-     * @param size      每页大小，不传则使用配置的默认值，超过配置的最大值会被截断
+     * @param request   查询请求（包含页码、每页大小）
      */
     @Operation(summary = "获取会话历史消息", description = "获取指定会话的聊天历史，支持分页，第1页为最新消息")
-    @GetMapping("/session/{sessionId}/history")
+    @PostMapping("/session/{sessionId}/history")
     public PageResult<ChatMessageDTO> getSessionHistory(
             @Parameter(description = "会话ID", required = true) @PathVariable String sessionId,
-            @Parameter(description = "当前页码，从 1 开始") @RequestParam(value = "page", defaultValue = "1") int page,
-            @Parameter(description = "每页大小，不传则使用配置默认值") @RequestParam(value = "size", required = false) Integer size) {
+            @RequestBody MessageHistoryQueryRequest request) {
         PaginationProperties.PageConfig config = paginationProperties.getMessageHistory();
-        int resolvedSize = config.resolveSize(size);
-        return aiAgentService.getSessionHistoryPaged(sessionId, page, resolvedSize);
+        int resolvedSize = config.resolveSize(request.getSize());
+        return aiAgentService.getSessionHistoryPaged(sessionId, request.getPage(), resolvedSize);
     }
 
     /**
