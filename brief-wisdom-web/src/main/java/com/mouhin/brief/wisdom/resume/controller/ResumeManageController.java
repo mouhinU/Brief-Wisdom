@@ -9,6 +9,10 @@ import com.mouhin.brief.wisdom.persistence.model.Project;
 import com.mouhin.brief.wisdom.persistence.model.ProjectAchievement;
 import com.mouhin.brief.wisdom.persistence.model.WorkExperience;
 import com.mouhin.brief.wisdom.persistence.model.WorkExperienceStack;
+import com.mouhin.brief.wisdom.resume.req.ProjectAchievementSaveRequest;
+import com.mouhin.brief.wisdom.resume.req.ProjectSaveRequest;
+import com.mouhin.brief.wisdom.resume.req.WorkExperienceSaveRequest;
+import com.mouhin.brief.wisdom.resume.req.WorkExperienceStackSaveRequest;
 import com.mouhin.brief.wisdom.resume.service.ResumeManageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,9 +24,6 @@ import java.util.List;
 
 /**
  * 简历数据管理 REST 接口
- */
-/**
- * ResumeManageController
  *
  * @author Brief-Wisdom
  * @date 2026-06-30
@@ -53,15 +54,15 @@ public class ResumeManageController {
 
     @Operation(summary = "新增工作经历")
     @PostMapping("/experiences")
-    public WorkExperienceDTO createExperience(@RequestBody WorkExperience experience) {
-        return resumeManageService.createExperience(experience);
+    public WorkExperienceDTO createExperience(@RequestBody WorkExperienceSaveRequest request) {
+        return resumeManageService.createExperience(toWorkExperience(null, request));
     }
 
     @Operation(summary = "更新工作经历")
     @PutMapping("/experiences/{id}")
-    public WorkExperienceDTO updateExperience(@PathVariable Long id, @RequestBody WorkExperience experience) {
-        experience.setId(id);
-        return resumeManageService.updateExperience(experience);
+    public WorkExperienceDTO updateExperience(@PathVariable Long id,
+                                              @RequestBody WorkExperienceSaveRequest request) {
+        return resumeManageService.updateExperience(toWorkExperience(id, request));
     }
 
     @Operation(summary = "删除工作经历")
@@ -89,15 +90,14 @@ public class ResumeManageController {
 
     @Operation(summary = "新增项目")
     @PostMapping("/projects")
-    public ProjectDTO createProject(@RequestBody Project project) {
-        return resumeManageService.createProject(project);
+    public ProjectDTO createProject(@RequestBody ProjectSaveRequest request) {
+        return resumeManageService.createProject(toProject(null, request));
     }
 
     @Operation(summary = "更新项目")
     @PutMapping("/projects/{id}")
-    public ProjectDTO updateProject(@PathVariable Long id, @RequestBody Project project) {
-        project.setId(id);
-        return resumeManageService.updateProject(project);
+    public ProjectDTO updateProject(@PathVariable Long id, @RequestBody ProjectSaveRequest request) {
+        return resumeManageService.updateProject(toProject(id, request));
     }
 
     @Operation(summary = "删除项目")
@@ -125,15 +125,15 @@ public class ResumeManageController {
 
     @Operation(summary = "新增项目成果")
     @PostMapping("/achievements")
-    public ProjectAchievementDTO createAchievement(@RequestBody ProjectAchievement achievement) {
-        return resumeManageService.createAchievement(achievement);
+    public ProjectAchievementDTO createAchievement(@RequestBody ProjectAchievementSaveRequest request) {
+        return resumeManageService.createAchievement(toAchievement(null, request));
     }
 
     @Operation(summary = "更新项目成果")
     @PutMapping("/achievements/{id}")
-    public ProjectAchievementDTO updateAchievement(@PathVariable Long id, @RequestBody ProjectAchievement achievement) {
-        achievement.setId(id);
-        return resumeManageService.updateAchievement(achievement);
+    public ProjectAchievementDTO updateAchievement(@PathVariable Long id,
+                                                 @RequestBody ProjectAchievementSaveRequest request) {
+        return resumeManageService.updateAchievement(toAchievement(id, request));
     }
 
     @Operation(summary = "删除项目成果")
@@ -161,15 +161,15 @@ public class ResumeManageController {
 
     @Operation(summary = "新增技术栈")
     @PostMapping("/stacks")
-    public WorkExperienceStackDTO createStack(@RequestBody WorkExperienceStack stack) {
-        return resumeManageService.createStack(stack);
+    public WorkExperienceStackDTO createStack(@RequestBody WorkExperienceStackSaveRequest request) {
+        return resumeManageService.createStack(toStack(null, request));
     }
 
     @Operation(summary = "更新技术栈")
     @PutMapping("/stacks/{id}")
-    public WorkExperienceStackDTO updateStack(@PathVariable Long id, @RequestBody WorkExperienceStack stack) {
-        stack.setId(id);
-        return resumeManageService.updateStack(stack);
+    public WorkExperienceStackDTO updateStack(@PathVariable Long id,
+                                              @RequestBody WorkExperienceStackSaveRequest request) {
+        return resumeManageService.updateStack(toStack(id, request));
     }
 
     @Operation(summary = "删除技术栈")
@@ -177,5 +177,46 @@ public class ResumeManageController {
     public Boolean deleteStack(@PathVariable Long id) {
         resumeManageService.deleteStack(id);
         return true;
+    }
+
+    private WorkExperience toWorkExperience(Long id, WorkExperienceSaveRequest request) {
+        WorkExperience experience = new WorkExperience();
+        experience.setId(id);
+        experience.setTitle(request.getTitle());
+        experience.setJob(request.getJob());
+        experience.setDescription(request.getDescription());
+        experience.setSortOrder(request.getSortOrder());
+        experience.setIsVisible(request.getIsVisible());
+        return experience;
+    }
+
+    private Project toProject(Long id, ProjectSaveRequest request) {
+        Project project = new Project();
+        project.setId(id);
+        project.setExperienceId(request.getExperienceId());
+        project.setName(request.getName());
+        project.setLifecycle(request.getLifecycle());
+        project.setBackground(request.getBackground());
+        project.setDuty(request.getDuty());
+        project.setSortOrder(request.getSortOrder());
+        return project;
+    }
+
+    private ProjectAchievement toAchievement(Long id, ProjectAchievementSaveRequest request) {
+        ProjectAchievement achievement = new ProjectAchievement();
+        achievement.setId(id);
+        achievement.setProjectId(request.getProjectId());
+        achievement.setContent(request.getContent());
+        achievement.setSortOrder(request.getSortOrder());
+        return achievement;
+    }
+
+    private WorkExperienceStack toStack(Long id, WorkExperienceStackSaveRequest request) {
+        WorkExperienceStack stack = new WorkExperienceStack();
+        stack.setId(id);
+        stack.setExperienceId(request.getExperienceId());
+        stack.setTechName(request.getTechName());
+        stack.setSortOrder(request.getSortOrder());
+        return stack;
     }
 }

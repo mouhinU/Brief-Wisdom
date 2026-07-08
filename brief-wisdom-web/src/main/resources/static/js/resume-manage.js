@@ -44,25 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== 通用 API 请求 =====
 async function apiRequest(url, method = 'GET', body = null) {
   try {
-    const options = {
-      method,
-      headers: { 'Content-Type': 'application/json' }
-    };
-    if (body) options.body = JSON.stringify(body);
-    const res = await fetch(API_BASE + url, options);
-    
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    
-    const data = await res.json();
-    console.log('[resume-manage] API响应:', data);
-    
-    if (!data.success) {
-      throw new Error(data.msg || '请求失败');
-    }
-    
-    return data.data;
+    return await window.apiRequest(API_BASE + url, method, body);
   } catch (err) {
     console.error('API请求失败:', err);
     alert('操作失败: ' + err.message);

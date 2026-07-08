@@ -8,6 +8,8 @@
 (function() {
     'use strict';
 
+    const apiRequest = (...args) => window.apiRequest(...args);
+
     // 组件状态
     const state = {
         currentBaseId: null,
@@ -74,43 +76,14 @@
         container.innerHTML = '<div class="knowledge-base-loading">加载中...</div>';
 
         try {
-            console.log('[KnowledgeManagement] 请求知识库分页:', { page: state.basePage, size: 20 });
-            
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/paged`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page: state.basePage, size: 20 })
+            const data = await apiRequest(`${KNOWLEDGE_API_BASE}/bases/paged`, 'POST', {
+                page: state.basePage,
+                size: 20
             });
-            console.log('[KnowledgeManagement] HTTP 状态码:', res.status);
-            
-            const result = await res.json();
-            console.log('[KnowledgeManagement] API 返回数据:', JSON.stringify(result, null, 2));
-
-            // 兼容两种返回格式：
-            // 1. { success: true, data: { records: [...], pages: ... } } - 有 Result 包装
-            // 2. { records: [...], pages: ... } - 直接返回 Page 对象
-            let data;
-            if (result.success !== undefined && result.data) {
-                // 有 Result 包装
-                data = result.data;
-                console.log('[KnowledgeManagement] 检测到 Result 包装格式');
-                console.log('[KnowledgeManagement] data 对象:', JSON.stringify(data, null, 2));
-            } else {
-                // 直接返回 Page 对象
-                data = result;
-                console.log('[KnowledgeManagement] 检测到直接返回 Page 对象格式');
-            }
-
-            console.log('[KnowledgeManagement] data.records:', data.records);
-            console.log('[KnowledgeManagement] data.pages:', data.pages);
-            console.log('[KnowledgeManagement] records 数量:', data.records ? data.records.length : 'undefined');
 
             state.allBases = data.records || [];
             state.baseTotalPages = data.pages || 0;
             state.baseAllLoaded = state.basePage >= state.baseTotalPages;
-
-            console.log('[KnowledgeManagement] 处理后的 allBases 数量:', state.allBases.length);
-            console.log('[KnowledgeManagement] baseTotalPages:', state.baseTotalPages);
 
             renderBaseList();
         } catch (err) {
@@ -137,20 +110,10 @@
         container.appendChild(loadingEl);
 
         try {
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/paged`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page: state.basePage, size: 20 })
+            const data = await apiRequest(`${KNOWLEDGE_API_BASE}/bases/paged`, 'POST', {
+                page: state.basePage,
+                size: 20
             });
-            const result = await res.json();
-
-            // 兼容两种返回格式
-            let data;
-            if (result.success !== undefined && result.data) {
-                data = result.data;
-            } else {
-                data = result;
-            }
 
             const newBases = data.records || [];
             state.allBases = state.allBases.concat(newBases);
@@ -271,17 +234,8 @@
         childrenContainer.innerHTML = '<div class="knowledge-base-loading">加载中...</div>';
 
         try {
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/${baseId}/children`);
-            const result = await res.json();
-            
-            // 兼容两种返回格式
-            let children;
-            if (result.success !== undefined && result.data) {
-                children = result.data;
-            } else {
-                children = result;
-            }
-            
+            const children = await apiRequest(`${KNOWLEDGE_API_BASE}/bases/${baseId}/children`);
+
             if (!children || children.length === 0) {
                 childrenContainer.innerHTML = '<div class="knowledge-base-loading">无子知识库</div>';
                 return;
@@ -385,12 +339,7 @@
             const url = isEdit ? `${KNOWLEDGE_API_BASE}/bases/${id}` : `${KNOWLEDGE_API_BASE}/bases`;
             const method = isEdit ? 'PUT' : 'POST';
 
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            // 直接返回 DTO，没有 Result 包装
+            await apiRequest(url, method, payload);
             closeBaseModal();
             loadBases();
             showToast(isEdit ? '知识库更新成功' : '知识库创建成功');
@@ -405,8 +354,7 @@
     async function deleteBase(id) {
         if (!await showConfirmDialog('确定要删除此知识库吗？其下所有文档也会被删除。', '🗑️')) return;
         try {
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/${id}`, { method: 'DELETE' });
-            // 直接返回 Boolean，没有 Result 包装
+            await apiRequest(`${KNOWLEDGE_API_BASE}/bases/${id}`, 'DELETE');
             if (state.currentBaseId === id) {
                 state.currentBaseId = null;
                 document.getElementById('knowledge-current-base-name').textContent = '请选择知识库';
@@ -446,21 +394,11 @@
         }
 
         try {
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/bases/${state.currentBaseId}/documents`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const result = await res.json();
-            
-            // 兼容 Result 包装和非包装两种返回格式
-            let data;
-            if (result.success !== undefined && result.data) {
-                data = result.data;
-            } else {
-                data = result;
-            }
-            
+            const data = await apiRequest(
+                `${KNOWLEDGE_API_BASE}/bases/${state.currentBaseId}/documents`,
+                'POST',
+                payload
+            );
             renderDocuments(data.records || []);
             renderPagination(data);
         } catch (err) {
@@ -577,21 +515,7 @@
         };
 
         try {
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/documents/search`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const result = await res.json();
-            
-            // 兼容两种返回格式
-            let data;
-            if (result.success !== undefined && result.data) {
-                data = result.data;
-            } else {
-                data = result;
-            }
-            
+            const data = await apiRequest(`${KNOWLEDGE_API_BASE}/documents/search`, 'POST', payload);
             document.getElementById('knowledge-current-base-name').textContent = `搜索: ${keyword}`;
             renderDocuments(data.records || []);
             renderPagination(data);
@@ -630,17 +554,8 @@
      */
     async function editDocument(id) {
         try {
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/documents/${id}`);
-            const result = await res.json();
-            
-            // 兼容两种返回格式
-            let doc;
-            if (result.success !== undefined && result.data) {
-                doc = result.data;
-            } else {
-                doc = result;
-            }
-            
+            const doc = await apiRequest(`${KNOWLEDGE_API_BASE}/documents/${id}`);
+
             document.getElementById('knowledge-doc-modal-title').textContent = '编辑文档';
             document.getElementById('knowledge-doc-id').value = doc.id;
             // 确保 currentBaseId 与文档一致，避免保存时 baseId 错误
@@ -698,12 +613,7 @@
             const url = isEdit ? `${KNOWLEDGE_API_BASE}/documents/${id}` : `${KNOWLEDGE_API_BASE}/documents`;
             const method = isEdit ? 'PUT' : 'POST';
 
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            // 直接返回 DTO
+            await apiRequest(url, method, payload);
             closeDocModal();
             loadDocuments();
             loadBases();
@@ -719,8 +629,7 @@
     async function deleteDocument(id) {
         if (!await showConfirmDialog('确定要删除此文档吗？', '🗑️')) return;
         try {
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/documents/${id}`, { method: 'DELETE' });
-            // 直接返回 Boolean
+            await apiRequest(`${KNOWLEDGE_API_BASE}/documents/${id}`, 'DELETE');
             loadDocuments();
             loadBases();
             showToast('删除成功');
@@ -734,17 +643,7 @@
      */
     async function viewDocument(id) {
         try {
-            const res = await fetch(`${KNOWLEDGE_API_BASE}/documents/${id}`);
-            const result = await res.json();
-            
-            // 兼容两种返回格式
-            let doc;
-            if (result.success !== undefined && result.data) {
-                doc = result.data;
-            } else {
-                doc = result;
-            }
-            
+            const doc = await apiRequest(`${KNOWLEDGE_API_BASE}/documents/${id}`);
             renderDocDetail(doc);
         } catch (err) {
             showToast('加载文档异常: ' + err.message, 'error');
@@ -916,15 +815,25 @@
 
         try {
             showToast('正在导入...', 'info');
-            const res = await fetch(`${url}?${params.toString()}`, {
-                method: 'POST'
-            });
-            const count = await res.json();
-            
+            const data = await apiRequest(`${url}?${params.toString()}`, 'POST');
+
             closeImportMdModal();
             await loadDocuments();
             await loadBases();
-            showToast(`成功导入 ${count} 个 Markdown 文件`, 'success');
+
+            const created = data.createdCount ?? 0;
+            const updated = data.updatedCount ?? 0;
+            const failed = data.failedCount ?? 0;
+            const total = data.totalCount ?? (created + updated);
+
+            let message = `导入完成：新增 ${created} 个，更新 ${updated} 个`;
+            if (failed > 0) {
+                message += `，失败 ${failed} 个`;
+            }
+            if (total === 0 && failed === 0) {
+                message = '未找到可导入的 Markdown 文件';
+            }
+            showToast(message, failed > 0 ? 'warning' : 'success');
         } catch (err) {
             showToast('导入失败: ' + err.message, 'error');
         }

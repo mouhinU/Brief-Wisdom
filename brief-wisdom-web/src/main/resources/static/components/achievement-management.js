@@ -8,6 +8,7 @@
 (function() {
     'use strict';
 
+    const apiRequest = (...args) => window.apiRequest(...args);
     let achievements = [];
     let projects = [];  // 用于选择关联项目
 
@@ -244,47 +245,6 @@
      */
     function escapeAttr(text) {
         return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    /**
-     * API请求封装
-     */
-    async function apiRequest(url, method = 'GET', body = null) {
-        const options = {
-            method,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-        
-        if (body) {
-            options.body = JSON.stringify(body);
-        }
-        
-        const response = await fetch(url, options);
-        
-        // 尝试解析响应体为JSON
-        let result;
-        try {
-            result = await response.json();
-        } catch (e) {
-            result = null;
-        }
-        
-        if (!response.ok) {
-            // 优先使用后端返回的错误消息
-            const errorMsg = result?.msg || result?.message || `HTTP error! status: ${response.status}`;
-            console.error('[AchievementManagement] API请求失败:', {
-                url,
-                method,
-                status: response.status,
-                error: errorMsg,
-                fullResponse: result
-            });
-            throw new Error(errorMsg);
-        }
-        
-        return result;
     }
 
     /**

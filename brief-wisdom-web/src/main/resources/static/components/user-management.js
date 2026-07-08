@@ -6,6 +6,7 @@
 (function() {
     'use strict';
 
+    const apiRequest = (...args) => window.apiRequest(...args);
     const USER_API = '/api/user';
 
     // 组件内部状态
@@ -55,19 +56,13 @@
         if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
 
         try {
-            const res = await fetch(url);
-            const result = await res.json();
-            if (!result.success) {
-                showToast('加载用户失败: ' + result.error, 'error');
-                return;
-            }
-            const data = result.data;
+            const data = await apiRequest(url);
             hasMore = data.hasMore;
             renderUserTable(data.records || []);
             renderUserPagination(data);
         } catch (err) {
             console.error('加载用户异常:', err);
-            showToast('加载用户异常', 'error');
+            showToast('加载用户异常: ' + err.message, 'error');
         }
     }
 
@@ -172,16 +167,7 @@
         const level = document.getElementById('user-level-select').value;
 
         try {
-            const res = await fetch(`${USER_API}/${id}/level`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ level })
-            });
-            const result = await res.json();
-            if (!result.success) {
-                showToast('修改失败: ' + result.error, 'error');
-                return;
-            }
+            await apiRequest(`${USER_API}/${id}/level`, 'PUT', { level });
             closeUserLevelModal();
             loadUsers();
             showToast('修改成功', 'success');
@@ -199,12 +185,7 @@
         }
 
         try {
-            const res = await fetch(`${USER_API}/${id}/reset-password`, { method: 'PUT' });
-            const result = await res.json();
-            if (!result.success) {
-                showToast('重置失败: ' + result.error, 'error');
-                return;
-            }
+            await apiRequest(`${USER_API}/${id}/reset-password`, 'PUT');
             showToast('密码已重置为默认密码', 'success');
         } catch (err) {
             showToast('重置异常: ' + err.message, 'error');
@@ -220,12 +201,7 @@
         }
 
         try {
-            const res = await fetch(`${USER_API}/${id}`, { method: 'DELETE' });
-            const result = await res.json();
-            if (!result.success) {
-                showToast('删除失败: ' + result.error, 'error');
-                return;
-            }
+            await apiRequest(`${USER_API}/${id}`, 'DELETE');
             loadUsers();
             showToast('删除成功', 'success');
         } catch (err) {
@@ -243,22 +219,14 @@
         document.getElementById('user-role-title').textContent = `分配角色 - ${username}`;
 
         try {
-            // 并行加载所有角色和用户已有角色
-            const [rolesRes, userRolesRes] = await Promise.all([
-                fetch('/api/role/enabled'),
-                fetch(`/api/role/user/${userId}`)
+            const [roles, userRoles] = await Promise.all([
+                apiRequest('/api/role/enabled'),
+                apiRequest(`/api/role/user/${userId}`)
             ]);
-            const rolesResult = await rolesRes.json();
-            const userRolesResult = await userRolesRes.json();
 
-            if (!rolesResult.success || !userRolesResult.success) {
-                showToast('加载角色数据失败', 'error');
-                return;
-            }
-
-            const userRoleIds = new Set(userRolesResult.data.map(r => r.id));
+            const userRoleIds = new Set((userRoles || []).map(r => r.id));
             const container = document.getElementById('user-role-checkboxes');
-            container.innerHTML = rolesResult.data.map(r => `
+            container.innerHTML = (roles || []).map(r => `
                 <label class="role-checkbox-item">
                     <input type="checkbox" value="${r.id}" ${userRoleIds.has(r.id) ? 'checked' : ''}>
                     <span class="role-cb-name">${escapeHtml(r.roleName)}</span>
@@ -294,16 +262,7 @@
         ).map(cb => parseInt(cb.value));
 
         try {
-            const res = await fetch(`/api/role/assign/${userId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(checkedIds)
-            });
-            const result = await res.json();
-            if (!result.success) {
-                showToast('保存失败: ' + result.error, 'error');
-                return;
-            }
+            await apiRequest(`/api/role/assign/${userId}`, 'PUT', checkedIds);
             closeUserRoleModal();
             showToast('用户角色已保存', 'success');
         } catch (err) {

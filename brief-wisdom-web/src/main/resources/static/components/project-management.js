@@ -8,6 +8,7 @@
 (function() {
     'use strict';
 
+    const apiRequest = (...args) => window.apiRequest(...args);
     let projects = [];
 
     /**
@@ -243,29 +244,6 @@
      */
     function escapeAttr(text) {
         return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    /**
-     * API请求封装
-     */
-    async function apiRequest(url, method = 'GET', body = null) {
-        const options = {
-            method,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-        
-        if (body) {
-            options.body = JSON.stringify(body);
-        }
-        
-        const response = await fetch(url, options);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return response.json();
     }
 
     /**

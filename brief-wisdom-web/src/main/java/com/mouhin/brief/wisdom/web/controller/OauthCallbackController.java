@@ -5,6 +5,8 @@ import com.mouhin.brief.wisdom.system.service.AlipayAuthService;
 import com.mouhin.brief.wisdom.system.service.DingtalkAuthService;
 import com.mouhin.brief.wisdom.system.service.RoleService;
 import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -42,6 +44,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "OAuth认证", description = "钉钉与支付宝扫码登录")
 public class OauthCallbackController {
 
     private static final String SESSION_USER_KEY = UserContextHelper.SESSION_USER_KEY;
@@ -58,6 +61,7 @@ public class OauthCallbackController {
      * @return { success: true, authorizeUrl: "https://login.dingtalk.com/..." }
      */
     @GetMapping("/auth/dingtalk/login")
+    @Operation(summary = "发起钉钉扫码登录")
     public ResponseEntity<Map<String, Object>> dingtalkLogin(HttpSession session) {
         String state = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         session.setAttribute("dingtalk_state", state);
@@ -73,6 +77,7 @@ public class OauthCallbackController {
      * 钉钉授权回调
      */
     @GetMapping("/auth/dingtalk/callback")
+    @Operation(summary = "钉钉授权回调")
     public void dingtalkCallback(
             @RequestParam("authCode") String authCode,
             @RequestParam(value = "state", required = false) String state,
@@ -98,6 +103,7 @@ public class OauthCallbackController {
      * @return { success: true, authorizeUrl: "https://openauth.alipay.com/..." }
      */
     @GetMapping("/auth/alipay/login")
+    @Operation(summary = "发起支付宝扫码登录")
     public ResponseEntity<Map<String, Object>> alipayLogin(HttpSession session) {
         String state = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         session.setAttribute("alipay_state", state);
@@ -113,6 +119,7 @@ public class OauthCallbackController {
      * 支付宝授权回调
      */
     @GetMapping("/auth/alipay/callback")
+    @Operation(summary = "支付宝授权回调")
     public void alipayCallback(
             @RequestParam("auth_code") String authCode,
             @RequestParam(value = "state", required = false) String state,

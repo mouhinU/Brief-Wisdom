@@ -1,0 +1,2 @@
+-- Flyway baseline marker
+-- 完整表结构请使用 init-20260629.sql 初始化；已有数据库通过 baseline-on-migrate 跳过本版本

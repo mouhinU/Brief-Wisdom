@@ -1,14 +1,18 @@
 package com.mouhin.brief.wisdom.ai.service;
 
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
+import com.mouhin.brief.wisdom.common.knowledge.MarkdownImportResult;
+import com.mouhin.brief.wisdom.util.SafePathUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -22,8 +26,24 @@ import java.util.stream.Stream;
 @Service
 public class MarkdownImportService {
 
+    private static final String DOC_TYPE_INTERNAL = "INTERNAL";
+    private static final String FILE_TYPE_MD = "md";
+    private static final int STATUS_PUBLISHED = 1;
+
     @Autowired
     private KnowledgeService knowledgeService;
+
+    /** 导入根目录，默认为 user.dir */
+    @Value("${app.knowledge.import-base-dir:}")
+    private String importBaseDir;
+
+    /** 允许导入的相对目录，逗号分隔 */
+    @Value("${app.knowledge.import-allowed-dirs:docs}")
+    private String importAllowedDirs;
+
+    /** 允许导入的根目录相对文件，逗号分隔 */
+    @Value("${app.knowledge.import-allowed-files:AGENTS.md}")
+    private String importAllowedFiles;
 
     /**
      * 批量导入指定目录下的所有 Markdown 文件到知识库
@@ -31,75 +51,42 @@ public class MarkdownImportService {
      * @param baseId 目标知识库 ID
      * @param sourceDir 源目录路径（相对于项目根目录）
      * @param recursive 是否递归子目录
-     * @return 成功导入的文件数量
+     * @return 导入结果（新增/更新/失败计数）
      */
-    public int importMarkdownFiles(Long baseId, String sourceDir, boolean recursive) {
-        Path basePath = Paths.get(sourceDir);
-        
+    public MarkdownImportResult importMarkdownFiles(Long baseId, String sourceDir, boolean recursive) {
+        Path basePath = resolveSafePath(sourceDir);
+
         if (!Files.exists(basePath)) {
             log.error("源目录不存在: {}", sourceDir);
             throw new IllegalArgumentException("源目录不存在: " + sourceDir);
         }
+        if (!Files.isDirectory(basePath)) {
+            throw new IllegalArgumentException("路径不是目录: " + sourceDir);
+        }
 
-        int[] successCount = {0};
-        int[] failCount = {0};
+        MarkdownImportResult result = new MarkdownImportResult();
 
         try (Stream<Path> paths = recursive ? Files.walk(basePath) : Files.list(basePath)) {
             paths.filter(Files::isRegularFile)
                  .filter(path -> path.toString().endsWith(".md"))
-                 .forEach(path -> {
-                     try {
-                         importSingleFile(baseId, path);
-                         successCount[0]++;
-                         log.info("成功导入 Markdown 文件: {}", path.getFileName());
-                     } catch (Exception e) {
-                         failCount[0]++;
-                         log.error("导入 Markdown 文件失败: {}, 错误: {}", path.getFileName(), e.getMessage());
-                     }
-                 });
+                 .forEach(path -> upsertMarkdownFile(baseId, path, result));
         } catch (IOException e) {
             log.error("遍历目录失败: {}", sourceDir, e);
             throw new RuntimeException("遍历目录失败", e);
         }
 
-        log.info("Markdown 文件导入完成 - 成功: {}, 失败: {}", successCount[0], failCount[0]);
-        return successCount[0];
-    }
-
-    /**
-     * 导入单个 Markdown 文件
-     *
-     * @param baseId 知识库 ID
-     * @param filePath 文件路径
-     */
-    private void importSingleFile(Long baseId, Path filePath) throws IOException {
-        // 读取文件内容
-        String content = Files.readString(filePath);
-        
-        // 获取文件名（不含扩展名）作为标题
-        String fileName = filePath.getFileName().toString();
-        String title = fileName.substring(0, fileName.lastIndexOf('.'));
-        
-        // 创建文档业务对象
-        KnowledgeDocumentBO docBO = new KnowledgeDocumentBO();
-        docBO.setBaseId(baseId);
-        docBO.setTitle(title);
-        docBO.setDocType("INTERNAL"); // Markdown 作为内部文档存储
-        docBO.setContent(content); // 直接存储 Markdown 原文
-        docBO.setStatus(1); // 已发布
-        docBO.setSortOrder(0);
-        
-        // 调用知识库服务创建文档
-        knowledgeService.createDocument(docBO);
+        log.info("Markdown 文件导入完成 - 新增: {}, 更新: {}, 失败: {}",
+                result.getCreatedCount(), result.getUpdatedCount(), result.getFailedCount());
+        return result;
     }
 
     /**
      * 导入 docs 目录下的所有 Markdown 文件到指定知识库
      *
      * @param baseId 目标知识库 ID
-     * @return 成功导入的文件数量
+     * @return 导入结果
      */
-    public int importDocsDirectory(Long baseId) {
+    public MarkdownImportResult importDocsDirectory(Long baseId) {
         return importMarkdownFiles(baseId, "docs", true);
     }
 
@@ -107,21 +94,75 @@ public class MarkdownImportService {
      * 导入 AGENTS.md 文件到指定知识库
      *
      * @param baseId 目标知识库 ID
-     * @return 成功导入的文件数量
+     * @return 导入结果
      */
-    public int importAgentsMd(Long baseId) {
+    public MarkdownImportResult importAgentsMd(Long baseId) {
+        MarkdownImportResult result = new MarkdownImportResult();
         try {
-            Path agentsPath = Paths.get("AGENTS.md");
+            Path agentsPath = resolveSafePath("AGENTS.md");
             if (Files.exists(agentsPath)) {
-                importSingleFile(baseId, agentsPath);
-                return 1;
+                upsertMarkdownFile(baseId, agentsPath, result);
             } else {
                 log.warn("AGENTS.md 文件不存在");
-                return 0;
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("导入 AGENTS.md 失败", e);
-            return 0;
+            result.incrementFailed();
         }
+        return result;
+    }
+
+    /**
+     * 导入或更新单个 Markdown 文件
+     */
+    private void upsertMarkdownFile(Long baseId, Path filePath, MarkdownImportResult result) {
+        try {
+            String content = Files.readString(filePath);
+            String sourcePath = toRelativeSourcePath(filePath);
+            String fileName = filePath.getFileName().toString();
+            String title = fileName.substring(0, fileName.lastIndexOf('.'));
+
+            KnowledgeDocumentBO docBO = new KnowledgeDocumentBO();
+            docBO.setBaseId(baseId);
+            docBO.setTitle(title);
+            docBO.setDocType(DOC_TYPE_INTERNAL);
+            docBO.setContent(content);
+            docBO.setFileType(FILE_TYPE_MD);
+            docBO.setFileSize((long) content.getBytes(StandardCharsets.UTF_8).length);
+            docBO.setStatus(STATUS_PUBLISHED);
+            docBO.setSortOrder(0);
+
+            boolean created = knowledgeService.upsertImportedMarkdown(docBO, sourcePath);
+            if (created) {
+                result.incrementCreated();
+                log.info("新增 Markdown 文档: {}", sourcePath);
+            } else {
+                result.incrementUpdated();
+                log.info("更新 Markdown 文档: {}", sourcePath);
+            }
+        } catch (Exception e) {
+            result.incrementFailed();
+            log.error("导入 Markdown 文件失败: {}, 错误: {}", filePath.getFileName(), e.getMessage());
+        }
+    }
+
+    /**
+     * 计算相对项目根目录的源文件路径，用作导入去重键
+     */
+    private String toRelativeSourcePath(Path filePath) {
+        Path baseRoot = SafePathUtils.resolveBaseRoot(importBaseDir);
+        return baseRoot.relativize(filePath.toAbsolutePath().normalize())
+                .toString()
+                .replace('\\', '/');
+    }
+
+    /**
+     * 解析并校验导入路径，防止路径穿越
+     */
+    private Path resolveSafePath(String relativePath) {
+        Path baseRoot = SafePathUtils.resolveBaseRoot(importBaseDir);
+        List<String> allowedDirs = SafePathUtils.parseCsv(importAllowedDirs);
+        List<String> allowedFiles = SafePathUtils.parseCsv(importAllowedFiles);
+        return SafePathUtils.resolveAllowedPath(baseRoot, relativePath, allowedDirs, allowedFiles);
     }
 }

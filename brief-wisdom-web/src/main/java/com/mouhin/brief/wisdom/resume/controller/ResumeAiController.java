@@ -5,6 +5,8 @@ import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.resume.req.FullPolishRequest;
 import com.mouhin.brief.wisdom.resume.req.ResumeSuggestRequest;
 import com.mouhin.brief.wisdom.resume.req.TextPolishRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +30,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 @RequiresPermission("resume:manage")
+@Tag(name = "简历AI", description = "简历文本润色与优化建议")
 public class ResumeAiController {
 
     private final AiAgentService aiAgentService;
@@ -36,6 +39,7 @@ public class ResumeAiController {
      * AI单字段文本润色
      */
     @PostMapping("/polish")
+    @Operation(summary = "单字段文本润色")
     public Map<String, String> polishText(@RequestBody TextPolishRequest request) {
         log.info("AI文本润色请求, fieldType={}, textLength={}", request.getFieldType(),
                 request.getText() != null ? request.getText().length() : 0);
@@ -59,6 +63,7 @@ public class ResumeAiController {
      * AI全文润色 —— 传入完整简历数据，返回每个字段的润色结果
      */
     @PostMapping("/polish/full")
+    @Operation(summary = "全文润色", description = "对完整简历数据逐字段润色")
     public Map<String, Object> fullPolish(@RequestBody FullPolishRequest request) {
         log.info("AI全文润色请求");
 
@@ -77,6 +82,7 @@ public class ResumeAiController {
      * AI简历优化建议 —— 基于完整简历数据给出多维度优化建议
      */
     @PostMapping("/suggest")
+    @Operation(summary = "AI 优化建议", description = "基于完整简历数据给出多维度优化建议")
     public Map<String, Object> suggest(@RequestBody ResumeSuggestRequest request) {
         log.info("AI简历建议请求, dimensions={}", request.getDimensions());
 

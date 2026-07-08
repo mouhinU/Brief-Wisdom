@@ -2,6 +2,8 @@ package com.mouhin.brief.wisdom.ai.controller;
 
 import com.mouhin.brief.wisdom.ai.service.SseChatSyncService;
 import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,6 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequiredArgsConstructor
 @Slf4j
 @ConditionalOnProperty(name = "app.sync.transport", havingValue = "sse", matchIfMissing = true)
+@Tag(name = "AI同步", description = "SSE 实时同步事件流接口")
 public class SseSyncController {
 
     private final SseChatSyncService sseChatSyncService;
@@ -40,6 +43,7 @@ public class SseSyncController {
     // 导致 handler 无法返回 JSON（HttpMediaTypeNotAcceptableException）。
     // SseEmitter 自身会自动设置 Content-Type: text/event-stream 响应头。
     @GetMapping(value = "/events")
+    @Operation(summary = "建立 SSE 同步事件流", description = "前端通过 EventSource 连接，接收会话与消息变更通知")
     public SseEmitter syncEvents() {
         String userId = userContextHelper.getCurrentUserId();
         log.info("[SSE] 用户 {} 请求建立 SSE 连接", userId);
@@ -52,6 +56,7 @@ public class SseSyncController {
      * 前端关闭聊天窗口时调用，主动清理服务端的 SSE 连接资源。
      */
     @DeleteMapping("/events")
+    @Operation(summary = "断开 SSE 同步连接", description = "前端关闭聊天窗口时主动清理服务端连接资源")
     public Boolean disconnectSync() {
         String userId = userContextHelper.getCurrentUserId();
         sseChatSyncService.disconnectUser(userId);

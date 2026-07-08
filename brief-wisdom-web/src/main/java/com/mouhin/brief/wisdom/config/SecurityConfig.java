@@ -63,6 +63,9 @@ public class SecurityConfig {
                         // AI 聊天接口全部公开（含会话管理、同步、配置、模型列表）
                         .requestMatchers("/api/ai/models/enabled").permitAll()
                         .requestMatchers("/api/ai/**").permitAll()
+                        // Actuator：health/info 公开（Docker 探活），其余需管理员
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/**").hasAnyRole("admin", "super_admin")
                         // WebSocket 同步端点公开
                         .requestMatchers("/ws/**").permitAll()
                         // 知识库管理需要 admin 或 super_admin 角色

@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.brief.wisdom.ai.req.ChatRequest;
 import com.mouhin.brief.wisdom.ai.req.ChatWithPromptRequest;
 import com.mouhin.brief.wisdom.ai.req.MessageHistoryQueryRequest;
@@ -56,6 +57,7 @@ public class AiAgentController {
     private final UserContextHelper userContextHelper;
     private final AiModelService aiModelService;
     private final Executor briefWisdomExecutor;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.sync.transport:sse}")
     private String syncTransport;
@@ -132,7 +134,7 @@ public class AiAgentController {
                         },
                         error -> {
                             log.error("[流式] 错误: {}", error.getMessage(), error);
-                            emitter.completeWithError(error);
+                            sendSseErrorEvent(emitter, "STREAM_ERROR", error.getMessage());
                         },
                         () -> {
                             log.info("[流式] 完成");
@@ -146,19 +148,11 @@ public class AiAgentController {
                         }
                 );
             } catch (com.mouhin.brief.wisdom.exception.ContentSecurityException e) {
-                // 内容安全拦截，通过 SSE 发送错误消息
                 log.warn("[内容安全] 流式聊天输入被拦截: {}", e.getMessage());
-                try {
-                    emitter.send(SseEmitter.event()
-                            .name("error")
-                            .data("{\"type\":\"CONTENT_BLOCKED\",\"message\":\"" + e.getMessage() + "\"}"));
-                } catch (IOException ioException) {
-                    log.error("[内容安全] 发送错误消息失败: {}", ioException.getMessage());
-                }
-                emitter.complete();
+                sendSseErrorEvent(emitter, "CONTENT_BLOCKED", e.getMessage());
             } catch (Exception e) {
                 log.error("[流式] 启动失败: {}", e.getMessage());
-                emitter.completeWithError(e);
+                sendSseErrorEvent(emitter, "STREAM_ERROR", "流式聊天启动失败");
             }
         }, briefWisdomExecutor);
 
@@ -356,5 +350,21 @@ public class AiAgentController {
     @GetMapping("/sync/transport")
     public Map<String, String> getSyncTransport() {
         return Map.of("transport", syncTransport);
+    }
+
+    /**
+     * 通过 SSE 发送 JSON 格式错误事件，避免字符串拼接破坏 JSON 结构
+     */
+    private void sendSseErrorEvent(SseEmitter emitter, String type, String message) {
+        try {
+            String payload = objectMapper.writeValueAsString(Map.of(
+                    "type", type,
+                    "message", message != null ? message : "未知错误"
+            ));
+            emitter.send(SseEmitter.event().name("error").data(payload));
+        } catch (IOException ioException) {
+            log.error("[流式] 发送错误消息失败: {}", ioException.getMessage());
+        }
+        emitter.complete();
     }
 }

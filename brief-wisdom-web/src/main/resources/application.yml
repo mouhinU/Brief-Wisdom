@@ -33,6 +33,12 @@ spring:
     store-type: redis
     redis:
       namespace: bw:session
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    table: flyway_schema_history
   # Thymeleaf 配置（项目使用静态HTML，不使用模板引擎）
   thymeleaf:
     check-template-location: false  # 禁用模板位置检查
@@ -59,6 +65,19 @@ mybatis-plus:
       logic-delete-field: is_deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+# Actuator / Prometheus 监控
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 # 实时同步配置
 app:
@@ -102,6 +121,16 @@ app:
     message-history:
       default-size: 20    # 消息历史默认每页条数
       max-size: 200       # 消息历史最大每页条数
+
+  # CORS 允许的域名（逗号分隔），生产环境必须配置为实际域名
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8090,http://localhost:3000}
+
+  # 知识库 Markdown 导入路径白名单
+  knowledge:
+    import-base-dir: ${KNOWLEDGE_IMPORT_BASE_DIR:}
+    import-allowed-dirs: docs
+    import-allowed-files: AGENTS.md
 
 # 微信开放平台扫码登录配置
 wechat:

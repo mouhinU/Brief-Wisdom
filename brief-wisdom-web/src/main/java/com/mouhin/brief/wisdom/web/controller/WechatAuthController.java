@@ -4,6 +4,8 @@ import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.system.service.RoleService;
 import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import com.mouhin.brief.wisdom.system.service.WechatAuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -39,6 +41,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "微信认证", description = "微信扫码登录与认证状态查询")
 public class WechatAuthController {
 
     /**
@@ -56,6 +59,7 @@ public class WechatAuthController {
      * @return { authorizeUrl: "https://open.weixin.qq.com/..." }
      */
     @GetMapping("/auth/wechat/login")
+    @Operation(summary = "发起微信扫码登录", description = "返回微信授权 URL，前端跳转至扫码页面")
     public ResponseEntity<Map<String, Object>> wechatLogin(HttpSession session) {
         String state = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         session.setAttribute("wechat_state", state);
@@ -74,6 +78,7 @@ public class WechatAuthController {
      * 处理流程：code → access_token → 用户信息 → 写入 Session → 重定向到 about.html
      */
     @GetMapping("/auth/wechat/callback")
+    @Operation(summary = "微信授权回调", description = "微信扫码成功后回调，写入 Session 并重定向")
     public void wechatCallback(
             @RequestParam("code") String code,
             @RequestParam(value = "state", required = false) String state,
@@ -131,6 +136,7 @@ public class WechatAuthController {
      * @return { loggedIn: true/false, user: {...} }
      */
     @GetMapping("/api/auth/status")
+    @Operation(summary = "检查登录状态", description = "返回当前用户登录状态、角色与权限")
     public ResponseEntity<Map<String, Object>> authStatus(HttpServletRequest request) {
         Map<String, Object> result = new HashMap<>(4);
         HttpSession session = request.getSession(false);
@@ -163,6 +169,7 @@ public class WechatAuthController {
      * 此接口需要登录才能访问（SecurityConfig 配置）
      */
     @GetMapping("/api/auth/user")
+    @Operation(summary = "获取当前登录用户", description = "需已登录，返回用户详细信息")
     public ResponseEntity<Map<String, Object>> currentUser(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         ChatUser user = session != null ? (ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY) : null;
@@ -184,6 +191,7 @@ public class WechatAuthController {
      * 退出登录
      */
     @PostMapping("/auth/logout")
+    @Operation(summary = "退出登录", description = "清除 Session 与 SecurityContext")
     public ResponseEntity<Map<String, Object>> logout(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) {

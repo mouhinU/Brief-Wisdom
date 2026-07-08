@@ -1,5 +1,7 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
+import com.mouhin.brief.wisdom.ai.req.AiModelSaveRequest;
+import com.mouhin.brief.wisdom.ai.req.AiModelUpdateRequest;
 import com.mouhin.brief.wisdom.common.ai.AiModelDTO;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
@@ -15,7 +17,6 @@ import java.util.List;
 
 /**
  * AI模型管理 REST 接口
- * AiModelController
  *
  * @author Brief-Wisdom
  * @date 2026-06-30
@@ -30,27 +31,18 @@ public class AiModelController {
 
     private final AiModelService aiModelService;
 
-    /**
-     * 获取所有模型列表（管理页面用）
-     */
     @Operation(summary = "获取所有模型列表", description = "管理页面用，包含已禁用模型")
     @GetMapping
     public List<AiModelDTO> listModels() {
         return aiModelService.listModels();
     }
 
-    /**
-     * 获取当前激活的模型
-     */
     @Operation(summary = "获取当前激活模型")
     @GetMapping("/active")
     public AiModelDTO getActiveModel() {
         return aiModelService.getActiveModel();
     }
 
-    /**
-     * 切换激活模型
-     */
     @Operation(summary = "切换激活模型")
     @PutMapping("/activate/{id}")
     public Boolean activateModel(
@@ -59,29 +51,20 @@ public class AiModelController {
         return true;
     }
 
-    /**
-     * 新增模型
-     */
     @Operation(summary = "新增模型")
     @PostMapping
-    public Boolean createModel(@RequestBody AiModel model) {
-        aiModelService.createModel(model);
+    public Boolean createModel(@RequestBody AiModelSaveRequest request) {
+        aiModelService.createModel(toAiModel(null, request));
         return true;
     }
 
-    /**
-     * 更新模型
-     */
     @Operation(summary = "更新模型")
     @PutMapping
-    public Boolean updateModel(@RequestBody AiModel model) {
-        aiModelService.updateModel(model);
+    public Boolean updateModel(@RequestBody AiModelUpdateRequest request) {
+        aiModelService.updateModel(toAiModel(request.getId(), request));
         return true;
     }
 
-    /**
-     * 删除模型
-     */
     @Operation(summary = "删除模型", description = "逻辑删除")
     @DeleteMapping("/{id}")
     public Boolean deleteModel(
@@ -90,9 +73,6 @@ public class AiModelController {
         return true;
     }
 
-    /**
-     * 启用/禁用模型
-     */
     @Operation(summary = "启用/禁用模型")
     @PutMapping("/{id}/toggle")
     public Boolean toggleModel(
@@ -100,5 +80,33 @@ public class AiModelController {
             @Parameter(description = "是否启用") @RequestParam boolean enabled) {
         aiModelService.toggleModelEnabled(id, enabled);
         return true;
+    }
+
+    private AiModel toAiModel(Long id, AiModelSaveRequest request) {
+        AiModel model = new AiModel();
+        model.setId(id);
+        model.setModelName(request.getModelName());
+        model.setDisplayName(request.getDisplayName());
+        model.setProvider(request.getProvider());
+        model.setDescription(request.getDescription());
+        model.setSortOrder(request.getSortOrder());
+        model.setInputPricePerMillion(request.getInputPricePerMillion());
+        model.setOutputPricePerMillion(request.getOutputPricePerMillion());
+        model.setThinkingMode(request.getThinkingMode());
+        return model;
+    }
+
+    private AiModel toAiModel(Long id, AiModelUpdateRequest request) {
+        AiModel model = new AiModel();
+        model.setId(id != null ? id : request.getId());
+        model.setModelName(request.getModelName());
+        model.setDisplayName(request.getDisplayName());
+        model.setProvider(request.getProvider());
+        model.setDescription(request.getDescription());
+        model.setSortOrder(request.getSortOrder());
+        model.setInputPricePerMillion(request.getInputPricePerMillion());
+        model.setOutputPricePerMillion(request.getOutputPricePerMillion());
+        model.setThinkingMode(request.getThinkingMode());
+        return model;
     }
 }

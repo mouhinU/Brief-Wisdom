@@ -174,12 +174,13 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 其他未知异常 —— 返回 200 + 错误信息（兼容现有前端处理逻辑）
+     * 其他未知异常 —— 返回 500，便于监控与网关识别服务端错误
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<?>> handleException(Exception e, HttpServletRequest request) {
         clearProducibleMediaTypes(request);
         log.error("未知异常: ", e);
-        return ResponseEntity.ok(Result.fail(BizExceptionEnums.SYSTEM_ERROR, "服务异常，请稍后重试"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Result.fail(BizExceptionEnums.SYSTEM_ERROR, "服务异常，请稍后重试"));
     }
 }

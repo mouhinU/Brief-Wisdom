@@ -127,4 +127,13 @@ public interface KnowledgeService {
      * @return 分页结果
      */
     Page<KnowledgeDocumentDTO> searchDocuments(String keyword, int page, int size);
+
+    /**
+     * 按 Markdown 导入源路径 upsert 文档：已导入则更新，未导入则新增
+     *
+     * @param bo         文档内容
+     * @param sourcePath 相对项目根目录的源文件路径（存入 fileName 用于去重）
+     * @return true 表示新增，false 表示更新
+     */
+    boolean upsertImportedMarkdown(KnowledgeDocumentBO bo, String sourcePath);
 }

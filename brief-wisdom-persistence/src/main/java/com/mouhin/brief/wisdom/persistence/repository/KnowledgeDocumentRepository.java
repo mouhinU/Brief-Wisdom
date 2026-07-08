@@ -88,6 +88,44 @@ public class KnowledgeDocumentRepository {
     }
 
     /**
+     * 按知识库 ID 与导入源路径查询文档（Markdown 导入去重用）
+     *
+     * @param baseId   知识库 ID
+     * @param fileName 相对项目根目录的源文件路径
+     * @return 匹配的文档，不存在返回 null
+     */
+    public KnowledgeDocument findByBaseIdAndFileName(Long baseId, String fileName) {
+        return knowledgeDocumentMapper.selectOne(
+                new LambdaQueryWrapper<KnowledgeDocument>()
+                        .eq(KnowledgeDocument::getBaseId, baseId)
+                        .eq(KnowledgeDocument::getFileName, fileName)
+                        .last("LIMIT 1")
+        );
+    }
+
+    /**
+     * 按标题查询历史导入文档（兼容早期未写入 fileName 的记录）
+     *
+     * @param baseId  知识库 ID
+     * @param title   文档标题
+     * @param docType 文档类型
+     * @return 匹配的文档，不存在返回 null
+     */
+    public KnowledgeDocument findLegacyImportedByTitle(Long baseId, String title, String docType) {
+        return knowledgeDocumentMapper.selectOne(
+                new LambdaQueryWrapper<KnowledgeDocument>()
+                        .eq(KnowledgeDocument::getBaseId, baseId)
+                        .eq(KnowledgeDocument::getTitle, title)
+                        .eq(KnowledgeDocument::getDocType, docType)
+                        .and(wrapper -> wrapper.isNull(KnowledgeDocument::getFileName)
+                                .or()
+                                .eq(KnowledgeDocument::getFileName, ""))
+                        .orderByDesc(KnowledgeDocument::getUpdateTime)
+                        .last("LIMIT 1")
+        );
+    }
+
+    /**
      * 保存新文档
      *
      * @param document 文档实体

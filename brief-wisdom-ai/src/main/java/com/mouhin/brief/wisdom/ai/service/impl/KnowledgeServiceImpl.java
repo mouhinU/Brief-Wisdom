@@ -218,6 +218,32 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         return dtoPage;
     }
 
+    /**
+     * 按 Markdown 导入源路径 upsert：已存在则更新内容与元数据，不存在则新增
+     */
+    @Override
+    public boolean upsertImportedMarkdown(KnowledgeDocumentBO bo, String sourcePath) {
+        KnowledgeDocument existing = knowledgeDocumentRepository.findByBaseIdAndFileName(bo.getBaseId(), sourcePath);
+        if (existing == null && bo.getTitle() != null) {
+            existing = knowledgeDocumentRepository.findLegacyImportedByTitle(
+                    bo.getBaseId(), bo.getTitle(), bo.getDocType());
+        }
+
+        if (existing != null) {
+            copyBoToDoc(bo, existing);
+            existing.setFileName(sourcePath);
+            knowledgeDocumentRepository.update(existing);
+            return false;
+        }
+
+        KnowledgeDocument doc = new KnowledgeDocument();
+        copyBoToDoc(bo, doc);
+        doc.setFileName(sourcePath);
+        doc.setViewCount(0);
+        knowledgeDocumentRepository.save(doc);
+        return true;
+    }
+
     // ==================== 私有方法 ====================
 
     /**
