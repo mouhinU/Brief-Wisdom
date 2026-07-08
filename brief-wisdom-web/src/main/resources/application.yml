@@ -5,6 +5,10 @@ spring:
     name: brief-wisdom
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  # 排除 Spring AI Milvus 自动配置(使用自定义条件化配置)
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.vectorstore.milvus.autoconfigure.MilvusVectorStoreAutoConfiguration
   messages:
     basename: i18n/messages
     encoding: UTF-8
@@ -13,7 +17,7 @@ spring:
     url: jdbc:mysql://localhost:3306/brief_wisdom?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:changeme}
+    password: ${DB_PASSWORD:123456}
   # Redis 配置（Redisson 自动读取此配置）
   data:
     redis:
@@ -44,6 +48,14 @@ spring:
       chat:
         options:
           model: qwen-max
+    # Milvus 向量数据库配置(默认禁用,需要时手动启用)
+    vectorstore:
+      milvus:
+        enabled: false  # 是否启用 Milvus 向量检索功能
+        host: localhost
+        port: 19530
+        collection-name: knowledge_embeddings
+        dimension: 1536
 
 # 日志配置已移至 logback-spring.xml
 

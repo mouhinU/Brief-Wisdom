@@ -22,6 +22,12 @@
             <artifactId>spring-ai-starter-model-anthropic</artifactId>
         </dependency>
 
+        <!-- Spring AI Vector Store - Milvus -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-vector-store-milvus</artifactId>
+        </dependency>
+
         <!-- Persistence Module -->
         <dependency>
             <groupId>com.mouhin</groupId>

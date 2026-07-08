@@ -2,7 +2,6 @@
 # 开发环境配置 (application-dev.yml)
 # 仅在 SPRING_PROFILES_ACTIVE=dev 时生效
 # ============================================
-
 spring:
   # DevTools 热部署配置
   devtools:
@@ -32,14 +31,6 @@ spring:
       port: 6379
       password: ${REDIS_PASSWORD:123456}
       database: 0
-#  # Spring AI 开发环境配置
-#  ai:
-#    openai:
-#      api-key: ${DASHSCOPE_API_KEY:sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg}
-#      base-url: https://dashscope.aliyuncs.com/compatible-mode
-#      chat:
-#        options:
-#          model: qwen-max
 
 # MyBatis 开发环境 SQL 日志（生产环境请勿开启）
 mybatis-plus:

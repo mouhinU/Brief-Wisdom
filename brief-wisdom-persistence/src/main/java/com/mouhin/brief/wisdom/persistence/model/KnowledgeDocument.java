@@ -71,4 +71,10 @@ public class KnowledgeDocument extends BaseEntity {
      */
     @TableField(value = "status")
     private Integer status;
+
+    /**
+     * 向量嵌入(用于语义检索)
+     */
+    @TableField(value = "embedding", typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
+    private String embedding;
 }

@@ -872,7 +872,11 @@ async function loadSessionHistory(sessionId) {
     try {
         console.log('正在加载会话历史:', sessionId);
         const pageSize = paginationConfig.messageHistory.defaultSize;
-        const response = await fetch(`/api/ai/session/${sessionId}/history?page=1&size=${pageSize}`);
+        const response = await fetch(`/api/ai/session/${sessionId}/history`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page: 1, size: pageSize })
+        });
         const data = await response.json();
 
         console.log('历史记录响应:', data);
@@ -922,7 +926,11 @@ async function loadMoreHistory() {
     try {
         const nextPage = historyCurrentPage + 1;
         const pageSize = paginationConfig.messageHistory.defaultSize;
-        const response = await fetch(`/api/ai/session/${currentSessionId}/history?page=${nextPage}&size=${pageSize}`);
+        const response = await fetch(`/api/ai/session/${currentSessionId}/history`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page: nextPage, size: pageSize })
+        });
         const data = await response.json();
 
         if (data.success && data.data.records && data.data.records.length > 0) {

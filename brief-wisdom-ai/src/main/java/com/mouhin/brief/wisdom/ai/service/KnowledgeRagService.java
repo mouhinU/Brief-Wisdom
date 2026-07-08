@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,6 +34,7 @@ public class KnowledgeRagService {
 
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
     private final ProjectCodeIndexService projectCodeIndexService;
+    private final Optional<VectorStoreService> vectorStoreServiceOptional;
 
     /** 注入上下文的最大字符数（避免超出 token 限制） */
     private static final int MAX_CONTEXT_LENGTH = 3000;
@@ -51,11 +53,50 @@ public class KnowledgeRagService {
 
     /**
      * 根据用户消息检索相关知识文档
+     * <p>
+     * 采用混合检索策略：
+     * 1. 优先使用向量语义检索(如果可用)
+     * 2. 降级为关键词匹配(向后兼容)
      *
      * @param userMessage 用户消息
      * @return 相关文档列表（按相关度排序）
      */
     public List<KnowledgeDocument> retrieveRelevantDocuments(String userMessage) {
+        if (userMessage == null || userMessage.isBlank()) {
+            return List.of();
+        }
+
+        // 尝试向量检索
+        if (vectorStoreServiceOptional.isPresent()) {
+            try {
+                VectorStoreService vectorStoreService = vectorStoreServiceOptional.get();
+                List<Long> vectorDocIds = vectorStoreService.searchSimilarDocuments(userMessage);
+                if (!vectorDocIds.isEmpty()) {
+                    log.info("使用向量检索找到 {} 篇相关文档", vectorDocIds.size());
+                    List<KnowledgeDocument> result = new ArrayList<>();
+                    for (Long docId : vectorDocIds) {
+                        KnowledgeDocument doc = knowledgeDocumentRepository.findById(docId);
+                        if (doc != null && doc.getStatus() != null && doc.getStatus() == 1) { // 只返回已发布的文档
+                            result.add(doc);
+                        }
+                    }
+                    if (!result.isEmpty()) {
+                        return result;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("向量检索失败，降级为关键词匹配: {}", e.getMessage());
+            }
+        }
+
+        // 降级：关键词匹配
+        return retrieveByKeywords(userMessage);
+    }
+
+    /**
+     * 基于关键词的检索(降级方案)
+     */
+    private List<KnowledgeDocument> retrieveByKeywords(String userMessage) {
         if (userMessage == null || userMessage.isBlank()) {
             return List.of();
         }

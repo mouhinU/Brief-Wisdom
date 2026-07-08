@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.ai.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
+import com.mouhin.brief.wisdom.ai.service.VectorStoreService;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 知识库管理服务实现
@@ -34,6 +36,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
+    private final Optional<VectorStoreService> vectorStoreServiceOptional;
 
     // ==================== 知识库 ====================
 
@@ -178,6 +181,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         copyBoToDoc(bo, doc);
         doc.setViewCount(0);
         knowledgeDocumentRepository.save(doc);
+        
+        // 异步触发向量化(不阻塞主流程)
+        triggerDocumentEmbeddingAsync(doc);
+        
         return toDocDTO(doc);
     }
 
@@ -192,6 +199,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         }
         copyBoToDoc(bo, doc);
         knowledgeDocumentRepository.update(doc);
+        
+        // 异步触发向量化更新
+        triggerDocumentEmbeddingAsync(doc);
+        
         return toDocDTO(doc);
     }
 
@@ -204,6 +215,16 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         if (doc == null) {
             throw new AIException("文档不存在: " + id);
         }
+        
+        // 删除向量嵌入
+        if (vectorStoreServiceOptional.isPresent()) {
+            try {
+                vectorStoreServiceOptional.get().removeDocumentEmbedding(id);
+            } catch (Exception e) {
+                log.warn("删除文档向量嵌入失败: documentId={}, error={}", id, e.getMessage());
+            }
+        }
+        
         knowledgeDocumentRepository.deleteById(id);
     }
 
@@ -339,5 +360,51 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         doc.setTags(bo.getTags());
         if (bo.getSortOrder() != null) { doc.setSortOrder(bo.getSortOrder()); }
         if (bo.getStatus() != null) { doc.setStatus(bo.getStatus()); }
+    }
+
+    /**
+     * 异步触发文档向量化(不阻塞主流程)
+     */
+    private void triggerDocumentEmbeddingAsync(KnowledgeDocument doc) {
+        if (!vectorStoreServiceOptional.isPresent()) {
+            log.debug("VectorStoreService 未启用，跳过向量化: documentId={}", doc.getId());
+            return;
+        }
+        
+        // TODO: 后续可使用 @Async 注解实现真正的异步执行
+        // 当前为同步调用，但已做好异常隔离，不会影响主流程
+        try {
+            String content = extractDocumentContent(doc);
+            if (content != null && !content.isBlank()) {
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("title", doc.getTitle());
+                metadata.put("tags", doc.getTags());
+                
+                vectorStoreServiceOptional.get().addDocumentEmbedding(doc.getId(), content, metadata);
+                log.info("文档向量化完成: documentId={}, title={}", doc.getId(), doc.getTitle());
+            }
+        } catch (Exception e) {
+            // 向量化失败不影响文档保存/更新的主流程
+            log.warn("文档向量化触发失败: documentId={}, error={}", doc.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * 从文档中提取纯文本内容用于向量化
+     */
+    private String extractDocumentContent(KnowledgeDocument doc) {
+        if ("INTERNAL".equals(doc.getDocType())) {
+            // 内部文档：去除 HTML 标签，保留纯文本
+            if (doc.getContent() != null) {
+                return doc.getContent().replaceAll("<[^>]+>", "").replaceAll("&nbsp;", " ").trim();
+            }
+        } else if ("LINK".equals(doc.getDocType())) {
+            // 外部链接：使用描述信息
+            return doc.getLinkDesc();
+        } else if ("FILE".equals(doc.getDocType())) {
+            // 文件：使用文件名和类型作为元数据
+            return doc.getFileName() != null ? doc.getFileName() : "";
+        }
+        return "";
     }
 }
