@@ -1,94 +1,220 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>登录 - 简知</title>
-    <link rel="stylesheet" href="css/login.css">
-</head>
-<body>
-<div class="login-container">
-    <!-- 左侧品牌区域 -->
-    <div class="login-brand-section">
+    <link rel="stylesheet" href="css/login.css" />
+  </head>
+  <body>
+    <div class="login-container">
+      <!-- 左侧品牌区域 -->
+      <div class="login-brand-section">
         <div class="brand-content">
-            <h1 class="brand-title">简知</h1>
-            <p class="brand-subtitle">AI 智能助手平台</p>
-            <div class="brand-features">
-                <div class="feature-item">
-                    <span class="feature-icon">🤖</span>
-                    <span class="feature-text">智能对话</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📝</span>
-                    <span class="feature-text">简历管理</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">💡</span>
-                    <span class="feature-text">知识问答</span>
-                </div>
+          <h1 class="brand-title">简知</h1>
+          <p class="brand-subtitle">AI 智能助手平台</p>
+          <div class="brand-features">
+            <div class="feature-item">
+              <span class="feature-icon">🤖</span>
+              <span class="feature-text">智能对话</span>
             </div>
+            <div class="feature-item">
+              <span class="feature-icon">📝</span>
+              <span class="feature-text">简历管理</span>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">💡</span>
+              <span class="feature-text">知识问答</span>
+            </div>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- 右侧登录/注册表单区域 -->
-    <div class="login-form-section">
+      <!-- 右侧登录/注册表单区域 -->
+      <div class="login-form-section">
         <div class="form-container">
-            <!-- Tab 切换 -->
-            <div class="auth-tabs">
-                <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">登录</button>
-                <button class="auth-tab" id="tabPhone" onclick="switchAuthTab('phone')">手机号</button>
-                <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">注册</button>
+          <!-- Tab 切换 -->
+          <div class="auth-tabs">
+            <button
+              class="auth-tab active"
+              id="tabLogin"
+              onclick="switchAuthTab('login')"
+            >
+              账号密码
+            </button>
+            <button
+              class="auth-tab"
+              id="tabPhone"
+              onclick="switchAuthTab('phone')"
+            >
+              验证码
+            </button>
+          </div>
+
+          <!-- 登录表单 -->
+          <div class="auth-form-area" id="loginForm">
+            <h2 class="form-title">账号密码登录</h2>
+            <input
+              type="text"
+              class="auth-input"
+              id="loginUsername"
+              placeholder="用户名"
+              autocomplete="username"
+            />
+            <input
+              type="password"
+              class="auth-input"
+              id="loginPassword"
+              placeholder="密码"
+              autocomplete="current-password"
+            />
+            <div class="auth-error" id="loginError" style="display: none"></div>
+            <button class="auth-submit" onclick="doLogin()">登 录</button>
+            <div class="auth-switch-hint">
+              <span>还没有账号？</span>
+              <button
+                type="button"
+                class="auth-switch-link"
+                onclick="switchAuthTab('register')"
+              >
+                立即注册
+              </button>
             </div>
 
-            <!-- 登录表单 -->
-            <div class="auth-form-area" id="loginForm">
-                <h2 class="form-title">欢迎回来</h2>
-                <input type="text" class="auth-input" id="loginUsername" placeholder="用户名" autocomplete="username">
-                <input type="password" class="auth-input" id="loginPassword" placeholder="密码" autocomplete="current-password">
-                <div class="auth-error" id="loginError" style="display:none;"></div>
-                <button class="auth-submit" onclick="doLogin()">登 录</button>
-                
-                <div class="auth-divider"><span>或通过第三方扫码登录</span></div>
-                <div class="auth-oauth-buttons">
-                    <button class="auth-wechat-btn" onclick="startWechatLogin()"><span>💬</span> 微信</button>
-                    <button class="auth-dingtalk-btn" onclick="startDingtalkLogin()"><span>📌</span> 钉钉</button>
-                    <button class="auth-alipay-btn" onclick="startAlipayLogin()"><span>💰</span> 支付宝</button>
-                </div>
+            <div class="auth-divider"><span>或通过第三方扫码登录</span></div>
+            <div class="auth-oauth-buttons">
+              <button class="auth-wechat-btn" onclick="startWechatLogin()">
+                <span>💬</span> 微信
+              </button>
+              <button class="auth-dingtalk-btn" onclick="startDingtalkLogin()">
+                <span>📌</span> 钉钉
+              </button>
+              <button class="auth-alipay-btn" onclick="startAlipayLogin()">
+                <span>💰</span> 支付宝
+              </button>
             </div>
+          </div>
 
-            <!-- 手机号登录表单 -->
-            <div class="auth-form-area" id="phoneLoginForm" style="display:none;">
-                <h2 class="form-title">手机号登录</h2>
-                <input type="tel" class="auth-input" id="phoneLoginPhone" placeholder="手机号" autocomplete="tel" maxlength="11">
-                <div class="sms-input-group">
-                    <input type="text" class="auth-input sms-code-input" id="phoneLoginCode" placeholder="验证码" autocomplete="one-time-code" maxlength="6">
-                    <button class="sms-send-btn" id="phoneLoginSendBtn" onclick="sendSmsCode('phoneLoginSendBtn', 'phoneLoginPhone')">获取验证码</button>
-                </div>
-                <div class="auth-error" id="phoneLoginError" style="display:none;"></div>
-                <button class="auth-submit" onclick="doPhoneLogin()">登 录</button>
-                <p class="auth-hint">未注册的手机号将自动创建账号</p>
+          <!-- 手机号登录表单 -->
+          <div class="auth-form-area" id="phoneLoginForm" style="display: none">
+            <h2 class="form-title">验证码登录</h2>
+            <input
+              type="tel"
+              class="auth-input"
+              id="phoneLoginPhone"
+              placeholder="手机号"
+              autocomplete="tel"
+              maxlength="11"
+            />
+            <div class="sms-input-group">
+              <input
+                type="text"
+                class="auth-input sms-code-input"
+                id="phoneLoginCode"
+                placeholder="验证码"
+                autocomplete="one-time-code"
+                maxlength="6"
+              />
+              <button
+                class="sms-send-btn"
+                id="phoneLoginSendBtn"
+                onclick="sendSmsCode('phoneLoginSendBtn', 'phoneLoginPhone')"
+              >
+                获取验证码
+              </button>
             </div>
+            <div
+              class="auth-error"
+              id="phoneLoginError"
+              style="display: none"
+            ></div>
+            <button class="auth-submit" onclick="doPhoneLogin()">登 录</button>
+            <div class="auth-switch-hint">
+              <span>还没有账号？</span>
+              <button
+                type="button"
+                class="auth-switch-link"
+                onclick="switchAuthTab('register')"
+              >
+                立即注册
+              </button>
+            </div>
+            <p class="auth-hint">未注册的手机号将自动创建账号</p>
+          </div>
 
-            <!-- 注册表单 -->
-            <div class="auth-form-area" id="registerForm" style="display:none;">
-                <h2 class="form-title">创建账号</h2>
-                <input type="text" class="auth-input" id="regUsername" placeholder="用户名（至少3位）" autocomplete="username">
-                <input type="text" class="auth-input" id="regNickname" placeholder="昵称（可选）">
-                <input type="password" class="auth-input" id="regPassword" placeholder="密码（至少6位）" autocomplete="new-password">
-                <input type="password" class="auth-input" id="regPassword2" placeholder="确认密码" autocomplete="new-password">
-                <div class="auth-form-divider"></div>
-                <input type="tel" class="auth-input" id="regPhone" placeholder="手机号（可选，绑定后升级为会员）" autocomplete="tel" maxlength="11">
-                <div class="sms-input-group">
-                    <input type="text" class="auth-input sms-code-input" id="regSmsCode" placeholder="短信验证码" autocomplete="one-time-code" maxlength="6">
-                    <button class="sms-send-btn" id="regSmsSendBtn" onclick="sendSmsCode('regSmsSendBtn', 'regPhone')">获取验证码</button>
-                </div>
-                <div class="auth-error" id="regError" style="display:none;"></div>
-                <button class="auth-submit" onclick="doRegister()">注 册</button>
+          <!-- 注册表单 -->
+          <div class="auth-form-area" id="registerForm" style="display: none">
+            <h2 class="form-title">创建账号</h2>
+            <input
+              type="text"
+              class="auth-input"
+              id="regUsername"
+              placeholder="用户名（至少3位）"
+              autocomplete="username"
+            />
+            <input
+              type="text"
+              class="auth-input"
+              id="regNickname"
+              placeholder="昵称（可选）"
+            />
+            <input
+              type="password"
+              class="auth-input"
+              id="regPassword"
+              placeholder="密码（至少6位）"
+              autocomplete="new-password"
+            />
+            <input
+              type="password"
+              class="auth-input"
+              id="regPassword2"
+              placeholder="确认密码"
+              autocomplete="new-password"
+            />
+            <div class="auth-form-divider"></div>
+            <input
+              type="tel"
+              class="auth-input"
+              id="regPhone"
+              placeholder="手机号（可选，绑定后升级为会员）"
+              autocomplete="tel"
+              maxlength="11"
+            />
+            <div class="sms-input-group">
+              <input
+                type="text"
+                class="auth-input sms-code-input"
+                id="regSmsCode"
+                placeholder="短信验证码"
+                autocomplete="one-time-code"
+                maxlength="6"
+              />
+              <button
+                class="sms-send-btn"
+                id="regSmsSendBtn"
+                onclick="sendSmsCode('regSmsSendBtn', 'regPhone')"
+              >
+                获取验证码
+              </button>
             </div>
+            <div class="auth-error" id="regError" style="display: none"></div>
+            <button class="auth-submit" onclick="doRegister()">注 册</button>
+            <div class="auth-switch-hint">
+              <span>已有账号？</span>
+              <button
+                type="button"
+                class="auth-switch-link"
+                onclick="switchAuthTab('login')"
+              >
+                去登录
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
-</div>
 
-<script src="js/auth-page.js"></script>
-</body>
+    <script src="js/auth-page.js"></script>
+  </body>
 </html>

@@ -234,7 +234,6 @@ function renderNavbar(menus) {
   // 先渲染未登录状态
   authArea.innerHTML = `
     <button class="auth-btn auth-login-btn" onclick="window.location.href='/login.html?tab=login'">登录</button>
-    <button class="auth-btn auth-register-btn" onclick="window.location.href='/login.html?tab=register'">注册</button>
   `;
   rightArea.appendChild(authArea);
   navbar.appendChild(rightArea);
@@ -501,7 +500,6 @@ function updateAuthArea() {
   } else {
     authArea.innerHTML = `
       <button class="auth-btn auth-login-btn" onclick="window.location.href='/login.html?tab=login'">登录</button>
-      <button class="auth-btn auth-register-btn" onclick="window.location.href='/login.html?tab=register'">注册</button>
     `;
   }
 }
