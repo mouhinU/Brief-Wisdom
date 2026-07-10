@@ -1,3 +1,7 @@
+---
+name: Backend Architecture Skill
+description: Use this skill for core backend changes such as APIs, services, repositories, DTOs, and module boundary updates.
+---
 # Backend Architecture Skill
 
 ## Purpose

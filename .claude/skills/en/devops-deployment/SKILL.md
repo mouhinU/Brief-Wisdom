@@ -1,3 +1,7 @@
+---
+name: DevOps and Deployment Skill
+description: Use this skill for Docker, Maven build, environment configuration, deployment behavior, and runtime-related changes.
+---
 # DevOps and Deployment Skill
 
 ## Purpose

@@ -20,7 +20,8 @@
         basePage: 1,
         baseTotalPages: 0,
         baseAllLoaded: false,
-        baseLoading: false
+        baseLoading: false,
+        selectedDocIds: new Set()
     };
 
     const KNOWLEDGE_API_BASE = '/api/knowledge';
@@ -269,6 +270,7 @@
         state.currentBaseId = baseId;
         state.currentPage = 1;
         state.currentDocType = '';
+        state.selectedDocIds.clear();
 
         document.querySelectorAll('.knowledge-base-item').forEach(e => e.classList.remove('active'));
         if (el) el.classList.add('active');
@@ -352,7 +354,7 @@
      * 删除知识库
      */
     async function deleteBase(id) {
-        if (!await showConfirmDialog('确定要删除此知识库吗？其下所有文档也会被删除。', '🗑️')) return;
+        if (!await showConfirmDialog('确定要删除此知识库吗？', '🗑️')) return;
         try {
             await apiRequest(`${KNOWLEDGE_API_BASE}/bases/${id}`, 'DELETE');
             if (state.currentBaseId === id) {
@@ -415,6 +417,7 @@
 
         if (!docs || docs.length === 0) {
             container.innerHTML = '<div class="knowledge-empty-hint">暂无文档，点击右上角创建</div>';
+            updateBatchDeleteButton();
             return;
         }
 
@@ -424,8 +427,13 @@
             const statusClass = doc.status === 1 ? 'published' : doc.status === 0 ? 'draft' : 'archived';
             const statusText = doc.status === 1 ? '已发布' : doc.status === 0 ? '草稿' : '已归档';
             const tags = doc.tags ? doc.tags.split(',').filter(t => t.trim()).map(t => `<span class="knowledge-doc-tag">${escapeHtml(t.trim())}</span>`).join('') : '';
+            const isChecked = state.selectedDocIds.has(doc.id) ? 'checked' : '';
 
-            return `<div class="knowledge-doc-item" onclick="KnowledgeManagement.viewDocument(${doc.id})">
+            return `<div class="knowledge-doc-item" data-doc-id="${doc.id}" onclick="KnowledgeManagement.viewDocument(${doc.id})">
+                <label class="knowledge-doc-checkbox-label" onclick="event.stopPropagation()">
+                    <input type="checkbox" class="knowledge-doc-checkbox" data-doc-id="${doc.id}" ${isChecked}
+                           onchange="KnowledgeManagement.toggleDocSelection(${doc.id}, this.checked)">
+                </label>
                 <div class="knowledge-doc-type-icon ${typeClass}">${typeIcon}</div>
                 <div class="knowledge-doc-info">
                     <div class="knowledge-doc-title-text">${escapeHtml(doc.title)}</div>
@@ -443,6 +451,8 @@
                 </div>
             </div>`;
         }).join('');
+
+        updateBatchDeleteButton();
     }
 
     /**
@@ -544,6 +554,11 @@
         document.getElementById('knowledge-doc-link-desc').value = '';
         document.getElementById('knowledge-doc-tags').value = '';
         document.getElementById('knowledge-doc-status').value = '1';
+        // 隐藏 URL 抓取状态和 Markdown 预览
+        const fetchStatusEl = document.getElementById('knowledge-url-fetch-status');
+        if (fetchStatusEl) fetchStatusEl.style.display = 'none';
+        const previewEl = document.getElementById('knowledge-link-desc-preview');
+        if (previewEl) previewEl.style.display = 'none';
         document.querySelector('input[name="docType"][value="INTERNAL"]').checked = true;
         onDocTypeChange();
         document.getElementById('knowledge-doc-modal').style.display = 'flex';
@@ -573,6 +588,11 @@
             document.getElementById('knowledge-doc-link-desc').value = doc.linkDesc || '';
             document.getElementById('knowledge-doc-tags').value = doc.tags || '';
             document.getElementById('knowledge-doc-status').value = doc.status || 1;
+            // 隐藏 URL 抓取状态和 Markdown 预览
+            const editFetchStatusEl = document.getElementById('knowledge-url-fetch-status');
+            if (editFetchStatusEl) editFetchStatusEl.style.display = 'none';
+            const editPreviewEl = document.getElementById('knowledge-link-desc-preview');
+            if (editPreviewEl) editPreviewEl.style.display = 'none';
             onDocTypeChange();
             document.getElementById('knowledge-doc-modal').style.display = 'flex';
         } catch (err) {
@@ -840,6 +860,160 @@
     }
 
     /**
+     * 自动抓取 URL 元数据（标题、描述）
+     */
+    async function autoFetchUrlMetadata() {
+        const urlInput = document.getElementById('knowledge-doc-link-url');
+        const url = urlInput ? urlInput.value.trim() : '';
+        if (!url) return;
+
+        // 校验 URL 格式
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            return;
+        }
+
+        const statusEl = document.getElementById('knowledge-url-fetch-status');
+        const btnEl = document.getElementById('knowledge-fetch-url-btn');
+
+        try {
+            // 显示加载状态
+            if (statusEl) {
+                statusEl.style.display = '';
+                statusEl.textContent = '⏳ 正在抓取网页信息...';
+                statusEl.className = 'knowledge-url-fetch-status loading';
+            }
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.textContent = '⏳ 抓取中...';
+            }
+
+            const metadata = await apiRequest(`${KNOWLEDGE_API_BASE}/url-metadata?url=${encodeURIComponent(url)}`);
+
+            // 填充链接描述
+            const descEl = document.getElementById('knowledge-doc-link-desc');
+            if (descEl && metadata) {
+                let descContent = '';
+                if (metadata.title) {
+                    descContent += `# ${metadata.title}\n\n`;
+                }
+                if (metadata.description) {
+                    descContent += metadata.description;
+                }
+                if (metadata.url) {
+                    descContent += `\n\n> 来源: [${metadata.url}](${metadata.url})`;
+                }
+                descEl.value = descContent.trim();
+            }
+
+            if (statusEl) {
+                statusEl.textContent = '✅ 抓取成功';
+                statusEl.className = 'knowledge-url-fetch-status success';
+                setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+            }
+        } catch (err) {
+            if (statusEl) {
+                statusEl.textContent = '❌ 抓取失败: ' + (err.message || '未知错误');
+                statusEl.className = 'knowledge-url-fetch-status error';
+                setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+            }
+        } finally {
+            if (btnEl) {
+                btnEl.disabled = false;
+                btnEl.textContent = '🔗 自动获取';
+            }
+        }
+    }
+
+    /**
+     * 切换链接描述的 Markdown 预览
+     */
+    function toggleLinkDescPreview() {
+        const previewEl = document.getElementById('knowledge-link-desc-preview');
+        const descEl = document.getElementById('knowledge-doc-link-desc');
+        if (!previewEl || !descEl) return;
+
+        const isVisible = previewEl.style.display !== 'none';
+        if (isVisible) {
+            previewEl.style.display = 'none';
+            return;
+        }
+
+        // 渲染 Markdown 预览
+        const content = descEl.value || '';
+        if (typeof marked !== 'undefined' && content) {
+            try {
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true,
+                    headerIds: false,
+                    mangle: false,
+                    sanitize: false
+                });
+                previewEl.innerHTML = marked.parse(content);
+            } catch (err) {
+                previewEl.innerHTML = '<p style="color:#999;">预览渲染失败</p>';
+            }
+        } else {
+            previewEl.innerHTML = content ? `<div class="markdown-content">${escapeHtml(content)}</div>` : '<p style="color:#999;">暂无内容</p>';
+        }
+        previewEl.style.display = '';
+    }
+
+    /**
+     * 切换文档选中状态
+     */
+    function toggleDocSelection(docId, checked) {
+        if (checked) {
+            state.selectedDocIds.add(docId);
+        } else {
+            state.selectedDocIds.delete(docId);
+        }
+        updateBatchDeleteButton();
+    }
+
+    /**
+     * 更新批量删除按钮状态
+     */
+    function updateBatchDeleteButton() {
+        const btn = document.getElementById('knowledge-batch-delete-btn');
+        if (!btn) return;
+
+        const count = state.selectedDocIds.size;
+        if (count > 0) {
+            btn.style.display = '';
+            btn.textContent = `🗑️ 批量删除 (${count})`;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    /**
+     * 批量删除文档
+     */
+    async function batchDeleteDocuments() {
+        const ids = Array.from(state.selectedDocIds);
+        if (ids.length === 0) {
+            showToast('请先选择要删除的文档', 'warning');
+            return;
+        }
+
+        if (!await showConfirmDialog(`确定要删除选中的 ${ids.length} 个文档吗？此操作不可恢复。`, '🗑️')) return;
+
+        try {
+            const deletedCount = await apiRequest(`${KNOWLEDGE_API_BASE}/documents/batch-delete`, 'POST', {
+                ids: ids
+            });
+
+            state.selectedDocIds.clear();
+            await loadDocuments();
+            await loadBases();
+            showToast(`成功删除 ${deletedCount} 个文档`);
+        } catch (err) {
+            showToast('批量删除异常: ' + err.message, 'error');
+        }
+    }
+
+    /**
      * 格式化时间
      */
     function formatTime(timeStr) {
@@ -926,7 +1100,13 @@
         showImportMdModal,
         closeImportMdModal,
         onImportModeChange,
-        importMarkdown
+        importMarkdown,
+        // URL 元数据抓取
+        autoFetchUrlMetadata,
+        toggleLinkDescPreview,
+        // 批量删除
+        toggleDocSelection,
+        batchDeleteDocuments
     };
 
 })();

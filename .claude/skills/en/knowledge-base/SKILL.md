@@ -1,3 +1,7 @@
+---
+name: Knowledge Base Skill
+description: Use this skill for knowledge base CRUD, document import, retrieval, vector integration, or AI knowledge features.
+---
 # Knowledge Base Skill
 
 ## Purpose

@@ -1,3 +1,7 @@
+---
+name: Operation Checklist Skill
+description: Use this skill when you need a fast, repeatable checklist before implementing or reviewing a change in Brief-Wisdom.
+---
 # Operation Checklist Skill
 
 ## Purpose

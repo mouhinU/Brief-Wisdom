@@ -67,7 +67,7 @@ public interface KnowledgeService {
     KnowledgeBaseDTO updateBase(Long id, KnowledgeBaseBO bo);
 
     /**
-     * 删除知识库（同时删除其下所有文档）
+     * 删除知识库（若知识库下还有文档则拒绝删除）
      *
      * @param id 知识库 ID
      */
@@ -117,6 +117,14 @@ public interface KnowledgeService {
      * @param id 文档 ID
      */
     void deleteDocument(Long id);
+
+    /**
+     * 批量删除文档
+     *
+     * @param ids 文档 ID 列表
+     * @return 实际删除的文档数量
+     */
+    int batchDeleteDocuments(List<Long> ids);
 
     /**
      * 搜索文档（按标题模糊查询）

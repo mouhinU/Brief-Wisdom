@@ -114,7 +114,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     }
 
     /**
-     * 删除知识库（同时删除其下所有文档）
+     * 删除知识库（若知识库下还有文档则拒绝删除）
      */
     @Override
     @Transactional
@@ -128,10 +128,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         if (childCount > 0) {
             throw new AIException("该知识库下还有子知识库，请先删除子知识库");
         }
-        // 删除知识库下的所有文档
-        List<KnowledgeDocument> docs = knowledgeDocumentRepository.findByBaseId(id);
-        for (KnowledgeDocument doc : docs) {
-            knowledgeDocumentRepository.deleteById(doc.getId());
+        // 检查是否有文档，有文档时拒绝删除
+        long docCount = knowledgeDocumentRepository.countByBaseId(id);
+        if (docCount > 0) {
+            throw new AIException("该知识库下还有 " + docCount + " 个文档，请先删除知识库下的所有文档");
         }
         knowledgeBaseRepository.deleteById(id);
     }
@@ -205,6 +205,27 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             throw new AIException("文档不存在: " + id);
         }
         knowledgeDocumentRepository.deleteById(id);
+    }
+
+    /**
+     * 批量删除文档
+     */
+    @Override
+    @Transactional
+    public int batchDeleteDocuments(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        int deletedCount = 0;
+        for (Long id : ids) {
+            KnowledgeDocument doc = knowledgeDocumentRepository.findById(id);
+            if (doc != null) {
+                knowledgeDocumentRepository.deleteById(id);
+                deletedCount++;
+            }
+        }
+        log.info("批量删除文档完成 - 请求: {} 个, 实际删除: {} 个", ids.size(), deletedCount);
+        return deletedCount;
     }
 
     /**

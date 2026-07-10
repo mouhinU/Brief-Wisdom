@@ -33,5 +33,12 @@
             <groupId>com.mouhin</groupId>
             <artifactId>brief-wisdom-common</artifactId>
         </dependency>
+
+        <!-- Jsoup for HTML parsing -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.17.2</version>
+        </dependency>
     </dependencies>
 </project>

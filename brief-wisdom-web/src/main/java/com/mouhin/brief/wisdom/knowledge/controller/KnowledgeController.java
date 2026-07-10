@@ -3,7 +3,9 @@ package com.mouhin.brief.wisdom.knowledge.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
 import com.mouhin.brief.wisdom.ai.service.MarkdownImportService;
+import com.mouhin.brief.wisdom.ai.service.UrlFetchService;
 import com.mouhin.brief.wisdom.common.knowledge.*;
+import com.mouhin.brief.wisdom.knowledge.req.DocumentBatchDeleteRequest;
 import com.mouhin.brief.wisdom.knowledge.req.DocumentListQueryRequest;
 import com.mouhin.brief.wisdom.knowledge.req.DocumentSearchQueryRequest;
 import com.mouhin.brief.wisdom.knowledge.req.KnowledgeBasePagedQueryRequest;
@@ -37,6 +39,7 @@ public class KnowledgeController {
 
     private final KnowledgeService knowledgeService;
     private final MarkdownImportService markdownImportService;
+    private final UrlFetchService urlFetchService;
     private final UserContextHelper userContextHelper;
 
     // ==================== 知识库 ====================
@@ -150,6 +153,18 @@ public class KnowledgeController {
     }
 
     /**
+     * 批量删除文档
+     */
+    @Operation(summary = "批量删除文档", description = "根据 ID 列表批量删除文档")
+    @PostMapping("/documents/batch-delete")
+    public Integer batchDeleteDocuments(@RequestBody DocumentBatchDeleteRequest request) {
+        if (request.getIds() == null || request.getIds().isEmpty()) {
+            throw new BizException(BizExceptionEnums.PARAM_ERROR, "待删除的文档 ID 列表不能为空");
+        }
+        return knowledgeService.batchDeleteDocuments(request.getIds());
+    }
+
+    /**
      * 搜索文档
      */
     @Operation(summary = "搜索文档", description = "需要登录才能访问")
@@ -160,6 +175,17 @@ public class KnowledgeController {
         // 检查用户是否登录
         checkLoginRequired(httpRequest);
         return knowledgeService.searchDocuments(request.getKeyword(), request.getPage(), request.getSize());
+    }
+
+    // ==================== URL 元数据抓取 ====================
+
+    /**
+     * 抓取 URL 元数据（标题、描述）
+     */
+    @Operation(summary = "抓取 URL 元数据", description = "根据 URL 自动抓取网页标题和描述")
+    @GetMapping("/url-metadata")
+    public UrlMetadataDTO fetchUrlMetadata(@RequestParam("url") String url) {
+        return urlFetchService.fetchUrlMetadata(url);
     }
 
     // ==================== Markdown 导入 ====================

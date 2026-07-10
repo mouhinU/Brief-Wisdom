@@ -1,3 +1,7 @@
+---
+name: DevOps 与部署 Skill
+description: 用于 Docker、Maven 构建、环境配置、部署行为和运行时相关变更。
+---
 # DevOps 与部署 Skill
 
 ## 作用

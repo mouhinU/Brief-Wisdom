@@ -44,6 +44,7 @@
                             </div>
                             <button class="btn btn-secondary" id="knowledge-import-md-btn" onclick="KnowledgeManagement.showImportMdModal()" style="display:none;">📥 导入 MD</button>
                             <button class="btn btn-primary" id="knowledge-add-doc-btn" onclick="KnowledgeManagement.showDocForm()" style="display:none;">+ 新建文档</button>
+                            <button class="btn btn-danger" id="knowledge-batch-delete-btn" onclick="KnowledgeManagement.batchDeleteDocuments()" style="display:none;">🗑️ 批量删除</button>
                         </div>
                     </div>
 
@@ -179,11 +180,26 @@
                         <div id="knowledge-link-fields" style="display:none;">
                             <div class="knowledge-form-group">
                                 <label>链接URL *</label>
-                                <input type="text" id="knowledge-doc-link-url" placeholder="https://...">
+                                <div class="knowledge-link-url-row">
+                                    <input type="text" id="knowledge-doc-link-url" placeholder="https://..."
+                                           onblur="KnowledgeManagement.autoFetchUrlMetadata()">
+                                    <button type="button" class="btn btn-fetch-url" id="knowledge-fetch-url-btn"
+                                            onclick="KnowledgeManagement.autoFetchUrlMetadata()" title="自动获取链接描述">
+                                        🔗 自动获取
+                                    </button>
+                                </div>
+                                <div id="knowledge-url-fetch-status" class="knowledge-url-fetch-status" style="display:none;"></div>
                             </div>
                             <div class="knowledge-form-group">
-                                <label>链接描述</label>
-                                <input type="text" id="knowledge-doc-link-desc" placeholder="链接描述">
+                                <label>链接描述 <span class="knowledge-label-hint">（支持 Markdown 格式）</span></label>
+                                <textarea id="knowledge-doc-link-desc" rows="6" class="knowledge-link-desc-editor"
+                                          placeholder="链接描述，支持 Markdown 格式..."></textarea>
+                                <div class="knowledge-markdown-preview-toggle">
+                                    <button type="button" class="btn-toggle-preview" onclick="KnowledgeManagement.toggleLinkDescPreview()">
+                                        👁 预览
+                                    </button>
+                                </div>
+                                <div id="knowledge-link-desc-preview" class="knowledge-markdown-preview" style="display:none;"></div>
                             </div>
                         </div>
                         <div class="knowledge-form-row">

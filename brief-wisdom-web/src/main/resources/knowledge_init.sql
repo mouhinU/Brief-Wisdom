@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS knowledge_document (
     file_size BIGINT COMMENT '文件大小（字节，FILE类型使用）',
     file_type VARCHAR(50) COMMENT '文件类型/MIME（FILE类型使用）',
     link_url VARCHAR(500) COMMENT '外部链接URL（LINK类型使用）',
-    link_desc VARCHAR(500) COMMENT '链接描述（LINK类型使用）',
+    link_desc TEXT COMMENT '链接描述（LINK类型使用，支持Markdown格式）',
     tags VARCHAR(500) COMMENT '标签，逗号分隔',
     view_count INT NOT NULL DEFAULT 0 COMMENT '浏览次数',
     sort_order INT NOT NULL DEFAULT 0 COMMENT '排序序号',

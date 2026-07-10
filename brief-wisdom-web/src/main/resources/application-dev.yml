@@ -54,3 +54,5 @@ app:
         api-key: ${DASHSCOPE_API_KEY:sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg}
       deepseek:
         api-key: ${DEEPSEEK_API_KEY:sk-026f1b97c4a5430f947b8259d2f5ebd8}
+  knowledge:
+    import-allowed-dirs: docs,.claude

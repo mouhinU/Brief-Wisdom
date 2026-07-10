@@ -1,3 +1,7 @@
+---
+name: Authentication and Permissions Skill
+description: Use this skill for login, role management, permission checks, OAuth integration, session handling, and security-sensitive endpoints.
+---
 # Authentication and Permissions Skill
 
 ## Purpose

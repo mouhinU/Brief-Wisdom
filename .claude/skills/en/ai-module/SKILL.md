@@ -1,3 +1,7 @@
+---
+name: AI Module Skill
+description: Use this skill for AI chat, model management, knowledge retrieval, rate limiting, content filtering, streaming, or audit-related features.
+---
 # AI Module Skill
 
 ## Purpose

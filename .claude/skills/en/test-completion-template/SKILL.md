@@ -1,3 +1,7 @@
+---
+name: Test Completion Template Skill
+description: Use this skill when you need to add or improve tests for a change in Brief-Wisdom.
+---
 # Test Completion Template Skill
 
 ## Purpose

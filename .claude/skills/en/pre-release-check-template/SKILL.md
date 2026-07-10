@@ -1,3 +1,7 @@
+---
+name: Pre-Release Check Template Skill
+description: Use this skill before release or deployment to verify that a change is safe, complete, and ready for production.
+---
 # Pre-Release Check Template Skill
 
 ## Purpose

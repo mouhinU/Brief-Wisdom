@@ -1483,6 +1483,184 @@ header h1 {
   border-radius: 3px;
 }
 
+/* ===== Knowledge URL Fetch & Link Description ===== */
+.knowledge-link-url-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.knowledge-link-url-row input {
+  flex: 1;
+}
+
+.btn-fetch-url {
+  padding: 7px 14px;
+  font-size: 12px;
+  border: 1px solid #4a90d9;
+  border-radius: 6px;
+  background: #f0f5ff;
+  color: #4a90d9;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.btn-fetch-url:hover {
+  background: #4a90d9;
+  color: #fff;
+}
+
+.btn-fetch-url:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.knowledge-url-fetch-status {
+  font-size: 12px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.knowledge-url-fetch-status.loading {
+  color: #e6a23c;
+  background: #fdf6ec;
+}
+
+.knowledge-url-fetch-status.success {
+  color: #67c23a;
+  background: #f0f9eb;
+}
+
+.knowledge-url-fetch-status.error {
+  color: #f56c6c;
+  background: #fef0f0;
+}
+
+.knowledge-link-desc-editor {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.knowledge-label-hint {
+  font-size: 11px;
+  color: #999;
+  font-weight: 400;
+}
+
+.knowledge-markdown-preview-toggle {
+  margin-top: 4px;
+  text-align: right;
+}
+
+.btn-toggle-preview {
+  padding: 3px 10px;
+  font-size: 11px;
+  border: 1px solid #dde1e7;
+  border-radius: 4px;
+  background: #fff;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-toggle-preview:hover {
+  border-color: #4a90d9;
+  color: #4a90d9;
+}
+
+.knowledge-markdown-preview {
+  margin-top: 8px;
+  padding: 12px 16px;
+  border: 1px solid #eef0f3;
+  border-radius: 6px;
+  background: #fafbfc;
+  max-height: 200px;
+  overflow-y: auto;
+  line-height: 1.7;
+  font-size: 14px;
+  color: #333;
+}
+
+.knowledge-markdown-preview h1,
+.knowledge-markdown-preview h2,
+.knowledge-markdown-preview h3 {
+  margin: 12px 0 6px 0;
+}
+
+.knowledge-markdown-preview p {
+  margin: 6px 0;
+}
+
+.knowledge-markdown-preview code {
+  background: #f0f2f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.knowledge-markdown-preview pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 12px 14px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.knowledge-markdown-preview a {
+  color: #4a90d9;
+}
+
+.knowledge-markdown-preview blockquote {
+  border-left: 3px solid #4a90d9;
+  padding-left: 12px;
+  color: #666;
+  margin: 8px 0;
+}
+
+/* ===== Knowledge Batch Delete ===== */
+.btn-danger {
+  padding: 6px 16px;
+  font-size: 13px;
+  border: none;
+  border-radius: 8px;
+  background: #e74c3c;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(231,76,60,0.2);
+  transition: all 0.2s;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+  box-shadow: 0 3px 8px rgba(231,76,60,0.3);
+  transform: translateY(-1px);
+}
+
+.knowledge-doc-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.knowledge-doc-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #4a90d9;
+}
+
+.knowledge-doc-item:hover .knowledge-doc-checkbox {
+  opacity: 1;
+}
+
 /* ===== 费用统计组件样式 ===== */
 
 .cost-stats-container {

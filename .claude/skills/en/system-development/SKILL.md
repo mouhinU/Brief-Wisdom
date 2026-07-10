@@ -1,3 +1,7 @@
+---
+name: System Development Skill
+description: Use this skill for system-level development work in Brief-Wisdom, including backend modules, authentication, permissions, shared services, and deployment-related changes.
+---
 # System Development Skill
 
 ## Purpose

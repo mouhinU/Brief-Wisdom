@@ -1,3 +1,7 @@
+---
+name: 系统开发 Skill
+description: 用于 Brief-Wisdom 的系统级开发工作，包括后端模块、认证、权限、共享服务以及部署相关变更。
+---
 # 系统开发 Skill
 
 ## 作用

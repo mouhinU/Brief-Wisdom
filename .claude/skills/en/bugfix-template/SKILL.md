@@ -1,3 +1,7 @@
+---
+name: Bug Fix Template Skill
+description: Use this skill when you need to fix a bug in Brief-Wisdom in a reproducible and low-risk way.
+---
 # Bug Fix Template Skill
 
 ## Purpose
