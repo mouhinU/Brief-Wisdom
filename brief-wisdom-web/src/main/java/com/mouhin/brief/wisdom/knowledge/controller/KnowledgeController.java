@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.knowledge.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
+import com.mouhin.brief.wisdom.ai.service.KnowledgeVectorService;
 import com.mouhin.brief.wisdom.ai.service.MarkdownImportService;
 import com.mouhin.brief.wisdom.ai.service.UrlFetchService;
 import com.mouhin.brief.wisdom.common.knowledge.*;
@@ -38,6 +39,7 @@ import java.util.List;
 public class KnowledgeController {
 
     private final KnowledgeService knowledgeService;
+    private final KnowledgeVectorService knowledgeVectorService;
     private final MarkdownImportService markdownImportService;
     private final UrlFetchService urlFetchService;
     private final UserContextHelper userContextHelper;
@@ -230,6 +232,20 @@ public class KnowledgeController {
         log.info("AGENTS.md 导入完成 - 新增: {}, 更新: {}, 失败: {}",
                 result.getCreatedCount(), result.getUpdatedCount(), result.getFailedCount());
         return result;
+    }
+
+    // ==================== 向量索引重建 ====================
+
+    /**
+     * 重建所有文档的向量索引
+     */
+    @Operation(summary = "重建向量索引", description = "重建所有文档的向量索引，用于初始化或修复向量数据")
+    @PostMapping("/reindex")
+    public String reindex() {
+        log.info("开始重建向量索引");
+        knowledgeVectorService.reindexAll();
+        log.info("向量索引重建完成");
+        return "向量索引重建完成";
     }
 
     // ==================== 私有转换方法 ====================

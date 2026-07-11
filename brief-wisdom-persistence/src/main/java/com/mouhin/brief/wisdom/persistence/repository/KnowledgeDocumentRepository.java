@@ -176,6 +176,15 @@ public class KnowledgeDocumentRepository {
     }
 
     /**
+     * 查询所有文档（用于向量索引重建）
+     *
+     * @return 所有文档列表
+     */
+    public List<KnowledgeDocument> findAll() {
+        return knowledgeDocumentMapper.selectList(new LambdaQueryWrapper<>());
+    }
+
+    /**
      * 搜索文档（按标题模糊查询）
      */
     public Page<KnowledgeDocument> searchByTitle(String keyword, int page, int size) {

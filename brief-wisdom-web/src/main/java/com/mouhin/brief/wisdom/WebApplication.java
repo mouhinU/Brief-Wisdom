@@ -5,12 +5,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration;
 import org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration;
+import org.springframework.ai.vectorstore.redis.autoconfigure.RedisVectorStoreAutoConfiguration;
 
 @SpringBootApplication(
         scanBasePackages = {"com.mouhin.brief.wisdom"},
         exclude = {
-                OpenAiChatAutoConfiguration.class,      // OpenAI 由 ChatModelRegistry 手动管理
-                AnthropicChatAutoConfiguration.class     // Anthropic 由 ChatModelRegistry 手动管理
+                OpenAiChatAutoConfiguration.class,          // OpenAI 由 ChatModelRegistry 手动管理
+                AnthropicChatAutoConfiguration.class,        // Anthropic 由 ChatModelRegistry 手动管理
+                RedisVectorStoreAutoConfiguration.class      // VectorStore 由 VectorStoreConfig 手动管理（支持降级）
         }
 )
 /**

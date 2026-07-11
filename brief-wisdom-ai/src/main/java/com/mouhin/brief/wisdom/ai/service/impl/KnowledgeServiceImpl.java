@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.ai.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
+import com.mouhin.brief.wisdom.ai.service.KnowledgeVectorService;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
@@ -34,6 +35,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
+    private final KnowledgeVectorService knowledgeVectorService;
 
     // ==================== 知识库 ====================
 
@@ -178,6 +180,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         copyBoToDoc(bo, doc);
         doc.setViewCount(0);
         knowledgeDocumentRepository.save(doc);
+        // 异步向量化新文档
+        vectorizeDocument(doc);
         return toDocDTO(doc);
     }
 
@@ -192,6 +196,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         }
         copyBoToDoc(bo, doc);
         knowledgeDocumentRepository.update(doc);
+        // 重新向量化更新后的文档
+        vectorizeDocument(doc);
         return toDocDTO(doc);
     }
 
@@ -205,6 +211,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             throw new AIException("文档不存在: " + id);
         }
         knowledgeDocumentRepository.deleteById(id);
+        // 删除对应的向量索引
+        knowledgeVectorService.deleteFromVectorStore(id);
     }
 
     /**
@@ -221,6 +229,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             KnowledgeDocument doc = knowledgeDocumentRepository.findById(id);
             if (doc != null) {
                 knowledgeDocumentRepository.deleteById(id);
+                // 同步删除向量索引
+                knowledgeVectorService.deleteFromVectorStore(id);
                 deletedCount++;
             }
         }
@@ -254,6 +264,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             copyBoToDoc(bo, existing);
             existing.setFileName(sourcePath);
             knowledgeDocumentRepository.update(existing);
+            // 重新向量化更新后的文档
+            vectorizeDocument(existing);
             return false;
         }
 
@@ -262,10 +274,23 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         doc.setFileName(sourcePath);
         doc.setViewCount(0);
         knowledgeDocumentRepository.save(doc);
+        // 向量化新导入的文档
+        vectorizeDocument(doc);
         return true;
     }
 
     // ==================== 私有方法 ====================
+
+    /**
+     * 异步向量化文档（失败不影响主流程）
+     */
+    private void vectorizeDocument(KnowledgeDocument doc) {
+        try {
+            knowledgeVectorService.vectorizeAndStore(doc);
+        } catch (Exception e) {
+            log.warn("文档向量化失败（不影响主流程）: docId={}, error={}", doc.getId(), e.getMessage());
+        }
+    }
 
     /**
      * 构建知识库树形结构

@@ -484,7 +484,13 @@ public class AiAgentService {
                 buildChatOptions(provider, model)
         );
         long startTime = System.currentTimeMillis();
-        ChatResponse chatResponse = chatModel.call(prompt);
+        ChatResponse chatResponse;
+        try {
+            chatResponse = chatModel.call(prompt);
+        } catch (Exception e) {
+            log.error("[AI调用] 模型调用失败: {}", e.getMessage(), e);
+            throw new AIException(translateApiError(e));
+        }
         long elapsed = System.currentTimeMillis() - startTime;
 
         // NPE 防护：检查响应链
@@ -671,7 +677,13 @@ public class AiAgentService {
                 buildChatOptions(provider, model)
         );
         long startTime = System.currentTimeMillis();
-        ChatResponse chatResponse = chatModel.call(prompt);
+        ChatResponse chatResponse;
+        try {
+            chatResponse = chatModel.call(prompt);
+        } catch (Exception e) {
+            log.error("[AI调用] 模型调用失败: {}", e.getMessage(), e);
+            throw new AIException(translateApiError(e));
+        }
         long elapsed = System.currentTimeMillis() - startTime;
 
         // 提取回复内容
@@ -862,6 +874,39 @@ public class AiAgentService {
                 .doOnError(error -> {
                     log.error("[流式] 错误: {}", error.getMessage());
                 });
+    }
+
+    /**
+     * 将 AI API 异常翻译为用户友好的中文提示
+     */
+    private String translateApiError(Throwable error) {
+        Throwable cause = error;
+        while (cause.getCause() != null && cause instanceof java.util.concurrent.CompletionException) {
+            cause = cause.getCause();
+        }
+        String msg = cause.getMessage();
+        if (msg == null) {
+            return "AI 服务调用异常，请稍后重试";
+        }
+        if (msg.contains("402") || msg.contains("Insufficient Balance") || msg.contains("insufficient")) {
+            return "AI 服务账户余额不足，请联系管理员充值";
+        }
+        if (msg.contains("401") || msg.contains("Unauthorized")) {
+            return "AI 服务认证失败，请检查 API Key 配置";
+        }
+        if (msg.contains("403") || msg.contains("Forbidden")) {
+            return "AI 服务访问被拒绝，请检查权限配置";
+        }
+        if (msg.contains("429") || msg.contains("Rate limit")) {
+            return "AI 服务请求频率超限，请稍后再试";
+        }
+        if (msg.contains("500") || msg.contains("502") || msg.contains("503")) {
+            return "AI 服务暂时不可用，请稍后重试";
+        }
+        if (msg.contains("timeout") || msg.contains("Timeout") || msg.contains("SocketTimeout")) {
+            return "AI 服务响应超时，请稍后重试";
+        }
+        return "AI 服务异常，请稍后重试";
     }
 
     /**

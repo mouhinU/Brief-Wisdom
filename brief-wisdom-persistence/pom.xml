@@ -12,11 +12,11 @@
     <description>Persistence Module - Data Access and Storage</description>
 
     <dependencies>
-        <!-- MyBatis Plus -->
+        <!-- MyBatis Plus (Spring Boot 4 需要 3.5.13+ 且使用 boot4-starter) -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-            <version>3.5.5</version>
+            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+            <version>3.5.16</version>
         </dependency>
 
         <!-- MySQL Driver -->

@@ -22,7 +22,7 @@ spring:
       password: ${REDIS_PASSWORD:123456}
       database: 0
       timeout: 5000ms
-      lettuce:
+      jedis:
         pool:
           max-active: 16
           max-idle: 8
@@ -48,8 +48,15 @@ spring:
       api-key: ${DASHSCOPE_API_KEY:sk-placeholder}
       base-url: https://dashscope.aliyuncs.com/compatible-mode
       chat:
-        options:
-          model: qwen-max
+        model: qwen-max
+      embedding:
+        model: text-embedding-v3
+    vectorstore:
+      redis:
+        initialize-schema: true
+        index-name: brief-wisdom-knowledge
+        prefix: "bw:doc:"
+        distance-metric: COSINE
 
 # 日志配置已移至 logback-spring.xml
 

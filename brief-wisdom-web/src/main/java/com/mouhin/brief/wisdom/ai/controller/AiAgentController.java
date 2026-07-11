@@ -134,7 +134,7 @@ public class AiAgentController {
                         },
                         error -> {
                             log.error("[流式] 错误: {}", error.getMessage(), error);
-                            sendSseErrorEvent(emitter, "STREAM_ERROR", error.getMessage());
+                            sendSseErrorEvent(emitter, "STREAM_ERROR", translateApiError(error));
                         },
                         () -> {
                             log.info("[流式] 完成");
@@ -350,6 +350,40 @@ public class AiAgentController {
     @GetMapping("/sync/transport")
     public Map<String, String> getSyncTransport() {
         return Map.of("transport", syncTransport);
+    }
+
+    /**
+     * 将 AI API 异常翻译为用户友好的中文提示
+     */
+    private String translateApiError(Throwable error) {
+        // 解包 CompletionException
+        Throwable cause = error;
+        while (cause.getCause() != null && cause instanceof java.util.concurrent.CompletionException) {
+            cause = cause.getCause();
+        }
+        String msg = cause.getMessage();
+        if (msg == null) {
+            return "AI 服务调用异常，请稍后重试";
+        }
+        if (msg.contains("402") || msg.contains("Insufficient Balance") || msg.contains("insufficient")) {
+            return "AI 服务账户余额不足，请联系管理员充值";
+        }
+        if (msg.contains("401") || msg.contains("Unauthorized")) {
+            return "AI 服务认证失败，请检查 API Key 配置";
+        }
+        if (msg.contains("403") || msg.contains("Forbidden")) {
+            return "AI 服务访问被拒绝，请检查权限配置";
+        }
+        if (msg.contains("429") || msg.contains("Rate limit")) {
+            return "AI 服务请求频率超限，请稍后再试";
+        }
+        if (msg.contains("500") || msg.contains("502") || msg.contains("503")) {
+            return "AI 服务暂时不可用，请稍后重试";
+        }
+        if (msg.contains("timeout") || msg.contains("Timeout") || msg.contains("SocketTimeout")) {
+            return "AI 服务响应超时，请稍后重试";
+        }
+        return "AI 服务异常：" + msg;
     }
 
     /**

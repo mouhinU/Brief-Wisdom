@@ -1,15 +1,21 @@
 package com.mouhin.brief.wisdom.ai.service;
 
 import com.mouhin.brief.wisdom.ai.config.AiProviderProperties;
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.client.AnthropicClientImpl;
+import com.openai.client.OpenAIClient;
+import com.openai.client.OpenAIClientAsync;
+import com.openai.client.OpenAIClientAsyncImpl;
+import com.openai.client.OpenAIClientImpl;
+import com.openai.core.ClientOptions;
+import org.springframework.ai.openai.http.okhttp.SpringAiOpenAiHttpClient;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.anthropic.AnthropicChatModel;
 import org.springframework.ai.anthropic.AnthropicChatOptions;
-import org.springframework.ai.anthropic.api.AnthropicApi;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -163,16 +169,20 @@ public class ChatModelRegistry {
      * 创建 OpenAI 兼容协议的 ChatModel（适用于 OpenAI、DeepSeek、Ollama 等）
      */
     private OpenAiChatModel createOpenAiCompatibleChatModel(String baseUrl, String apiKey, String model) {
-        OpenAiApi api = OpenAiApi.builder()
+        ClientOptions clientOptions = ClientOptions.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
+                .httpClient(SpringAiOpenAiHttpClient.builder().build())
                 .build();
+        OpenAIClient client = new OpenAIClientImpl(clientOptions);
+        OpenAIClientAsync asyncClient = new OpenAIClientAsyncImpl(clientOptions);
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(model != null ? model : "gpt-4o")
                 .build();
         return OpenAiChatModel.builder()
-                .openAiApi(api)
-                .defaultOptions(options)
+                .openAiClient(client)
+                .openAiClientAsync(asyncClient)
+                .options(options)
                 .build();
     }
 
@@ -180,19 +190,20 @@ public class ChatModelRegistry {
      * 创建 Anthropic (Claude) 的 ChatModel
      */
     private AnthropicChatModel createAnthropicChatModel(String baseUrl, String apiKey, String model) {
-        AnthropicApi.Builder apiBuilder = AnthropicApi.builder()
-                .apiKey(apiKey);
+        com.anthropic.core.ClientOptions.Builder clientOptionsBuilder = com.anthropic.core.ClientOptions.builder()
+                .putHeader("x-api-key", apiKey);
         if (baseUrl != null && !baseUrl.isBlank()) {
-            apiBuilder.baseUrl(baseUrl);
+            clientOptionsBuilder.baseUrl(baseUrl);
         }
-        AnthropicApi api = apiBuilder.build();
+        com.anthropic.core.ClientOptions clientOptions = clientOptionsBuilder.build();
+        AnthropicClient client = new AnthropicClientImpl(clientOptions);
 
         AnthropicChatOptions options = AnthropicChatOptions.builder()
                 .model(model != null ? model : "claude-sonnet-4-20250514")
                 .build();
         return AnthropicChatModel.builder()
-                .anthropicApi(api)
-                .defaultOptions(options)
+                .anthropicClient(client)
+                .options(options)
                 .build();
     }
 
@@ -234,10 +245,13 @@ public class ChatModelRegistry {
      */
     private OpenAiChatModel createOpenAiCompatibleChatModelWithThinking(
             String baseUrl, String apiKey, String model, String thinkingMode) {
-        OpenAiApi api = OpenAiApi.builder()
+        ClientOptions clientOptions = ClientOptions.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
+                .httpClient(SpringAiOpenAiHttpClient.builder().build())
                 .build();
+        OpenAIClient client = new OpenAIClientImpl(clientOptions);
+        OpenAIClientAsync asyncClient = new OpenAIClientAsyncImpl(clientOptions);
         
         OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
                 .model(model != null ? model : "gpt-4o");
@@ -249,8 +263,9 @@ public class ChatModelRegistry {
         }
         
         return OpenAiChatModel.builder()
-                .openAiApi(api)
-                .defaultOptions(optionsBuilder.build())
+                .openAiClient(client)
+                .openAiClientAsync(asyncClient)
+                .options(optionsBuilder.build())
                 .build();
     }
 
@@ -259,28 +274,29 @@ public class ChatModelRegistry {
      */
     private AnthropicChatModel createAnthropicChatModelWithThinking(
             String baseUrl, String apiKey, String model, String thinkingMode) {
-        AnthropicApi.Builder apiBuilder = AnthropicApi.builder()
-                .apiKey(apiKey);
+        com.anthropic.core.ClientOptions.Builder clientOptionsBuilder = com.anthropic.core.ClientOptions.builder()
+                .putHeader("x-api-key", apiKey);
         if (baseUrl != null && !baseUrl.isBlank()) {
-            apiBuilder.baseUrl(baseUrl);
+            clientOptionsBuilder.baseUrl(baseUrl);
         }
-        AnthropicApi api = apiBuilder.build();
+        com.anthropic.core.ClientOptions clientOptions = clientOptionsBuilder.build();
+        AnthropicClient client = new AnthropicClientImpl(clientOptions);
 
         AnthropicChatOptions.Builder optionsBuilder = AnthropicChatOptions.builder()
                 .model(model != null ? model : "claude-sonnet-4-20250514");
         
         // 思考模式下启用 extended thinking
-        // 注意：Spring AI 1.0.0 的 AnthropicChatOptions 可能不支持直接的 thinking 配置
+        // 注意：Spring AI 2.0 的 AnthropicChatOptions 可能不支持直接的 thinking 配置
         // 如果 Claude 3.7+ 需要思考模式，建议升级到更高版本的 Spring AI
         if ("thinking".equals(thinkingMode)) {
             log.warn("[AI] Anthropic 思考模式在当前 Spring AI 版本中暂不支持，使用默认配置");
-            // TODO: 升级到 Spring AI 1.1.0+ 后启用以下代码
+            // TODO: 升级到 Spring AI 2.1.0+ 后启用以下代码
             // optionsBuilder.thinkingBudgetTokens(4096);
         }
         
         return AnthropicChatModel.builder()
-                .anthropicApi(api)
-                .defaultOptions(optionsBuilder.build())
+                .anthropicClient(client)
+                .options(optionsBuilder.build())
                 .build();
     }
 }
