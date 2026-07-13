@@ -23,6 +23,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -124,7 +125,7 @@ public class AiAgentController {
                 ).subscribe(
                         chunk -> {
                             try {
-                                if (chunk != null && !chunk.isEmpty()) {
+                                if (StringUtils.isNotBlank(chunk)) {
                                     emitter.send(SseEmitter.event().data(chunk));
                                 }
                             } catch (IOException e) {

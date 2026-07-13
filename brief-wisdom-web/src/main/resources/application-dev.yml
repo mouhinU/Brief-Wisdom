@@ -32,15 +32,6 @@ spring:
       port: 6379
       password: ${REDIS_PASSWORD:123456}
       database: 0
-#  # Spring AI 开发环境配置
-#  ai:
-#    openai:
-#      api-key: ${DASHSCOPE_API_KEY:sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg}
-#      base-url: https://dashscope.aliyuncs.com/compatible-mode
-#      chat:
-#        options:
-#          model: qwen-max
-
 # MyBatis 开发环境 SQL 日志（生产环境请勿开启）
 mybatis-plus:
   configuration:
@@ -53,6 +44,6 @@ app:
       dashscope:
         api-key: ${DASHSCOPE_API_KEY:sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg}
       deepseek:
-        api-key: ${DEEPSEEK_API_KEY:sk-026f1b97c4a5430f947b8259d2f5ebd8}
+        api-key: ${DEEPSEEK_API_KEY:sk-1da4c83acbef45e793f282f2d86d6d08}
   knowledge:
     import-allowed-dirs: docs,.claude

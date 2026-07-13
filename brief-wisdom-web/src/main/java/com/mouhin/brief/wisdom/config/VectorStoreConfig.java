@@ -1,7 +1,15 @@
 package com.mouhin.brief.wisdom.config;
 
+import com.mouhin.brief.wisdom.ai.config.AiProviderProperties;
+import com.openai.client.OpenAIClient;
+import com.openai.client.OpenAIClientImpl;
+import com.openai.core.ClientOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.document.MetadataMode;
+import org.springframework.ai.openai.OpenAiEmbeddingModel;
+import org.springframework.ai.openai.OpenAiEmbeddingOptions;
+import org.springframework.ai.openai.http.okhttp.SpringAiOpenAiHttpClient;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.redis.RedisVectorStore;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +51,43 @@ public class VectorStoreConfig {
 
     @Value("${spring.data.redis.password:}")
     private String password;
+
+    /**
+     * 创建 EmbeddingModel（对接 DashScope text-embedding-v3）。
+     * <p>
+     * 使用默认提供商的 OpenAI 兼容协议配置，模型固定为 text-embedding-v3。
+     */
+    @Bean
+    public EmbeddingModel embeddingModel(AiProviderProperties aiProperties) {
+        AiProviderProperties.ProviderConfig defaultProvider =
+                aiProperties.getProviders().get(aiProperties.getDefaultProvider());
+        if (defaultProvider == null) {
+            log.warn("[VectorStore] 未找到默认提供商 {} 的配置，EmbeddingModel 不可用", aiProperties.getDefaultProvider());
+            return new NoOpEmbeddingModel();
+        }
+        String apiKey = defaultProvider.getApiKey();
+        String baseUrl = defaultProvider.getBaseUrl();
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("[VectorStore] 默认提供商 {} 未配置 api-key，EmbeddingModel 不可用", aiProperties.getDefaultProvider());
+            return new NoOpEmbeddingModel();
+        }
+
+        ClientOptions clientOptions = ClientOptions.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .httpClient(SpringAiOpenAiHttpClient.builder().build())
+                .build();
+        OpenAIClient client = new OpenAIClientImpl(clientOptions);
+
+        OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
+                .model("text-embedding-v3")
+                .dimensions(1024)
+                .build();
+
+        log.info("[VectorStore] EmbeddingModel 初始化完成（provider: {}, base-url: {}）",
+                aiProperties.getDefaultProvider(), baseUrl);
+        return new OpenAiEmbeddingModel(client, MetadataMode.EMBED, options);
+    }
 
     /**
      * 创建惰性 VectorStore。

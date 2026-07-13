@@ -43,14 +43,14 @@ spring:
   thymeleaf:
     check-template-location: false  # 禁用模板位置检查
   # Spring AI 基础配置（通过 OpenAI 兼容协议对接国产大模型）
-  ai:
-    openai:
-      api-key: ${DASHSCOPE_API_KEY:sk-placeholder}
-      base-url: https://dashscope.aliyuncs.com/compatible-mode
-      chat:
-        model: qwen-max
-      embedding:
-        model: text-embedding-v3
+#  ai:
+#    openai:
+#      api-key: ${DASHSCOPE_API_KEY:sk-placeholder}
+#      base-url: https://dashscope.aliyuncs.com/compatible-mode
+#      chat:
+#        model: qwen-max
+#      embedding:
+#        model: text-embedding-v3
     vectorstore:
       redis:
         initialize-schema: true
