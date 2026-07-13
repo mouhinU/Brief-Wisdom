@@ -18,10 +18,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * AI助手管理服务实现 - 按用户级别查询会话历史
@@ -57,10 +57,10 @@ public class AiManageServiceImpl implements AiManageService {
             return List.of();
         }
         // 批量统计所有用户的会话数量（1 次查询替代 N 次）
-        List<String> userIds = users.stream().map(ChatUser::getUserId).collect(Collectors.toList());
+        List<String> userIds = users.stream().map(ChatUser::getUserId).toList();
         Map<String, Long> sessionCountMap = chatSessionRepository.countSessionsGroupedByUserIds(userIds);
 
-        return users.stream().map(user -> toUserDTO(user, sessionCountMap)).collect(Collectors.toList());
+        return users.stream().map(user -> toUserDTO(user, sessionCountMap)).toList();
     }
 
     /**
@@ -72,10 +72,10 @@ public class AiManageServiceImpl implements AiManageService {
         if (users.isEmpty()) {
             return List.of();
         }
-        List<String> userIds = users.stream().map(ChatUser::getUserId).collect(Collectors.toList());
+        List<String> userIds = users.stream().map(ChatUser::getUserId).toList();
         Map<String, Long> sessionCountMap = chatSessionRepository.countSessionsGroupedByUserIds(userIds);
 
-        return users.stream().map(user -> toUserDTO(user, sessionCountMap)).collect(Collectors.toList());
+        return users.stream().map(user -> toUserDTO(user, sessionCountMap)).toList();
     }
 
     /**
@@ -108,7 +108,7 @@ public class AiManageServiceImpl implements AiManageService {
         if (users.isEmpty()) {
             return List.of();
         }
-        List<String> userIds = users.stream().map(ChatUser::getUserId).collect(Collectors.toList());
+        List<String> userIds = users.stream().map(ChatUser::getUserId).toList();
         List<ChatSession> sessions = chatSessionRepository.findByUserIdsOrderByUpdateTimeDesc(userIds);
         return convertSessions(sessions);
     }
@@ -119,7 +119,7 @@ public class AiManageServiceImpl implements AiManageService {
     @Override
     public List<MessageDTO> getSessionMessages(String sessionId) {
         List<ChatMessage> messages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
-        return messages.stream().map(this::toMessageDTO).collect(Collectors.toList());
+        return messages.stream().map(this::toMessageDTO).toList();
     }
 
     /**
@@ -132,6 +132,10 @@ public class AiManageServiceImpl implements AiManageService {
         log.info("获取费用统计, days={}", days);
 
         CostStatisticsDTO dto = new CostStatisticsDTO();
+        dto.setByModel(new ArrayList<>());
+        dto.setByUser(new ArrayList<>());
+        dto.setByDate(new ArrayList<>());
+        dto.setByDateAndModel(new ArrayList<>());
 
         // 总体统计
         Map<String, Object> overall = chatMessageRepository.getOverallStats();
@@ -154,7 +158,7 @@ public class AiManageServiceImpl implements AiManageService {
         List<Map<String, Object>> userRows = chatMessageRepository.getCostByUser();
         List<String> costUserIds = userRows.stream()
                 .map(row -> (String) row.get("userId"))
-                .collect(Collectors.toList());
+                .toList();
         Map<String, ChatUser> userMap = batchLoadUserMap(costUserIds);
 
         dto.getByUser().addAll(userRows.stream().map(row -> {
@@ -205,7 +209,7 @@ public class AiManageServiceImpl implements AiManageService {
             return List.of();
         }
         // 批量获取所有会话的最后消息时间（1 次查询替代 N 次）
-        List<String> sessionIds = sessions.stream().map(ChatSession::getSessionId).collect(Collectors.toList());
+        List<String> sessionIds = sessions.stream().map(ChatSession::getSessionId).toList();
         Map<String, LocalDateTime> lastTimeMap = batchLoadLastMessageTimes(sessionIds);
 
         return sessions.stream().map(session -> {
@@ -219,7 +223,7 @@ public class AiManageServiceImpl implements AiManageService {
             LocalDateTime lastMsgTime = lastTimeMap.get(session.getSessionId());
             dto.setUpdateTime(lastMsgTime != null ? lastMsgTime : session.getUpdateTime());
             return dto;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     /**
@@ -249,8 +253,8 @@ public class AiManageServiceImpl implements AiManageService {
         for (Map<String, Object> row : rows) {
             String sid = (String) row.get("session_id");
             Object lastTime = row.get("last_time");
-            if (sid != null && lastTime instanceof LocalDateTime) {
-                map.put(sid, (LocalDateTime) lastTime);
+            if (sid != null && lastTime instanceof LocalDateTime ldt) {
+                map.put(sid, ldt);
             }
         }
         return map;
@@ -289,13 +293,13 @@ public class AiManageServiceImpl implements AiManageService {
 
     private Double toDouble(Object value) {
         if (value == null) return 0.0;
-        if (value instanceof Number) return ((Number) value).doubleValue();
+        if (value instanceof Number num) return num.doubleValue();
         return Double.parseDouble(String.valueOf(value));
     }
 
     private Long toLong(Object value) {
         if (value == null) return 0L;
-        if (value instanceof Number) return ((Number) value).longValue();
+        if (value instanceof Number num) return num.longValue();
         return Long.parseLong(String.valueOf(value));
     }
 }

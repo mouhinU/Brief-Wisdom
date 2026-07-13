@@ -3,7 +3,6 @@ package com.mouhin.brief.wisdom.common.manage;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,22 +32,22 @@ public class CostStatisticsDTO implements Serializable {
     /**
      * 按模型分组统计
      */
-    private List<ModelCostItem> byModel = new ArrayList<>();
+    private List<ModelCostItem> byModel;
 
     /**
      * 按用户分组统计
      */
-    private List<UserCostItem> byUser = new ArrayList<>();
+    private List<UserCostItem> byUser;
 
     /**
      * 按日期分组统计
      */
-    private List<DateCostItem> byDate = new ArrayList<>();
+    private List<DateCostItem> byDate;
 
     /**
      * 按模型+日期分组统计
      */
-    private List<DateModelCostItem> byDateAndModel = new ArrayList<>();
+    private List<DateModelCostItem> byDateAndModel;
 
     /**
      * 模型费用项

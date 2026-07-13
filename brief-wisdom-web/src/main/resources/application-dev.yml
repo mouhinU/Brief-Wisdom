@@ -42,7 +42,7 @@ app:
   ai:
     providers:
       dashscope:
-        api-key: ${DASHSCOPE_API_KEY:sk-ws-H.RYIRPII.ukzF.MEUCIAz2FAPKXjafgpbbbaJjIolASqZdy80jc6THGoae97HqAiEAx0XdsnPrK6f3akRLMc7K-AsLCdgNi3-DH0B8hvRZoSg}
+        api-key: ${DASHSCOPE_API_KEY:sk-ws-H.EDDMHLL.Qpsz.MEUCIHHveEQdbnt82BJOkfXpNFVyYyjRjNanhsc9e2dABeapAiEA04vlZyFlWQLQ4i5F9xlB9YqkmmRyF6TGJDsO9xfz3c4}
       deepseek:
         api-key: ${DEEPSEEK_API_KEY:sk-f2845d32e64e4f41b5cec6c29963abd5}
   knowledge:
