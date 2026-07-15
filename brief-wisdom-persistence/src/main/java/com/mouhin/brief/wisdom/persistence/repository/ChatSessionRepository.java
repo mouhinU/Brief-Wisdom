@@ -83,6 +83,15 @@ public class ChatSessionRepository {
     }
 
     /**
+     * 统计所有会话数量
+     *
+     * @return 会话总数
+     */
+    public long countAll() {
+        return chatSessionMapper.selectCount(new LambdaQueryWrapper<>());
+    }
+
+    /**
      * 批量统计多个用户的会话数量（单次查询 + 内存分组计数）
      *
      * @param userIds 用户 ID 列表

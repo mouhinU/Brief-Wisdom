@@ -1157,6 +1157,8 @@ function clearChatMessages() {
 
 // 发送消息
 let isSending = false; // 防重复提交标志
+let activeEventSource = null; // 当前活跃的 SSE EventSource（用于终止流式响应）
+let isUserStopped = false; // 标记当前流式响应是否被用户主动终止
 async function sendMessage() {
   const chatInput = getEl("chatInput");
   const sendButton = getEl("sendButton");
@@ -1261,6 +1263,8 @@ async function sendMessage() {
       chatInput.disabled = false;
       chatInput.focus();
     }
+    // 兜底：确保停止按钮隐藏、发送按钮恢复
+    toggleStopButton(false);
     isSending = false;
   }
 }
@@ -1342,7 +1346,14 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
   // 使用 EventSource 接收 SSE 流
   return new Promise((resolve, reject) => {
     let fullText = "";
+    isUserStopped = false; // 重置终止标志
     const eventSource = new EventSource(url);
+
+    // 保存 EventSource 引用，支持外部终止
+    activeEventSource = eventSource;
+
+    // 切换为"停止"按钮
+    toggleStopButton(true);
 
     eventSource.onmessage = function (event) {
       const chunk = event.data;
@@ -1374,6 +1385,8 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
             // 显示友好的错误提示
             messageContent.innerHTML = `<div class="message-error">${errorData.message}</div>`;
             eventSource.close();
+            activeEventSource = null;
+            toggleStopButton(false);
             resolve(); // 不算失败，只是被拦截
             return;
           }
@@ -1384,15 +1397,42 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
 
       // 其他错误
       eventSource.close();
+      activeEventSource = null;
+      toggleStopButton(false);
       reject(new Error("请求被服务器拒绝"));
     });
 
     eventSource.onerror = function (error) {
       // ✅ 静默处理：流式聊天的SSE连接关闭是正常行为，不打印错误日志
 
-      // 如果已经接收到了一些内容，说明流式输出基本成功，只是最后关闭时出错
-      if (fullText && fullText.length > 0) {
+      if (isUserStopped) {
+        // 用户主动终止：标记消息为已终止状态
+        aiMessageDiv.classList.add("message-stopped");
+        messageContent.innerHTML = renderMarkdown(fullText);
+        // 添加终止提示标识
+        if (fullText && fullText.length > 0) {
+          const stoppedTip = document.createElement("div");
+          stoppedTip.className = "message-stopped-indicator";
+          stoppedTip.textContent = "已停止生成";
+          aiMessageDiv.appendChild(stoppedTip);
+        }
         eventSource.close();
+        activeEventSource = null;
+
+        if (fullText && fullText.length > 0) {
+          saveStreamedMessage(sessionId, fullText, model)
+            .then(() => updateCurrentSessionItem(sessionId))
+            .catch(() => {})
+            .finally(() => resolve());
+        } else {
+          // 完全没有内容，移除空的 AI 消息气泡
+          aiMessageDiv.remove();
+          resolve();
+        }
+      } else if (fullText && fullText.length > 0) {
+        // 已接收到内容，连接异常断开（非用户主动终止）
+        eventSource.close();
+        activeEventSource = null;
         // 移除光标
         messageContent.innerHTML = renderMarkdown(fullText);
 
@@ -1411,12 +1451,42 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
       } else {
         // 完全没有接收到内容，才是真正的错误
         eventSource.close();
+        activeEventSource = null;
         reject(error);
       }
+      toggleStopButton(false);
     };
+
+    // 监听服务器发送的"已终止"事件
+    eventSource.addEventListener("stopped", function () {
+      isUserStopped = true;
+      eventSource.close();
+      activeEventSource = null;
+      // 标记消息为已终止状态
+      aiMessageDiv.classList.add("message-stopped");
+      // 移除光标，保留已接收的部分内容
+      messageContent.innerHTML = renderMarkdown(fullText);
+      // 添加终止提示标识
+      if (fullText && fullText.length > 0) {
+        const stoppedTip = document.createElement("div");
+        stoppedTip.className = "message-stopped-indicator";
+        stoppedTip.textContent = "已停止生成";
+        aiMessageDiv.appendChild(stoppedTip);
+      }
+      // 保存已生成的部分内容
+      if (fullText && fullText.length > 0) {
+        saveStreamedMessage(sessionId, fullText, model)
+          .then(() => updateCurrentSessionItem(sessionId))
+          .catch(() => {});
+      }
+      // 恢复 UI 状态：隐藏停止按钮，显示发送按钮
+      toggleStopButton(false);
+      resolve();
+    });
 
     eventSource.addEventListener("complete", function () {
       eventSource.close();
+      activeEventSource = null;
       // 移除光标
       messageContent.innerHTML = renderMarkdown(fullText);
 
@@ -1432,8 +1502,46 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
           updateCurrentSessionItem(sessionId);
           resolve();
         });
+      toggleStopButton(false);
     });
   });
+}
+
+/**
+ * 终止正在进行的流式会话
+ * <p>
+ * 用户点击"停止生成"按钮时调用。
+ * 先关闭前端 EventSource 连接，再通知后端取消 AI 模型流式输出。
+ */
+function stopStreaming() {
+  // 标记为用户主动终止（onerror 回调会检查此标志）
+  isUserStopped = true;
+
+  // 关闭前端 EventSource
+  if (activeEventSource) {
+    activeEventSource.close();
+    activeEventSource = null;
+  }
+
+  // 通知后端终止流式订阅
+  fetch("/api/ai/chat/stream/stop", { method: "DELETE" })
+    .then(() => console.log("[流式] 已通知后端终止流式会话"))
+    .catch((e) => console.warn("[流式] 通知后端终止失败:", e));
+
+  // 恢复 UI 状态
+  toggleStopButton(false);
+}
+
+/**
+ * 切换"发送"按钮与"停止"按钮的显示状态
+ *
+ * @param {boolean} showStop - true 显示停止按钮，false 显示发送按钮
+ */
+function toggleStopButton(showStop) {
+  const sendBtn = getEl("sendButton");
+  const stopBtn = getEl("stopButton");
+  if (sendBtn) sendBtn.style.display = showStop ? "none" : "";
+  if (stopBtn) stopBtn.style.display = showStop ? "" : "none";
 }
 
 /**

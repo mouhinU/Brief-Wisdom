@@ -99,6 +99,15 @@ public class ChatMessageRepository {
     }
 
     /**
+     * 统计所有消息数量
+     *
+     * @return 消息总数
+     */
+    public long countAll() {
+        return chatMessageMapper.selectCount(new LambdaQueryWrapper<>());
+    }
+
+    /**
      * 查询指定会话的最近 N 条消息
      *
      * @param sessionId 会话 ID

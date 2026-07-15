@@ -887,6 +887,28 @@ body {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+/* 用户主动终止的 AI 回复样式 */
+.message.message-stopped .message-content {
+    border-left: 3px solid #ef4444;
+    opacity: 0.9;
+}
+
+.message-stopped-indicator {
+    font-size: 11px;
+    color: #ef4444;
+    margin-top: 6px;
+    padding-left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0.8;
+}
+
+.message-stopped-indicator::before {
+    content: "\23F9";
+    font-size: 12px;
+}
+
 .chat-input-container {
     padding: 15px 20px;
     background: white;
@@ -938,6 +960,31 @@ body {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+.stop-button {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.stop-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+}
+
+.stop-button:active {
+    transform: translateY(0);
 }
 
 .typing-indicator {

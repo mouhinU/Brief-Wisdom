@@ -33,7 +33,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+
+import reactor.core.Disposable;
 /**
  * AiAgentController
  *
@@ -59,6 +62,13 @@ public class AiAgentController {
     private final AiModelService aiModelService;
     private final Executor briefWisdomExecutor;
     private final ObjectMapper objectMapper;
+
+    /**
+     * 活跃的流订阅跟踪：userId → Disposable
+     * <p>
+     * 用于支持用户主动终止正在进行的流式响应
+     */
+    private final Map<String, Disposable> activeStreamSubscriptions = new ConcurrentHashMap<>();
 
     @Value("${app.sync.transport:sse}")
     private String syncTransport;
@@ -93,12 +103,13 @@ public class AiAgentController {
      * <p>
      * 根据配置 app.chat.streaming 决定是否启用流式输出。
      * 返回 SSE 格式数据，前端使用 EventSource 接收。
+     * 支持通过 DELETE /api/ai/chat/stream/stop 主动终止正在进行的流式响应。
      *
      * @param sessionId 会话ID
      * @param request   聊天请求
      * @return SseEmitter
      */
-    @Operation(summary = "流式聊天（SSE）", description = "流式输出 AI 回复，前端使用 EventSource 接收")
+    @Operation(summary = "流式聊天（SSE）", description = "流式输出 AI 回复，前端使用 EventSource 接收，支持主动终止")
     @GetMapping(value = "/chat/session/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStreamWithSession(
             @Parameter(description = "会话ID", required = true) @PathVariable String sessionId,
@@ -110,13 +121,25 @@ public class AiAgentController {
 
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
 
+        // SseEmitter 生命周期回调：连接完成或超时时清理订阅
+        emitter.onCompletion(() -> activeStreamSubscriptions.remove(userId));
+        emitter.onTimeout(() -> {
+            log.info("[流式] SSE 超时，清理订阅 - userId: {}", userId);
+            activeStreamSubscriptions.remove(userId);
+        });
+        emitter.onError(throwable -> {
+            log.debug("[流式] SSE 连接异常，清理订阅 - userId: {}", userId);
+            activeStreamSubscriptions.remove(userId);
+        });
+
         // 异步处理流式响应（使用自定义线程池）
         CompletableFuture.runAsync(() -> {
             try {
                 // 在异步流内部进行输入安全检查，避免媒体类型冲突
                 aiAgentService.checkInputSafety(request.getMessage(), sessionId, userId);
-                
-                aiAgentService.chatStreamWithSession(
+
+                // 订阅流式响应，保存 Disposable 以支持主动终止
+                Disposable subscription = aiAgentService.chatStreamWithSession(
                         sessionId,
                         userId,
                         request.getMessage(),
@@ -130,17 +153,30 @@ public class AiAgentController {
                                 }
                             } catch (IOException e) {
                                 log.error("[流式] 发送数据失败: {}", e.getMessage());
+                                activeStreamSubscriptions.remove(userId);
                                 emitter.completeWithError(e);
                             }
                         },
                         error -> {
-                            log.error("[流式] 错误: {}", error.getMessage(), error);
-                            sendSseErrorEvent(emitter, "STREAM_ERROR", translateApiError(error));
+                            activeStreamSubscriptions.remove(userId);
+                            // 用户主动终止时，Flux 会收到 CancelException，按正常完成处理
+                            if (isCancellationError(error)) {
+                                log.info("[流式] 用户主动终止会话 - userId: {}", userId);
+                                try {
+                                    emitter.send(SseEmitter.event().name("stopped").data("[STOPPED]"));
+                                } catch (IOException e) {
+                                    log.debug("[流式] 发送终止事件失败: {}", e.getMessage());
+                                }
+                                emitter.complete();
+                            } else {
+                                log.error("[流式] 错误: {}", error.getMessage(), error);
+                                sendSseErrorEvent(emitter, "STREAM_ERROR", translateApiError(error));
+                            }
                         },
                         () -> {
+                            activeStreamSubscriptions.remove(userId);
                             log.info("[流式] 完成");
                             try {
-                                // 发送完成事件
                                 emitter.send(SseEmitter.event().name("complete").data("[DONE]"));
                             } catch (IOException e) {
                                 log.error("[流式] 发送完成事件失败: {}", e.getMessage());
@@ -148,6 +184,10 @@ public class AiAgentController {
                             emitter.complete();
                         }
                 );
+
+                // 记录订阅，支持后续主动终止
+                activeStreamSubscriptions.put(userId, subscription);
+
             } catch (com.mouhin.brief.wisdom.exception.ContentSecurityException e) {
                 log.warn("[内容安全] 流式聊天输入被拦截: {}", e.getMessage());
                 sendSseErrorEvent(emitter, "CONTENT_BLOCKED", e.getMessage());
@@ -158,6 +198,38 @@ public class AiAgentController {
         }, briefWisdomExecutor);
 
         return emitter;
+    }
+
+    /**
+     * 终止正在进行的流式会话
+     * <p>
+     * 前端在用户点击"停止生成"按钮时调用此接口。
+     * 会取消当前用户正在进行的流式订阅，SSE 连接将收到 stopped 事件后关闭。
+     */
+    @Operation(summary = "终止流式会话", description = "主动终止当前用户正在进行的流式 AI 回复")
+    @DeleteMapping("/chat/stream/stop")
+    public Boolean stopStream() {
+        String userId = userContextHelper.getCurrentUserId();
+        Disposable subscription = activeStreamSubscriptions.remove(userId);
+        if (subscription != null && !subscription.isDisposed()) {
+            subscription.dispose();
+            log.info("[流式] 用户主动终止会话成功 - userId: {}", userId);
+        } else {
+            log.debug("[流式] 无活跃流需要终止 - userId: {}", userId);
+        }
+        return true;
+    }
+
+    /**
+     * 判断异常是否为取消/终止类异常（用户主动停止流式响应时产生）
+     */
+    private boolean isCancellationError(Throwable error) {
+        if (error instanceof java.util.concurrent.CancellationException) {
+            return true;
+        }
+        // Reactor 的 Operators$CancelledException 或 OperationCanceledException
+        String className = error.getClass().getName();
+        return className.contains("Cancel") || className.contains("cancel");
     }
 
     /**

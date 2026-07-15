@@ -126,6 +126,19 @@ public class KnowledgeDocumentRepository {
     }
 
     /**
+     * 根据 ID 批量查询文档
+     *
+     * @param ids 文档 ID 列表
+     * @return 匹配的文档列表（不保证顺序）
+     */
+    public List<KnowledgeDocument> findByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return knowledgeDocumentMapper.selectBatchIds(ids);
+    }
+
+    /**
      * 保存新文档
      *
      * @param document 文档实体

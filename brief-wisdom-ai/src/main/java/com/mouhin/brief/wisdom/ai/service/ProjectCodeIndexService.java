@@ -2,8 +2,8 @@ package com.mouhin.brief.wisdom.ai.service;
 
 import lombok.Data;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -28,12 +28,11 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ProjectCodeIndexService {
 
-    /** 项目根目录（可通过环境变量或系统属性配置） */
-    private static final String PROJECT_ROOT = System.getProperty("project.root", 
-            System.getenv().getOrDefault("PROJECT_ROOT", "/Users/mac/CodeDir/Brief-Wisdom"));
+    /** 项目根目录（通过 application.yml 配置，支持环境变量和系统属性覆盖） */
+    @Value("${app.project.root:${PROJECT_ROOT:/Users/mac/CodeDir/Brief-Wisdom}}")
+    private String projectRoot;
 
     /** 需要索引的文件扩展名 */
     private static final Set<String> INDEXED_EXTENSIONS = Set.of(
@@ -138,10 +137,11 @@ public class ProjectCodeIndexService {
      * 构建项目索引
      */
     private void buildProjectIndex() throws IOException {
-        Path projectRoot = Paths.get(PROJECT_ROOT);
+        Path rootPath = Paths.get(projectRoot);
+        log.info("[项目索引] 项目根目录: {}", projectRoot);
 
         // 扫描所有文件
-        Files.walkFileTree(projectRoot, new SimpleFileVisitor<Path>() {
+        Files.walkFileTree(rootPath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                 String dirName = dir.getFileName().toString();
@@ -158,7 +158,7 @@ public class ProjectCodeIndexService {
 
                 if (INDEXED_EXTENSIONS.contains(extension)) {
                     try {
-                        indexFile(file, projectRoot);
+                        indexFile(file, rootPath);
                     } catch (Exception e) {
                         log.warn("[项目索引] 文件索引失败: {}, 错误: {}", file, e.getMessage());
                     }
@@ -169,7 +169,7 @@ public class ProjectCodeIndexService {
         });
 
         // 构建模块索引
-        buildModuleIndex(projectRoot);
+        buildModuleIndex(rootPath);
     }
 
     /**

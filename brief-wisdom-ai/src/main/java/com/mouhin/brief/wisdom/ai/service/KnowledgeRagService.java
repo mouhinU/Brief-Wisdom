@@ -168,6 +168,19 @@ public class KnowledgeRagService {
             return doc.getContent().replaceAll("<[^>]+>", "").replaceAll("&nbsp;", " ").trim();
         } else if ("LINK".equals(doc.getDocType()) && doc.getLinkDesc() != null) {
             return doc.getLinkDesc();
+        } else if ("FILE".equals(doc.getDocType())) {
+            // FILE 类型：使用文件名和文件类型作为可检索内容
+            StringBuilder sb = new StringBuilder();
+            if (doc.getFileName() != null) {
+                sb.append(doc.getFileName());
+            }
+            if (doc.getFileType() != null) {
+                if (sb.length() > 0) {
+                    sb.append(" ");
+                }
+                sb.append("(").append(doc.getFileType()).append(")");
+            }
+            return sb.toString();
         }
         return "";
     }

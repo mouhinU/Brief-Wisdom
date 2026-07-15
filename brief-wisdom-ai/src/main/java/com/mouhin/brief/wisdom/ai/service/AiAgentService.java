@@ -29,6 +29,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -84,6 +85,7 @@ public class AiAgentService {
     private final KnowledgeRagService knowledgeRagService;
     private final ChatMemoryService chatMemoryService;
     private final AiAuditService auditService;
+    private final ToolCallbackProvider toolCallbackProvider;
 
     /**
      * 创建新会话（无参版本，使用默认用户ID）
@@ -443,14 +445,19 @@ public class AiAgentService {
      * @return 提供商匹配的 ChatOptions
      */
     private ChatOptions buildChatOptions(String provider, String modelName) {
+        // 获取所有注册的工具回调
+        var toolCallbacks = toolCallbackProvider.getToolCallbacks();
+
         if ("anthropic".equals(provider)) {
             return AnthropicChatOptions.builder()
                     .model(modelName)
+                    .toolCallbacks(toolCallbacks)
                     .build();
         }
         // OpenAI 兼容协议（dashscope / openai / deepseek）
         return OpenAiChatOptions.builder()
                 .model(modelName)
+                .toolCallbacks(toolCallbacks)
                 .build();
     }
 
@@ -837,6 +844,23 @@ public class AiAgentService {
             }
         } catch (Exception e) {
             log.warn("知识库 RAG 检索失败，跳过上下文注入: {}", e.getMessage());
+        }
+
+        // 注入用户记忆上下文（跨会话记忆）
+        try {
+            String memoryContext = chatMemoryService.buildMemoryContext(userId);
+            if (!memoryContext.isBlank()) {
+                systemPrompt += memoryContext;
+            }
+        } catch (Exception e) {
+            log.warn("用户记忆加载失败，跳过记忆注入: {}", e.getMessage());
+        }
+
+        // 从用户消息中自动提取记忆（异步，不影响主流程）
+        try {
+            chatMemoryService.extractMemoriesFromMessage(userId, message, sessionId);
+        } catch (Exception e) {
+            log.warn("记忆提取失败: {}", e.getMessage());
         }
 
         String provider = resolveProvider(model);

@@ -91,8 +91,6 @@ public class KnowledgeVectorService {
             return;
         }
         try {
-            // 使用元数据过滤删除对应的向量
-            String filterExpression = "docId == '" + documentId + "'";
             vectorStore.delete(List.of(String.valueOf(documentId)));
             log.debug("删除文档向量: docId={}", documentId);
         } catch (Exception e) {
@@ -136,16 +134,32 @@ public class KnowledgeVectorService {
                 return List.of();
             }
 
-            // 从向量结果中提取 docId，查询数据库获取完整文档
-            List<KnowledgeDocument> documents = new java.util.ArrayList<>();
+            // 从向量结果中提取 docId，批量查询数据库获取完整文档（避免 N+1 查询）
+            List<Long> docIds = new java.util.ArrayList<>();
             for (Document result : results) {
                 Object docIdObj = result.getMetadata().get("docId");
                 if (docIdObj != null) {
-                    Long docId = Long.valueOf(docIdObj.toString());
-                    KnowledgeDocument doc = knowledgeDocumentRepository.findById(docId);
-                    if (doc != null) {
-                        documents.add(doc);
-                    }
+                    docIds.add(Long.valueOf(docIdObj.toString()));
+                }
+            }
+
+            if (docIds.isEmpty()) {
+                return List.of();
+            }
+
+            // 批量查询所有文档
+            List<KnowledgeDocument> allDocs = knowledgeDocumentRepository.findByIds(docIds);
+            // 保持向量搜索的相似度排序
+            Map<Long, KnowledgeDocument> docMap = new HashMap<>(allDocs.size());
+            for (KnowledgeDocument doc : allDocs) {
+                docMap.put(doc.getId(), doc);
+            }
+
+            List<KnowledgeDocument> documents = new java.util.ArrayList<>();
+            for (Long docId : docIds) {
+                KnowledgeDocument doc = docMap.get(docId);
+                if (doc != null) {
+                    documents.add(doc);
                 }
             }
 
@@ -201,6 +215,19 @@ public class KnowledgeVectorService {
                     .trim();
         } else if ("LINK".equals(doc.getDocType()) && doc.getLinkDesc() != null) {
             return doc.getLinkDesc();
+        } else if ("FILE".equals(doc.getDocType())) {
+            // FILE 类型：使用文件名和文件类型作为可检索内容
+            StringBuilder sb = new StringBuilder();
+            if (doc.getFileName() != null) {
+                sb.append(doc.getFileName());
+            }
+            if (doc.getFileType() != null) {
+                if (sb.length() > 0) {
+                    sb.append(" ");
+                }
+                sb.append("(").append(doc.getFileType()).append(")");
+            }
+            return sb.toString();
         }
         return "";
     }

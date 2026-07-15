@@ -1,14 +1,13 @@
 package com.mouhin.brief.wisdom.ai.service;
 
-import com.mouhin.brief.wisdom.ai.config.AiProviderProperties;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.AnthropicClientImpl;
+import com.mouhin.brief.wisdom.ai.config.AiProviderProperties;
 import com.openai.client.OpenAIClient;
 import com.openai.client.OpenAIClientAsync;
 import com.openai.client.OpenAIClientAsyncImpl;
 import com.openai.client.OpenAIClientImpl;
 import com.openai.core.ClientOptions;
-import org.springframework.ai.openai.http.okhttp.SpringAiOpenAiHttpClient;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.anthropic.AnthropicChatModel;
@@ -16,6 +15,7 @@ import org.springframework.ai.anthropic.AnthropicChatOptions;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.http.okhttp.SpringAiOpenAiHttpClient;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -61,8 +61,7 @@ public class ChatModelRegistry {
         if (modelCache.isEmpty()) {
             log.warn("[AI] 没有成功注册任何提供商，请检查 api-key 配置");
         } else {
-            log.info("[AI] ChatModel 注册表初始化完成，已注册 {} 个提供商: {}，默认: {}",
-                    modelCache.size(), modelCache.keySet(), properties.getDefaultProvider());
+            log.info("[AI] ChatModel 注册表初始化完成，已注册 {} 个提供商: {}，默认: {}", modelCache.size(), modelCache.keySet(), properties.getDefaultProvider());
         }
     }
 
@@ -96,20 +95,19 @@ public class ChatModelRegistry {
     public ChatModel getChatModel(String provider, String modelName, String thinkingMode) {
         // 思考模式下使用不同的缓存 key
         String cacheKey = buildCacheKey(provider, modelName, thinkingMode);
-        
+
         ChatModel chatModel = modelCache.get(cacheKey);
         if (chatModel != null) {
             return chatModel;
         }
-        
+
         // 创建带思考模式配置的 ChatModel
         chatModel = createChatModelWithThinkingMode(provider, modelName, thinkingMode);
         if (chatModel != null) {
             modelCache.put(cacheKey, chatModel);
-            log.info("[AI] 创建带思考模式的 ChatModel: provider={}, model={}, mode={}", 
-                    provider, modelName, thinkingMode);
+            log.info("[AI] 创建带思考模式的 ChatModel: provider={}, model={}, mode={}", provider, modelName, thinkingMode);
         }
-        
+
         return chatModel;
     }
 
@@ -224,7 +222,7 @@ public class ChatModelRegistry {
 
         String apiKey = props.getApiKey();
         String baseUrl = props.getBaseUrl();
-        
+
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("[AI] 提供商 {} 未配置 api-key", provider);
             return null;
@@ -232,7 +230,7 @@ public class ChatModelRegistry {
 
         // 根据提供商类型创建不同的 ChatModel
         String type = props.getType() != null ? props.getType() : "openai";
-        
+
         if ("anthropic".equals(type)) {
             return createAnthropicChatModelWithThinking(baseUrl, apiKey, modelName, thinkingMode);
         } else {
@@ -252,16 +250,16 @@ public class ChatModelRegistry {
                 .build();
         OpenAIClient client = new OpenAIClientImpl(clientOptions);
         OpenAIClientAsync asyncClient = new OpenAIClientAsyncImpl(clientOptions);
-        
+
         OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
                 .model(model != null ? model : "gpt-4o");
-        
+
         // 思考模式下启用 reasoning_effort
         if ("thinking".equals(thinkingMode)) {
             optionsBuilder.reasoningEffort("high");
             log.debug("[AI] OpenAI 兼容协议启用思考模式: reasoning_effort=high");
         }
-        
+
         return OpenAiChatModel.builder()
                 .openAiClient(client)
                 .openAiClientAsync(asyncClient)
@@ -284,16 +282,16 @@ public class ChatModelRegistry {
 
         AnthropicChatOptions.Builder optionsBuilder = AnthropicChatOptions.builder()
                 .model(model != null ? model : "claude-sonnet-4-20250514");
-        
+
         // 思考模式下启用 extended thinking
         // 注意：Spring AI 2.0 的 AnthropicChatOptions 可能不支持直接的 thinking 配置
         // 如果 Claude 3.7+ 需要思考模式，建议升级到更高版本的 Spring AI
         if ("thinking".equals(thinkingMode)) {
             log.warn("[AI] Anthropic 思考模式在当前 Spring AI 版本中暂不支持，使用默认配置");
             // TODO: 升级到 Spring AI 2.1.0+ 后启用以下代码
-            // optionsBuilder.thinkingBudgetTokens(4096);
+//             optionsBuilder.thinkingBudgetTokens(4096);
         }
-        
+
         return AnthropicChatModel.builder()
                 .anthropicClient(client)
                 .options(optionsBuilder.build())

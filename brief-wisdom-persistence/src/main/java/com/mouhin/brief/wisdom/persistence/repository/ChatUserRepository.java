@@ -97,6 +97,15 @@ public class ChatUserRepository {
     }
 
     /**
+     * 统计所有用户数量
+     *
+     * @return 用户总数
+     */
+    public long countAll() {
+        return chatUserMapper.selectCount(new LambdaQueryWrapper<>());
+    }
+
+    /**
      * 查询所有用户（按创建时间降序）
      *
      * @return 用户列表

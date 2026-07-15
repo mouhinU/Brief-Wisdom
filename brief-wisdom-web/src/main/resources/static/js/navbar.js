@@ -312,6 +312,10 @@ function injectAiAssistant() {
             <input type="text" class="chat-input" id="chatInput"
                    placeholder="输入您的问题..." autocomplete="off">
             <button class="send-button" id="sendButton" onclick="sendMessage()">发送</button>
+            <button class="stop-button" id="stopButton" onclick="stopStreaming()" style="display:none;" title="停止生成">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor"/></svg>
+              停止
+            </button>
           </div>
         </div>
       </div>
@@ -346,7 +350,7 @@ function loadChatScriptsIfNeeded() {
   // 加载 chat.js
   if (typeof toggleChat === 'undefined') {
     const chatScript = document.createElement('script');
-    chatScript.src = 'js/chat.js?v=8';  // v8: 修复流式输出NPE + 添加思考模式标识
+    chatScript.src = 'js/chat.js?v=9';  // v9: 修复停止按钮状态恢复
     chatScript.onload = function() {
       // chat.js 加载完成后初始化（会话列表、模型列表等）
       if (typeof initChatApp === 'function') initChatApp();

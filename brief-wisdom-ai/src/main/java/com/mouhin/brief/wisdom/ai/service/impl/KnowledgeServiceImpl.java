@@ -14,6 +14,7 @@ import com.mouhin.brief.wisdom.persistence.repository.KnowledgeBaseRepository;
 import com.mouhin.brief.wisdom.persistence.repository.KnowledgeDocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 /**
  * 知识库管理服务实现
@@ -36,6 +38,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
     private final KnowledgeVectorService knowledgeVectorService;
+    @Qualifier("briefWisdomExecutor")
+    private final Executor briefWisdomExecutor;
 
     // ==================== 知识库 ====================
 
@@ -285,11 +289,13 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      * 异步向量化文档（失败不影响主流程）
      */
     private void vectorizeDocument(KnowledgeDocument doc) {
-        try {
-            knowledgeVectorService.vectorizeAndStore(doc);
-        } catch (Exception e) {
-            log.warn("文档向量化失败（不影响主流程）: docId={}, error={}", doc.getId(), e.getMessage());
-        }
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                knowledgeVectorService.vectorizeAndStore(doc);
+            } catch (Exception e) {
+                log.warn("文档向量化失败（不影响主流程）: docId={}, error={}", doc.getId(), e.getMessage());
+            }
+        }, briefWisdomExecutor);
     }
 
     /**
