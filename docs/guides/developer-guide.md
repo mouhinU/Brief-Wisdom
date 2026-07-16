@@ -1,12 +1,13 @@
 # Brief-Wisdom 开发者指南
 
-> **目标读者**: 新加入项目的开发者  
-> **最后更新**: 2026-07-06  
+> **目标读者**: 新加入项目的开发者
+> **最后更新**: 2026-07-15
 > **项目版本**: 0.0.1-SNAPSHOT
+> **技术栈**: Spring Boot 4.0.7 / Spring AI 2.0.0 / Java 21
 
 ---
 
-## 📖 目录
+## 目录
 
 - [环境准备](#环境准备)
 - [快速启动](#快速启动)
@@ -21,12 +22,12 @@
 
 ### 必需软件
 
-| 软件         | 版本要求      | 说明                          |
-|-------------|-------------|-----------------------------|
-| JDK         | 17+         | 推荐使用 Adoptium Temurin 17   |
-| Maven       | 3.8+        | 或使用项目自带 `mvnw`           |
-| MySQL       | 8.0+        | 本地开发建议使用 Docker 容器      |
-| Redis       | 6.0+        | 本地开发建议使用 Docker 容器      |
+| 软件 | 版本要求 | 说明 |
+|------|---------|------|
+| JDK | 21+ | 推荐使用 Adoptium Temurin 21 |
+| Maven | 3.8+ | 或使用项目自带 `mvnw` |
+| MySQL | 8.0+ | 本地开发建议使用 Docker 容器 |
+| Redis | 6.0+ | 推荐启用 RediSearch 模块以支持向量检索 |
 
 ### 推荐工具
 
@@ -46,11 +47,11 @@ cp .env.example .env
 编辑 `.env`:
 
 ```bash
-# AI API Key(必填)
+# AI API Key（必填）
 AI_API_KEY=your_dashscope_api_key_here
 DEEPSEEK_API_KEY=your_deepseek_api_key_here
 
-# OAuth 配置(可选,第三方登录需要)
+# OAuth 配置（可选，第三方登录需要）
 WECHAT_APP_ID=xxx
 WECHAT_APP_SECRET=xxx
 DINGTALK_APP_ID=xxx
@@ -59,7 +60,7 @@ ALIPAY_APP_ID=xxx
 ALIPAY_PRIVATE_KEY=xxx
 ```
 
-> ⚠️ **安全提示**: `.env` 文件已在 `.gitignore` 中排除,不会提交到 Git。
+> **安全提示**: `.env` 文件已在 `.gitignore` 中排除，不会提交到 Git。
 
 ---
 
@@ -68,11 +69,11 @@ ALIPAY_PRIVATE_KEY=xxx
 ### 1. 初始化数据库
 
 ```bash
-# 方式一:使用 Docker Compose(推荐)
+# 方式一：使用 Docker Compose（推荐）
 docker-compose up -d mysql redis
 
-# 方式二:手动启动 MySQL 和 Redis
-# 确保 MySQL 运行在 localhost:3306,Redis 运行在 localhost:6379
+# 方式二：手动启动 MySQL 和 Redis
+# 确保 MySQL 运行在 localhost:3306，Redis 运行在 localhost:6379
 ```
 
 执行初始化脚本:
@@ -86,7 +87,7 @@ mysql -u root -p < brief-wisdom-web/src/main/resources/init-20260629.sql
 ### 2. 启动应用
 
 ```bash
-# 使用 Maven Wrapper(推荐,无需安装 Maven)
+# 使用 Maven Wrapper（推荐，无需安装 Maven）
 ./mvnw spring-boot:run -pl brief-wisdom-web
 
 # 或使用系统 Maven
@@ -113,14 +114,14 @@ mvn spring-boot:run -pl brief-wisdom-web
 
 ```
 Brief-Wisdom/
-├── brief-wisdom-common/          # 公共模块(DTO、常量、注解、i18n)
-├── brief-wisdom-persistence/     # 数据持久化(Entity、Mapper、Repository)
-├── brief-wisdom-ai/              # AI 领域模块(对话、知识库、模型管理)
-├── brief-wisdom-system/          # 系统模块(用户、角色、菜单、认证)
-├── brief-wisdom-resume/          # 简历模块(CRUD + AI 润色)
-├── brief-wisdom-web/             # Web 入口(Controller、配置、前端资源)
-├── brief-wisdom-api/             # API 接口定义(预留扩展)
-└── brief-wisdom-service/         # 通用服务层(逐步迁移至领域模块)
+├── brief-wisdom-common/          # 公共模块（DTO、常量、注解、i18n）
+├── brief-wisdom-persistence/     # 数据持久化（Entity、Mapper、Repository）
+├── brief-wisdom-ai/              # AI 领域模块（对话、知识库、模型管理、工具调用）
+├── brief-wisdom-system/          # 系统模块（用户、角色、菜单、认证）
+├── brief-wisdom-resume/          # 简历模块（CRUD + AI 润色）
+├── brief-wisdom-web/             # Web 入口（Controller、配置、前端资源）
+├── brief-wisdom-api/             # API 接口定义（预留扩展）
+└── brief-wisdom-service/         # 通用服务层（逐步迁移至领域模块）
 ```
 
 ### 依赖关系
@@ -139,14 +140,15 @@ brief-wisdom-web (Web 入口)
 
 ### 核心技术栈
 
-| 技术            | 版本    | 用途                    |
-|---------------|-------|-----------------------|
-| Spring Boot   | 3.5.7 | 应用框架                 |
-| Spring AI     | 1.0.0 | AI 集成(DashScope/DeepSeek) |
-| MyBatis-Plus  | 3.5.5 | ORM 框架                |
-| Redis         | 6.0+  | 缓存 + Session 存储      |
-| Redisson      | 3.40.2| 分布式锁(独立客户端,避免冲突)    |
-| Spring Security | 6   | 认证授权(RBAC)           |
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Spring Boot | 4.0.7 | 应用框架 |
+| Spring AI | 2.0.0 | AI 集成（DashScope/DeepSeek/OpenAI/Anthropic） |
+| MyBatis-Plus | 3.5.5 | ORM 框架 |
+| Redis | 6.0+ | 缓存 + Session 存储 + 向量检索（RediSearch） |
+| Redisson | 3.40.2 | 分布式锁（独立客户端，避免冲突） |
+| Spring Security | 7 | 认证授权（RBAC） |
+| SpringDoc | 2.8.6 | API 文档（OpenAPI 3） |
 
 详细技术栈请参考 [README.md](../README.md#技术栈)。
 
@@ -156,13 +158,13 @@ brief-wisdom-web (Web 入口)
 
 ### 代码规范
 
-严格遵循 [AGENTS.md](../AGENTS.md) 中的编码规范,核心要点:
+严格遵循 [AGENTS.md](../AGENTS.md) 中的编码规范，核心要点:
 
-1. **命名规范**: 类名 UpperCamelCase,方法名 lowerCamelCase,常量全大写下划线
-2. **注释规范**: 所有类必须添加 `@author` 和 `@date`,抽象方法必须有 Javadoc
-3. **异常处理**: 禁止空 catch,业务异常使用自定义异常类
-4. **日志规范**: 使用 SLF4J,日志输出使用占位符 `{}`
-5. **集合处理**: 禁止在 foreach 中 remove/add,集合初始化时指定容量
+1. **命名规范**: 类名 UpperCamelCase，方法名 lowerCamelCase，常量全大写下划线
+2. **注释规范**: 所有类必须添加 `@author` 和 `@date`，抽象方法必须有 Javadoc
+3. **异常处理**: 禁止空 catch，业务异常使用自定义异常类
+4. **日志规范**: 使用 SLF4J，日志输出使用占位符 `{}`
+5. **集合处理**: 禁止在 foreach 中 remove/add，集合初始化时指定容量
 
 ### Git 提交规范
 
@@ -174,56 +176,35 @@ git commit -m "<type>: <subject>"
 feat:     新功能
 fix:      修复 bug
 docs:     文档变更
-style:    代码格式(不影响功能)
+style:    代码格式（不影响功能）
 refactor: 重构
 test:     测试相关
 chore:    构建过程或辅助工具变动
-
-# 示例
-git commit -m "feat: 添加 AI 模型价格配置功能"
-git commit -m "fix: 修复会话删除后无法切换的问题"
-git commit -m "docs: 更新 README 中的 API 接口列表"
 ```
 
 ### 分支管理
 
-- **main**: 主分支,保持稳定可发布状态
-- **feature/xxx**: 功能分支,从 main 检出
-- **hotfix/xxx**: 紧急修复分支,从 main 检出
-
-合并流程:
-
-```bash
-# 1. 在 feature 分支开发
-git checkout -b feature/ai-model-price main
-
-# 2. 开发完成后推送到远程
-git push origin feature/ai-model-price
-
-# 3. 创建 Pull Request,等待 Code Review
-
-# 4. 审核通过后合并到 main
-git checkout main
-git merge feature/ai-model-price
-```
+- **main**: 主分支，保持稳定可发布状态
+- **feature/xxx**: 功能分支，从 main 检出
+- **hotfix/xxx**: 紧急修复分支，从 main 检出
 
 ---
 
 ## 常见问题
 
-### Q1: 启动时报 `StackOverflowError`?
+### Q1: 启动时报 StackOverflowError?
 
 **原因**: Redisson 与 Spring Data Redis 的 `pExpire()` 方法存在递归冲突。
 
-**解决**: 已修复,使用独立 Redisson 客户端(非 starter),详见 [FIX_SUMMARY.md](../FIX_SUMMARY.md)。
+**解决**: 已修复，使用独立 Redisson 客户端（非 starter），详见 [变更日志](../CHANGELOG.md)。
 
-### Q2: 会话创建失败,sessionId 为 null?
+### Q2: 会话创建失败，sessionId 为 null?
 
 **排查步骤**:
 
-1. 清除浏览器缓存(硬刷新 Ctrl+Shift+R)
+1. 清除浏览器缓存（硬刷新 Ctrl+Shift+R）
 2. 检查浏览器 Console 是否有 JS 错误
-3. 检查 Network 标签,确认请求 URL 包含正确的 sessionId
+3. 检查 Network 标签，确认请求 URL 包含正确的 sessionId
 4. 测试后端 API:
    ```bash
    curl -X POST http://localhost:8090/api/ai/session
@@ -232,20 +213,13 @@ git merge feature/ai-model-price
 
 ### Q3: 数据库字段缺失导致 SQL 错误?
 
-**示例**: `Unknown column 'update_time' in 'field list'`
-
-**解决**: 执行对应的迁移脚本,如:
-
-```bash
-mysql -u root -p brief_wisdom < brief-wisdom-web/src/main/resources/migrate_add_ai_audit_update_time.sql
-```
+**解决**: 执行初始化脚本或对应的迁移脚本。
 
 ### Q4: Redis 反序列化失败?
 
 **原因**: 序列化器变更后旧缓存数据不兼容。
 
 **解决**: 清空缓存
-
 ```bash
 redis-cli FLUSHDB
 # 或清空指定缓存域
@@ -268,11 +242,14 @@ redis-cli KEYS "bw:*" | xargs redis-cli DEL
            default-model: xxx-model
    ```
 
-2. 重启应用,新提供商会自动注册到 `ChatModelRegistry`
-
+2. 重启应用，新提供商会自动注册到 `ChatModelRegistry`
 3. 在 AI 管理后台启用该提供商的模型
 
-详细说明参考 [sync-architecture.md](architecture/sync-architecture.md)。
+### Q6: 知识库向量检索不工作?
+
+**原因**: Redis 未安装 RediSearch 模块。
+
+**解决**: 系统会优雅降级（LazyVectorStore），应用正常运行但向量检索不可用。安装 RediSearch 模块或启用 Redis Stack 即可。详见 [RAG 架构设计](architecture/rag-architecture.md)。
 
 ---
 
@@ -280,7 +257,7 @@ redis-cli KEYS "bw:*" | xargs redis-cli DEL
 
 ### 1. 查看 SQL 日志
 
-MyBatis-Plus 已配置 SQL 日志输出,控制台会打印完整 SQL:
+MyBatis-Plus 已配置 SQL 日志输出，控制台会打印完整 SQL:
 
 ```yaml
 # application-dev.yml
@@ -291,29 +268,11 @@ mybatis-plus:
 
 ### 2. 热部署
 
-DevTools 已启用,修改 Java 代码后自动重启:
+DevTools 已启用，修改 Java 代码后自动重启。
 
-```yaml
-# application-dev.yml
-spring:
-  devtools:
-    restart:
-      enabled: true
-    livereload:
-      enabled: true
-```
+> 注意: 修改配置文件或静态资源需手动重启。
 
-> ⚠️ 注意: 修改配置文件或静态资源需手动重启。
-
-### 3. 断点调试
-
-在 IntelliJ IDEA 中:
-
-1. 点击 Run → Debug 'WebApplication'
-2. 在代码行号左侧点击设置断点
-3. 触发对应逻辑,程序会在断点处暂停
-
-### 4. 查看 Redis 缓存
+### 3. 查看 Redis 缓存
 
 ```bash
 # 查看所有 bw: 开头的 key
@@ -326,9 +285,7 @@ redis-cli GET "bw:menu:tree::[\"admin\"]"
 redis-cli TTL "bw:menu:tree::[\"admin\"]"
 ```
 
-### 5. API 测试
-
-使用 Postman 或 curl 测试接口:
+### 4. API 测试
 
 ```bash
 # 获取启用的 AI 模型列表
@@ -349,23 +306,12 @@ curl -X POST http://localhost:8090/api/ai/chat/session/{sessionId} \
 
 ## 下一步
 
-- 📚 阅读 [README.md](../README.md) 了解完整功能列表
-- 🏗️ 查看 [sync-architecture.md](architecture/sync-architecture.md) 理解实时同步架构
-- 🔧 参考 [LOG_CONFIGURATION.md](guides/LOG_CONFIGURATION.md) 配置日志
-- 💡 阅读 [项目能力分析与改进建议.md](analysis/项目能力分析与改进建议.md) 了解优化方向
+- 阅读 [README.md](../README.md) 了解完整功能列表
+- 查看 [RAG 架构设计](architecture/rag-architecture.md) 理解知识库实现
+- 查看 [跨会话记忆](architecture/chat-memory.md) 理解记忆功能
+- 参考 [数据库表结构](database-schema.md) 了解数据模型
+- 参考 [日志配置](LOG_CONFIGURATION.md) 配置日志
 
 ---
 
-## 贡献指南
-
-欢迎提交 Issue 和 Pull Request!
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'feat: add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
-
----
-
-**祝你开发愉快! 🎉**
+**祝你开发愉快！**
