@@ -192,6 +192,25 @@ public class ChatMessageRepository {
         chatMessageMapper.insert(message);
     }
 
+    /**
+     * 根据 ID 查询消息
+     *
+     * @param id 消息 ID
+     * @return 消息实体，不存在返回 null
+     */
+    public ChatMessage findById(Long id) {
+        return chatMessageMapper.selectById(id);
+    }
+
+    /**
+     * 更新消息
+     *
+     * @param message 消息实体（必须包含 ID）
+     */
+    public void update(ChatMessage message) {
+        chatMessageMapper.updateById(message);
+    }
+
     // ========== 费用统计 ==========
 
     /**

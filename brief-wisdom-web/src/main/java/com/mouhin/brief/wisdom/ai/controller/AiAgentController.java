@@ -25,11 +25,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -139,6 +142,8 @@ public class AiAgentController {
                 aiAgentService.checkInputSafety(request.getMessage(), sessionId, userId);
 
                 // 订阅流式响应，保存 Disposable 以支持主动终止
+                final StringBuilder contentAccumulator = new StringBuilder();
+                final String resolvedModel = request.getModel() != null ? request.getModel() : aiAgentService.getActiveModelName();
                 Disposable subscription = aiAgentService.chatStreamWithSession(
                         sessionId,
                         userId,
@@ -149,6 +154,7 @@ public class AiAgentController {
                         chunk -> {
                             try {
                                 if (StringUtils.isNotBlank(chunk)) {
+                                    contentAccumulator.append(chunk);
                                     emitter.send(SseEmitter.event().data(chunk));
                                 }
                             } catch (IOException e) {
@@ -176,6 +182,21 @@ public class AiAgentController {
                         () -> {
                             activeStreamSubscriptions.remove(userId);
                             log.info("[流式] 完成");
+
+                            // 估算 Token 和费用并自动保存
+                            try {
+                                String fullContent = contentAccumulator.toString();
+                                if (StringUtils.isNotBlank(fullContent)) {
+                                    int tokens = aiAgentService.estimateStreamingTokens(fullContent);
+                                    double cost = aiAgentService.estimateStreamingCost(resolvedModel, tokens);
+                                    aiAgentService.saveStreamedMessage(
+                                            sessionId, userId, fullContent, resolvedModel, tokens, cost);
+                                    log.info("[流式] Token/Cost 已记录 - tokens: {}, cost: {}", tokens, cost);
+                                }
+                            } catch (Exception e) {
+                                log.error("[流式] 自动保存消息失败: {}", e.getMessage(), e);
+                            }
+
                             try {
                                 emitter.send(SseEmitter.event().name("complete").data("[DONE]"));
                             } catch (IOException e) {
@@ -305,6 +326,68 @@ public class AiAgentController {
     }
 
     /**
+     * 导出会话消息为 Markdown 文件
+     * <p>
+     * 将会话中的所有消息导出为 Markdown 格式文件，供用户下载保存。
+     *
+     * @param sessionId 会话ID
+     * @return Markdown 文件（.md）
+     */
+    @Operation(summary = "导出会话", description = "将指定会话的消息导出为 Markdown 格式文件")
+    @GetMapping("/session/{sessionId}/export")
+    public ResponseEntity<byte[]> exportSession(
+            @Parameter(description = "会话ID", required = true) @PathVariable String sessionId) {
+        String userId = userContextHelper.getCurrentUserId();
+        log.info("导出会话 - sessionId: {}, userId: {}", sessionId, userId);
+
+        String markdown = aiAgentService.exportSessionAsMarkdown(sessionId, userId);
+        byte[] content = markdown.getBytes(StandardCharsets.UTF_8);
+
+        // 构建文件名：会话标题（安全化）+ 时间戳
+        String safeFilename = buildSafeFilename(sessionId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + safeFilename + "\"")
+                .contentType(MediaType.parseMediaType("text/markdown; charset=UTF-8"))
+                .contentLength(content.length)
+                .body(content);
+    }
+
+    /**
+     * 构建安全的下载文件名
+     * <p>
+     * 移除文件名中的非法字符，确保跨平台兼容性。
+     *
+     * @param sessionId 会话ID
+     * @return 安全的文件名
+     */
+    private String buildSafeFilename(String sessionId) {
+        // 默认文件名
+        String filename = "chat-export-" + sessionId.substring(0, 8) + ".md";
+        try {
+            // 尝试获取会话标题作为文件名
+            var sessions = aiAgentService.listSessions();
+            for (var session : sessions) {
+                if (sessionId.equals(session.getSessionId())) {
+                    String title = session.getTitle();
+                    if (title != null && !title.isBlank()) {
+                        // 移除文件名中的非法字符
+                        String safeTitle = title.replaceAll("[^a-zA-Z0-9\\u4e00-\\u9fa5._-]", "_");
+                        if (safeTitle.length() > 30) {
+                            safeTitle = safeTitle.substring(0, 30);
+                        }
+                        filename = safeTitle + ".md";
+                    }
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取会话标题失败，使用默认文件名: {}", e.getMessage());
+        }
+        return filename;
+    }
+
+    /**
      * 获取分页配置信息
      * <p>
      * 前端可调用此接口获取各业务的默认分页大小，避免硬编码
@@ -354,7 +437,9 @@ public class AiAgentController {
                 request.getSessionId(),
                 userId,
                 request.getContent(),
-                request.getModel()
+                request.getModel(),
+                request.getTokens(),
+                request.getCost()
         );
         
         return true;
@@ -457,6 +542,30 @@ public class AiAgentController {
             return "AI 服务响应超时，请稍后重试";
         }
         return "AI 服务异常：" + msg;
+    }
+
+    /**
+     * 提交消息反馈（对话质量评估）
+     * <p>
+     * 用户对 AI 回复进行评分（1-5 分），可选附带文字反馈。
+     */
+    @Operation(summary = "提交消息反馈", description = "用户对 AI 回复进行 1-5 分评分，可选附带文字反馈")
+    @PostMapping("/feedback")
+    public Boolean submitFeedback(@RequestBody Map<String, Object> request) {
+        String userId = userContextHelper.getCurrentUserId();
+
+        Object messageIdObj = request.get("messageId");
+        Object scoreObj = request.get("score");
+        if (messageIdObj == null || scoreObj == null) {
+            throw new IllegalArgumentException("messageId 和 score 为必填项");
+        }
+
+        Long messageId = Long.valueOf(messageIdObj.toString());
+        Integer score = Integer.valueOf(scoreObj.toString());
+        String comment = request.get("comment") != null ? request.get("comment").toString() : null;
+
+        aiAgentService.submitFeedback(messageId, userId, score, comment);
+        return true;
     }
 
     /**

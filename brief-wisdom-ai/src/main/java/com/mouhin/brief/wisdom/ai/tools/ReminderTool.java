@@ -1,4 +1,4 @@
-package com.mouhin.brief.wisdom.ai.service.tools;
+package com.mouhin.brief.wisdom.ai.tools;
 
 import com.mouhin.brief.wisdom.persistence.model.ChatReminder;
 import com.mouhin.brief.wisdom.persistence.repository.ChatReminderRepository;

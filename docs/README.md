@@ -28,7 +28,8 @@ docs/
 │   └── MARKDOWN_IMPORT_GUIDE.md       # Markdown 导入指南
 │
 └── analysis/
-    └── README.md                      # 项目能力总结与未来规划
+    ├── README.md                      # 项目能力总结与未来规划
+    └── technical-business-recommendations.md  # 技术业务建议报告
 ```
 
 ---
@@ -58,6 +59,7 @@ docs/
 ### 项目分析
 
 - [项目能力总结与规划](analysis/README.md) — 能力评估、已完成建设、未来规划、AI 插件设计蓝图
+- [技术业务建议报告](analysis/technical-business-recommendations.md) — 10 项技术建议 + 5 项业务建议，含优先级评估
 
 ---
 
@@ -109,4 +111,4 @@ docs/
 
 ---
 
-**最后更新**: 2026-07-15
+**最后更新**: 2026-07-16

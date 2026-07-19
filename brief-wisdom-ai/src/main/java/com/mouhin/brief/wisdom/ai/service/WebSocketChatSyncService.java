@@ -50,13 +50,11 @@ public class WebSocketChatSyncService implements ChatSyncService {
      * @param session WebSocket 会话
      */
     public void unregisterSession(String userId, WebSocketSession session) {
-        List<WebSocketSession> sessions = userSessions.get(userId);
-        if (sessions != null) {
+        // 使用 computeIfPresent 保证原子性，避免竞态条件
+        userSessions.computeIfPresent(userId, (key, sessions) -> {
             sessions.remove(session);
-            if (sessions.isEmpty()) {
-                userSessions.remove(userId);
-            }
-        }
+            return sessions.isEmpty() ? null : sessions;  // 返回 null 自动移除该 key
+        });
         log.info("[WebSocket] 用户 {} 断开连接，sessionId: {}，剩余连接数: {}",
                 userId, session.getId(), getSessionCount(userId));
     }

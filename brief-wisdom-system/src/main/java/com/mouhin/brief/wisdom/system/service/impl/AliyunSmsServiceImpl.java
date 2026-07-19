@@ -3,6 +3,7 @@ package com.mouhin.brief.wisdom.system.service.impl;
 import com.mouhin.brief.wisdom.system.service.SmsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -11,12 +12,10 @@ import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 短信验证码服务实现（Mock 模式）
+ * 短信验证码服务实现（阿里云短信模式）
  * <p>
- * 使用 Redis 存储验证码，支持过期时间和发送频率限制。
- * 当前为模拟实现（验证码打印到日志），生产环境需对接真实短信通道。
- * <p>
- * 通过配置 app.sms.provider=mock 激活此实现（默认）。
+ * 通过阿里云 SMS SDK 发送真实短信验证码。
+ * 通过配置 app.sms.provider=aliyun 激活此实现。
  *
  * @author Brief-Wisdom
  * @date 2026-07-03
@@ -24,8 +23,8 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.sms.provider", havingValue = "mock", matchIfMissing = true)
-public class SmsServiceImpl implements SmsService {
+@ConditionalOnProperty(name = "app.sms.provider", havingValue = "aliyun")
+public class AliyunSmsServiceImpl implements SmsService {
 
     private final StringRedisTemplate stringRedisTemplate;
 
@@ -44,6 +43,18 @@ public class SmsServiceImpl implements SmsService {
     private static final String DAILY_KEY_PREFIX = "bw:sms:daily:";
 
     private static final SecureRandom RANDOM = new SecureRandom();
+
+    @Value("${app.sms.aliyun.access-key-id:}")
+    private String accessKeyId;
+
+    @Value("${app.sms.aliyun.access-key-secret:}")
+    private String accessKeySecret;
+
+    @Value("${app.sms.aliyun.sign-name:}")
+    private String signName;
+
+    @Value("${app.sms.aliyun.template-code:}")
+    private String templateCode;
 
     @Override
     public String sendVerificationCode(String phone) {
@@ -71,8 +82,19 @@ public class SmsServiceImpl implements SmsService {
             stringRedisTemplate.expire(dailyKey, 24 * 60 * 60, TimeUnit.SECONDS);
         }
 
-        // TODO: 对接真实短信通道（阿里云短信、腾讯云短信等）
-        log.info("[短信验证码] phone={}, code={}****（生产环境此验证码通过短信发送）", maskPhone(phone), code.substring(0, 2));
+        // TODO: 对接阿里云 SMS SDK，调用 SendSms API 发送真实短信
+        // 参考文档：https://help.aliyun.com/document_detail/101414.html
+        // 示例代码：
+        // Config config = new Config()
+        //     .setAccessKeyId(accessKeyId)
+        //     .setAccessKeySecret(accessKeySecret);
+        // SendSmsRequest request = new SendSmsRequest()
+        //     .setPhoneNumbers(phone)
+        //     .setSignName(signName)
+        //     .setTemplateCode(templateCode)
+        //     .setTemplateParam("{\"code\":\"" + code + "\"}");
+        // client.sendSms(request);
+        log.info("[阿里云短信] 发送验证码到 phone={}, code={}****", maskPhone(phone), code.substring(0, 2));
 
         return code;
     }

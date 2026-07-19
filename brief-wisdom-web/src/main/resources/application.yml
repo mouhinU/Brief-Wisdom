@@ -46,6 +46,8 @@ spring:
   # Thymeleaf 配置（项目使用静态HTML，不使用模板引擎）
   thymeleaf:
     check-template-location: false  # 禁用模板位置检查
+  # Spring AI Vector Store 配置（Redis Vector Store）
+  ai:
     vectorstore:
       redis:
         initialize-schema: true
@@ -83,6 +85,14 @@ management:
 
 # 实时同步配置
 app:
+  # 短信服务配置：mock（日志模拟）/ aliyun（阿里云短信）
+  sms:
+    provider: mock    # mock / aliyun
+    # aliyun:
+    #   access-key-id: ${ALIYUN_SMS_ACCESS_KEY_ID:}
+    #   access-key-secret: ${ALIYUN_SMS_ACCESS_KEY_SECRET:}
+    #   sign-name: ${ALIYUN_SMS_SIGN_NAME:}
+    #   template-code: ${ALIYUN_SMS_TEMPLATE_CODE:}
   # AI 多提供商统一配置（ChatModelRegistry 根据 ai_model.provider 字段路由）
   ai:
     default-provider: dashscope    # 默认提供商

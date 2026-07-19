@@ -1,11 +1,10 @@
-package com.mouhin.brief.wisdom.ai.service.tools;
+package com.mouhin.brief.wisdom.ai.tools;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -23,12 +22,9 @@ import java.time.format.DateTimeFormatter;
 @Component
 public class DateTimeTool {
 
-    private static final DateTimeFormatter FULL_FORMAT =
-            DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm:ss");
-    private static final DateTimeFormatter DATE_FORMAT =
-            DateTimeFormatter.ofPattern("yyyy年MM月dd日");
-    private static final DateTimeFormatter TIME_FORMAT =
-            DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final DateTimeFormatter FULL_FORMAT = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm:ss");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy年MM月dd日");
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     /**
      * 获取当前日期和时间

@@ -9,6 +9,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +37,16 @@ public class KnowledgeVectorService {
     /** 相似度阈值（低于此值的结果将被过滤） */
     private static final double SIMILARITY_THRESHOLD = 0.3;
 
+    /** 单个分块的最大字符数 */
+    private static final int MAX_CHUNK_SIZE = 2000;
+
+    /** 分块之间的重叠字符数（保证上下文连续性） */
+    private static final int CHUNK_OVERLAP = 200;
+
     /**
      * 将知识库文档向量化并存入 Redis Vector Store
+     * <p>
+     * 对长文档按标题/段落智能分块，每块独立向量化，提升检索精度。
      *
      * @param doc 知识库文档
      */
@@ -52,33 +61,172 @@ public class KnowledgeVectorService {
             return;
         }
 
-        // 截断过长内容（Embedding 模型通常有 token 上限）
-        if (textContent.length() > 4000) {
-            textContent = textContent.substring(0, 4000);
-        }
+        // 智能分块：短文档单块存储，长文档按段落/标题切分
+        List<String> chunks = splitIntoChunks(textContent, MAX_CHUNK_SIZE, CHUNK_OVERLAP);
 
-        // 构建 Spring AI Document，附带元数据
-        Map<String, Object> metadata = new HashMap<>(8);
-        metadata.put("docId", String.valueOf(doc.getId()));
-        metadata.put("baseId", String.valueOf(doc.getBaseId()));
-        metadata.put("title", doc.getTitle() != null ? doc.getTitle() : "");
-        metadata.put("docType", doc.getDocType() != null ? doc.getDocType() : "");
-        if (doc.getTags() != null) {
-            metadata.put("tags", doc.getTags());
-        }
+        // 先删除旧向量（避免重复）
+        deleteFromVectorStore(doc.getId());
 
-        Document aiDocument = new Document(textContent, metadata);
+        // 构建 Spring AI Document 列表，附带元数据
+        List<Document> aiDocuments = new ArrayList<>(chunks.size());
+        for (int i = 0; i < chunks.size(); i++) {
+            Map<String, Object> metadata = new HashMap<>(8);
+            metadata.put("docId", String.valueOf(doc.getId()));
+            metadata.put("baseId", String.valueOf(doc.getBaseId()));
+            metadata.put("title", doc.getTitle() != null ? doc.getTitle() : "");
+            metadata.put("docType", doc.getDocType() != null ? doc.getDocType() : "");
+            metadata.put("chunkIndex", i);
+            metadata.put("totalChunks", chunks.size());
+            if (doc.getTags() != null) {
+                metadata.put("tags", doc.getTags());
+            }
+            aiDocuments.add(new Document(chunks.get(i), metadata));
+        }
 
         try {
-            // 先删除旧向量（避免重复）
-            deleteFromVectorStore(doc.getId());
-            // 存储新向量
-            vectorStore.add(List.of(aiDocument));
-            log.info("文档向量化完成: docId={}, title={}, contentLength={}",
-                    doc.getId(), doc.getTitle(), textContent.length());
+            vectorStore.add(aiDocuments);
+            log.info("文档向量化完成: docId={}, title={}, chunks={}, totalLength={}",
+                    doc.getId(), doc.getTitle(), chunks.size(), textContent.length());
         } catch (Exception e) {
             log.error("文档向量化失败: docId={}, error={}", doc.getId(), e.getMessage(), e);
         }
+    }
+
+    /**
+     * 将长文本按标题和段落边界智能分块
+     * <p>
+     * 优先在 Markdown 标题（#/##/###）处切分，其次在段落边界切分，
+     * 最后在任意位置切分以保证块大小不超过上限。相邻块之间保留重叠以维持上下文。
+     *
+     * @param text      原始文本
+     * @param maxChunk  单块最大字符数
+     * @param overlap   块间重叠字符数
+     * @return 分块列表
+     */
+    List<String> splitIntoChunks(String text, int maxChunk, int overlap) {
+        if (text.length() <= maxChunk) {
+            return List.of(text);
+        }
+
+        List<String> chunks = new ArrayList<>();
+        // 优先按 Markdown 标题拆分
+        String[] sections = text.split("(?=(?:^|\\n)#{1,3}\\s)");
+
+        for (String section : sections) {
+            section = section.trim();
+            if (section.isEmpty()) {
+                continue;
+            }
+            if (section.length() <= maxChunk) {
+                chunks.add(section);
+            } else {
+                // 超长 section 按段落进一步拆分
+                splitByParagraph(section, maxChunk, chunks);
+            }
+        }
+
+        // 如果分块结果只有 1 个，说明无法按标题/段落切分，直接截断
+        if (chunks.isEmpty()) {
+            chunks.add(text.substring(0, Math.min(text.length(), maxChunk)));
+            return chunks;
+        }
+
+        // 合并过小的块，添加重叠
+        return mergeAndOverlapChunks(chunks, maxChunk, overlap);
+    }
+
+    /**
+     * 按段落边界拆分超长文本
+     */
+    private void splitByParagraph(String text, int maxChunk, List<String> chunks) {
+        String[] paragraphs = text.split("\\n\\s*\\n");
+        StringBuilder current = new StringBuilder();
+
+        for (String paragraph : paragraphs) {
+            paragraph = paragraph.trim();
+            if (paragraph.isEmpty()) {
+                continue;
+            }
+
+            if (current.length() + paragraph.length() + 2 > maxChunk && current.length() > 0) {
+                chunks.add(current.toString().trim());
+                // 保留尾部作为重叠
+                String tail = current.toString();
+                if (tail.length() > 200) {
+                    current = new StringBuilder(tail.substring(tail.length() - 200));
+                    current.append("\n\n");
+                } else {
+                    current = new StringBuilder();
+                }
+            }
+            if (current.length() > 0) {
+                current.append("\n\n");
+            }
+            current.append(paragraph);
+        }
+
+        if (current.length() > 0) {
+            String remaining = current.toString().trim();
+            if (remaining.length() > maxChunk) {
+                // 最终兜底：硬切分
+                for (int i = 0; i < remaining.length(); i += maxChunk - 200) {
+                    int end = Math.min(i + maxChunk, remaining.length());
+                    chunks.add(remaining.substring(i, end));
+                    if (end >= remaining.length()) {
+                        break;
+                    }
+                }
+            } else {
+                chunks.add(remaining);
+            }
+        }
+    }
+
+    /**
+     * 合并过小的块并在相邻块间添加重叠
+     */
+    private List<String> mergeAndOverlapChunks(List<String> rawChunks, int maxChunk, int overlap) {
+        if (rawChunks.size() <= 1) {
+            return rawChunks;
+        }
+
+        List<String> result = new ArrayList<>();
+        StringBuilder buffer = new StringBuilder();
+
+        for (String chunk : rawChunks) {
+            if (buffer.length() + chunk.length() + 2 <= maxChunk) {
+                if (buffer.length() > 0) {
+                    buffer.append("\n\n");
+                }
+                buffer.append(chunk);
+            } else {
+                if (buffer.length() > 0) {
+                    result.add(buffer.toString().trim());
+                }
+                buffer = new StringBuilder(chunk);
+            }
+        }
+        if (buffer.length() > 0) {
+            result.add(buffer.toString().trim());
+        }
+
+        // 如果合并后仍只有 1 块，直接返回
+        if (result.size() <= 1) {
+            return result;
+        }
+
+        // 添加重叠：每块的开头包含上一块尾部的内容
+        if (overlap <= 0) {
+            return result;
+        }
+        List<String> overlapped = new ArrayList<>(result.size());
+        overlapped.add(result.get(0));
+        for (int i = 1; i < result.size(); i++) {
+            String prev = result.get(i - 1);
+            String tail = prev.length() > overlap ? prev.substring(prev.length() - overlap) : prev;
+            overlapped.add(tail + "\n" + result.get(i));
+        }
+        return overlapped;
     }
 
     /**

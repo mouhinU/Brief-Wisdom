@@ -13,4 +13,8 @@ public class SaveStreamedMessageRequest {
     private String sessionId;
     private String content;
     private String model;
+    /** 流式响应估算的 Token 数量（前端或后端估算） */
+    private Integer tokens;
+    /** 流式响应估算的费用（元） */
+    private Double cost;
 }

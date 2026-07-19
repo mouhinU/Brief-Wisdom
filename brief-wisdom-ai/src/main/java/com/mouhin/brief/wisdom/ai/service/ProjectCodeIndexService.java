@@ -12,6 +12,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -54,11 +55,17 @@ public class ProjectCodeIndexService {
     /** 最大索引文件大小（1MB） */
     private static final long MAX_FILE_SIZE = 1_000_000;
 
+    /** 最大索引文件数量，防止内存无限增长 */
+    private static final int MAX_INDEX_FILES = 5000;
+
     /** 代码文件索引存储 */
     private final Map<String, CodeFileIndex> codeIndex = new ConcurrentHashMap<>();
 
     /** 模块结构索引 */
     private final Map<String, ModuleStructure> moduleIndex = new ConcurrentHashMap<>();
+
+    /** 已索引文件计数器，用于限制最大索引数量 */
+    private final AtomicInteger indexedFileCount = new AtomicInteger(0);
 
     /**
      * 初始化时构建索引
@@ -87,21 +94,37 @@ public class ProjectCodeIndexService {
         }
 
         String lowerKeyword = keyword.toLowerCase();
-        List<CodeFileIndex> results = new ArrayList<>();
+        // 使用局部 Map 存储分数，避免并发修改共享对象
+        Map<CodeFileIndex, Double> scoredResults = new HashMap<>(codeIndex.size());
 
         for (CodeFileIndex index : codeIndex.values()) {
             double score = calculateRelevanceScore(index, lowerKeyword);
             if (score > 0) {
-                index.setRelevanceScore(score);
-                results.add(index);
+                scoredResults.put(index, score);
             }
         }
 
-        // 按相关度降序排序
-        results.sort((a, b) -> Double.compare(b.getRelevanceScore(), a.getRelevanceScore()));
-
-        // 返回 Top-10
-        return results.stream().limit(10).collect(Collectors.toList());
+        // 按相关度降序排序，取 Top-10
+        return scoredResults.entrySet().stream()
+                .sorted(Map.Entry.<CodeFileIndex, Double>comparingByValue().reversed())
+                .limit(10)
+                .map(entry -> {
+                    // 创建副本设置分数，不修改共享对象
+                    CodeFileIndex src = entry.getKey();
+                    CodeFileIndex copy = new CodeFileIndex();
+                    copy.setFilePath(src.getFilePath());
+                    copy.setFileName(src.getFileName());
+                    copy.setExtension(src.getExtension());
+                    copy.setFileType(src.getFileType());
+                    copy.setFileSize(src.getFileSize());
+                    copy.setLineCount(src.getLineCount());
+                    copy.setPackageName(src.getPackageName());
+                    copy.setClassName(src.getClassName());
+                    copy.setSummary(src.getSummary());
+                    copy.setRelevanceScore(entry.getValue());
+                    return copy;
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -144,6 +167,10 @@ public class ProjectCodeIndexService {
         Files.walkFileTree(rootPath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                if (indexedFileCount.get() >= MAX_INDEX_FILES) {
+                    log.warn("[CodeIndex] 达到索引上限 {} 个文件，停止扫描", MAX_INDEX_FILES);
+                    return FileVisitResult.TERMINATE;
+                }
                 String dirName = dir.getFileName().toString();
                 if (EXCLUDED_DIRS.contains(dirName)) {
                     return FileVisitResult.SKIP_SUBTREE;
@@ -153,12 +180,18 @@ public class ProjectCodeIndexService {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                if (indexedFileCount.get() >= MAX_INDEX_FILES) {
+                    log.warn("[CodeIndex] 达到索引上限 {} 个文件，停止扫描", MAX_INDEX_FILES);
+                    return FileVisitResult.TERMINATE;
+                }
+
                 String fileName = file.getFileName().toString();
                 String extension = getFileExtension(fileName);
 
                 if (INDEXED_EXTENSIONS.contains(extension)) {
                     try {
                         indexFile(file, rootPath);
+                        indexedFileCount.incrementAndGet();
                     } catch (Exception e) {
                         log.warn("[项目索引] 文件索引失败: {}, 错误: {}", file, e.getMessage());
                     }

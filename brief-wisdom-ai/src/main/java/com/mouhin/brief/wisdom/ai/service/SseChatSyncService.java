@@ -175,13 +175,11 @@ public class SseChatSyncService implements ChatSyncService {
      * 移除指定用户的某个 SSE 连接
      */
     private void removeEmitter(String userId, SseEmitter emitter) {
-        List<SseEmitter> emitters = userEmitters.get(userId);
-        if (emitters != null) {
+        // 使用 computeIfPresent 保证原子性，避免竞态条件
+        userEmitters.computeIfPresent(userId, (key, emitters) -> {
             emitters.remove(emitter);
-            if (emitters.isEmpty()) {
-                userEmitters.remove(userId);
-            }
-        }
+            return emitters.isEmpty() ? null : emitters;  // 返回 null 自动移除该 key
+        });
         try {
             emitter.complete();
         } catch (Exception ignored) {

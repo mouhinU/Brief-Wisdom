@@ -3,7 +3,7 @@
 # ============================================
 
 # 阶段1: 构建
-FROM maven:3.9-eclipse-temurin-17 AS builder
+FROM maven:3.9-eclipse-temurin-21 AS builder
 
 WORKDIR /build
 
@@ -25,7 +25,7 @@ COPY . .
 RUN mvn clean package -DskipTests -B
 
 # 阶段2: 运行
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 LABEL maintainer="Brief-Wisdom"
 LABEL description="Brief-Wisdom 智能简历与AI助手平台"
@@ -46,8 +46,8 @@ USER app
 # 暴露端口
 EXPOSE 8090
 
-# JVM 参数（可通过环境变量 JAVA_OPTS 覆盖）
-ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"
+# JVM 参数（可通过环境变量 JAVA_OPTS 覆盖），启用虚拟线程
+ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom -Dspring.threads.virtual.enabled=true"
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \

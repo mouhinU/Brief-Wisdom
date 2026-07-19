@@ -45,6 +45,12 @@ public class RateLimitService {
     private static final String SECOND_KEY_PREFIX = "bw:ratelimit:s:";
     private static final String DAY_KEY_PREFIX = "bw:ratelimit:day:";
 
+    /** 秒级限流 key 的过期时间（秒） */
+    private static final int SECOND_KEY_TTL_SECONDS = 5;
+
+    /** 天级限流 key 的过期时间（秒）：2 天 */
+    private static final int DAY_KEY_TTL_SECONDS = 172800;
+
     private static final DateTimeFormatter SECOND_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final DateTimeFormatter DAY_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
@@ -87,7 +93,7 @@ public class RateLimitService {
         Long secondCount = redisTemplate.execute(
                 INCR_WITH_EXPIRE_SCRIPT,
                 Collections.singletonList(secondKey),
-                String.valueOf(5) // 5秒过期
+                String.valueOf(SECOND_KEY_TTL_SECONDS) // 秒级 key 过期时间
         );
         if (secondCount > MAX_REQUESTS_PER_SECOND) {
             log.warn("[限流] 用户 {} 秒级请求超限: {}/{}", userId, secondCount, MAX_REQUESTS_PER_SECOND);
@@ -99,7 +105,7 @@ public class RateLimitService {
         Long dayCount = redisTemplate.execute(
                 INCR_WITH_EXPIRE_SCRIPT,
                 Collections.singletonList(dayKey),
-                String.valueOf(172800) // 2天=172800秒
+                String.valueOf(DAY_KEY_TTL_SECONDS) // 天级 key 过期时间（2天）
         );
         if (dayCount > MAX_REQUESTS_PER_DAY) {
             log.warn("[限流] 用户 {} 天级请求超限: {}/{}", userId, dayCount, MAX_REQUESTS_PER_DAY);

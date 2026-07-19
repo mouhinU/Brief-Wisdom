@@ -51,8 +51,7 @@ public class KnowledgeRagService {
         log.debug("RAG 向量检索开始: messageLength={}", userMessage.length());
 
         // 使用向量检索替代关键词匹配
-        List<KnowledgeDocument> results = knowledgeVectorService.searchBySimilarity(
-                userMessage, MAX_DOCUMENTS);
+        List<KnowledgeDocument> results = knowledgeVectorService.searchBySimilarity(userMessage, MAX_DOCUMENTS);
 
         log.info("RAG 检索到 {} 篇相关文档", results.size());
         return results;

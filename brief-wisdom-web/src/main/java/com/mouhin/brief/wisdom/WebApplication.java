@@ -3,6 +3,7 @@ package com.mouhin.brief.wisdom;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration;
 import org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration;
 import org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration;
@@ -35,6 +36,7 @@ import org.springframework.ai.vectorstore.redis.autoconfigure.RedisVectorStoreAu
  * @date 2026-06-30
  */
 @MapperScan("com.mouhin.brief.wisdom.persistence.mapper")
+@EnableScheduling
 public class WebApplication {
 
     public static void main(String[] args) {

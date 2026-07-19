@@ -1,4 +1,4 @@
-package com.mouhin.brief.wisdom.ai.service.tools;
+package com.mouhin.brief.wisdom.ai.tools;
 
 import com.mouhin.brief.wisdom.ai.service.KnowledgeRagService;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeVectorService;

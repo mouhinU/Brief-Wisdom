@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.resume.controller;
 
 import com.mouhin.brief.wisdom.ai.service.AiAgentService;
+import com.mouhin.brief.wisdom.common.Result;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.resume.req.FullPolishRequest;
 import com.mouhin.brief.wisdom.resume.req.ResumeSuggestRequest;
@@ -40,23 +41,18 @@ public class ResumeAiController {
      */
     @PostMapping("/polish")
     @Operation(summary = "单字段文本润色")
-    public Map<String, String> polishText(@RequestBody TextPolishRequest request) {
+    public Result<Map<String, String>> polishText(@RequestBody TextPolishRequest request) {
         log.info("AI文本润色请求, fieldType={}, textLength={}", request.getFieldType(),
                 request.getText() != null ? request.getText().length() : 0);
 
         if (request.getText() == null || request.getText().isBlank()) {
-            return Map.of("result", "", "error", "文本内容不能为空");
+            return Result.fail("文本内容不能为空");
         }
 
-        try {
-            String systemPrompt = buildPolishSystemPrompt(request.getFieldType());
-            String userMessage = buildPolishUserMessage(request);
-            String polished = aiAgentService.chatWithSystemPrompt(systemPrompt, userMessage);
-            return Map.of("result", polished);
-        } catch (Exception e) {
-            log.error("AI文本润色失败", e);
-            return Map.of("result", "", "error", "AI服务暂时不可用，请稍后重试");
-        }
+        String systemPrompt = buildPolishSystemPrompt(request.getFieldType());
+        String userMessage = buildPolishUserMessage(request);
+        String polished = aiAgentService.chatWithSystemPrompt(systemPrompt, userMessage);
+        return Result.success(Map.of("result", polished));
     }
 
     /**
@@ -64,18 +60,13 @@ public class ResumeAiController {
      */
     @PostMapping("/polish/full")
     @Operation(summary = "全文润色", description = "对完整简历数据逐字段润色")
-    public Map<String, Object> fullPolish(@RequestBody FullPolishRequest request) {
+    public Result<Map<String, Object>> fullPolish(@RequestBody FullPolishRequest request) {
         log.info("AI全文润色请求");
 
-        try {
-            String systemPrompt = buildFullPolishSystemPrompt();
-            String userMessage = buildFullPolishUserMessage(request);
-            String result = aiAgentService.chatWithSystemPrompt(systemPrompt, userMessage);
-            return Map.of("result", result, "success", true);
-        } catch (Exception e) {
-            log.error("AI全文润色失败", e);
-            return Map.of("result", "", "success", false, "error", "AI服务暂时不可用，请稍后重试");
-        }
+        String systemPrompt = buildFullPolishSystemPrompt();
+        String userMessage = buildFullPolishUserMessage(request);
+        String result = aiAgentService.chatWithSystemPrompt(systemPrompt, userMessage);
+        return Result.success(Map.of("result", result, "success", true));
     }
 
     /**
@@ -83,18 +74,13 @@ public class ResumeAiController {
      */
     @PostMapping("/suggest")
     @Operation(summary = "AI 优化建议", description = "基于完整简历数据给出多维度优化建议")
-    public Map<String, Object> suggest(@RequestBody ResumeSuggestRequest request) {
+    public Result<Map<String, Object>> suggest(@RequestBody ResumeSuggestRequest request) {
         log.info("AI简历建议请求, dimensions={}", request.getDimensions());
 
-        try {
-            String systemPrompt = buildSuggestSystemPrompt(request.getDimensions());
-            String userMessage = buildSuggestUserMessage(request);
-            String result = aiAgentService.chatWithSystemPrompt(systemPrompt, userMessage);
-            return Map.of("result", result, "success", true);
-        } catch (Exception e) {
-            log.error("AI简历建议失败", e);
-            return Map.of("result", "", "success", false, "error", "AI服务暂时不可用，请稍后重试");
-        }
+        String systemPrompt = buildSuggestSystemPrompt(request.getDimensions());
+        String userMessage = buildSuggestUserMessage(request);
+        String result = aiAgentService.chatWithSystemPrompt(systemPrompt, userMessage);
+        return Result.success(Map.of("result", result, "success", true));
     }
 
     // ==================== 单字段润色 ====================

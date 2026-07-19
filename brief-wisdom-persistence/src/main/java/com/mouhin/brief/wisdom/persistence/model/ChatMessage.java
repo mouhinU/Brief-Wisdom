@@ -43,4 +43,13 @@ public class ChatMessage extends BaseEntity {
 
     @TableField(value = "message_type")
     private String messageType;  // 消息类型: text, image, code等
+
+    @TableField(value = "feedback_score")
+    private Integer feedbackScore;  // 用户反馈评分: 1-5（1=很差, 5=很好）
+
+    @TableField(value = "feedback_comment")
+    private String feedbackComment;  // 用户反馈备注
+
+    @TableField(value = "feedback_time")
+    private LocalDateTime feedbackTime;  // 反馈时间
 }

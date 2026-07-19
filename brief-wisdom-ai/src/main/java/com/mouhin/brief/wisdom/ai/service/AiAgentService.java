@@ -401,6 +401,43 @@ public class AiAgentService {
     }
 
     /**
+     * 根据内容长度估算流式响应的 Token 数量
+     * <p>
+     * 中英文混合文本按约 3 字符 ≈ 1 Token 估算。
+     *
+     * @param content 流式响应累积的文本内容
+     * @return 估算的 Token 数量
+     */
+    public int estimateStreamingTokens(String content) {
+        if (content == null || content.isEmpty()) {
+            return 0;
+        }
+        return Math.max(1, content.length() / 3);
+    }
+
+    /**
+     * 估算流式响应的费用（仅计算输出 Token 费用）
+     * <p>
+     * 流式模式下无法精确获取输入 Token 数量，仅按输出 Token 估算费用。
+     *
+     * @param modelName       模型名称
+     * @param completionTokens 估算的输出 Token 数量
+     * @return 估算的费用（元）
+     */
+    public double estimateStreamingCost(String modelName, int completionTokens) {
+        try {
+            AiModel aiModel = aiModelRepository.findByModelName(modelName);
+            if (aiModel != null && aiModel.getOutputPricePerMillion() != null) {
+                double outputCost = completionTokens / 1_000_000.0 * aiModel.getOutputPricePerMillion();
+                return Math.round(outputCost * 10000.0) / 10000.0;
+            }
+        } catch (Exception e) {
+            log.warn("估算流式费用失败，model: {}, error: {}", modelName, e.getMessage());
+        }
+        return 0.0;
+    }
+
+    /**
      * 获取当前激活的模型名称
      */
     public String getActiveModelName() {
@@ -1236,7 +1273,8 @@ public class AiAgentService {
         List<Map<String, Object>> countRows = messageRepository.findMessageCountsByUserId(userId);
         for (Map<String, Object> row : countRows) {
             String sid = String.valueOf(row.get("session_id"));
-            int cnt = ((Number) row.get("cnt")).intValue();
+            Object cntObj = row.get("cnt");
+            int cnt = cntObj instanceof Number ? ((Number) cntObj).intValue() : 0;
             messageCounts.put(sid, cnt);
         }
         syncStatus.setSessionMessageCounts(messageCounts);
@@ -1271,9 +1309,10 @@ public class AiAgentService {
      * @param model     模型名称
      */
     @Transactional
-    public void saveStreamedMessage(String sessionId, String userId, String content, String model) {
-        log.info("保存流式消息 - sessionId: {}, userId: {}, model: {}, content length: {}",
-                sessionId, userId, model, content != null ? content.length() : 0);
+    public void saveStreamedMessage(String sessionId, String userId, String content, String model,
+                                    Integer tokens, Double cost) {
+        log.info("保存流式消息 - sessionId: {}, userId: {}, model: {}, content length: {}, tokens: {}, cost: {}",
+                sessionId, userId, model, content != null ? content.length() : 0, tokens, cost);
 
         // 验证会话
         ChatSession session = sessionRepository.findBySessionId(sessionId);
@@ -1292,9 +1331,9 @@ public class AiAgentService {
         aiMsg.setContent(content);
         aiMsg.setModel(model);
         aiMsg.setMessageType(MESSAGE_TYPE_TEXT);
-        // 流式模式下不记录 token 和费用
-        aiMsg.setTokens(0);
-        aiMsg.setCost(0.0);
+        // 流式模式下使用估算的 token 和费用
+        aiMsg.setTokens(tokens != null ? tokens : 0);
+        aiMsg.setCost(cost != null ? cost : 0.0);
         messageRepository.save(aiMsg);
 
         // 更新会话统计信息
@@ -1318,5 +1357,121 @@ public class AiAgentService {
 
         // SSE 通知其他设备：新消息已添加
         chatSyncService.notifyUser(userId, "message_added", sessionId);
+    }
+
+    /**
+     * 导出会话消息为 Markdown 格式
+     * <p>
+     * 验证会话归属权后，加载所有消息并按时间顺序格式化为 Markdown 文档。
+     *
+     * @param sessionId 会话ID
+     * @param userId    当前用户ID（用于权限校验）
+     * @return Markdown 格式的会话内容
+     */
+    public String exportSessionAsMarkdown(String sessionId, String userId) {
+        // 验证会话存在性和归属权
+        ChatSession session = sessionRepository.findBySessionId(sessionId);
+        if (session == null) {
+            throw new AIException("会话不存在: " + sessionId);
+        }
+        if (!session.getUserId().equals(userId)) {
+            throw new AIException("无权访问此会话");
+        }
+
+        // 加载所有消息（按时间正序）
+        List<ChatMessage> messages = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+        if (messages.isEmpty()) {
+            return "# " + escapeMarkdown(session.getTitle()) + "\n\n*此会话暂无消息记录。*\n";
+        }
+
+        // 构建 Markdown 文档
+        StringBuilder markdown = new StringBuilder();
+        markdown.append("# ").append(escapeMarkdown(session.getTitle())).append("\n\n");
+        markdown.append("- **会话ID**: ").append(sessionId).append("\n");
+        markdown.append("- **创建时间**: ").append(formatDateTime(session.getCreateTime())).append("\n");
+        markdown.append("- **消息数量**: ").append(messages.size()).append("\n\n");
+        markdown.append("---\n\n");
+
+        for (ChatMessage message : messages) {
+            String roleLabel = ROLE_USER.equals(message.getRole()) ? "👤 用户" : "🤖 AI 助手";
+            String timestamp = formatDateTime(message.getTimestamp());
+
+            markdown.append("### ").append(roleLabel).append("\n\n");
+            markdown.append("*").append(timestamp).append("*\n\n");
+            markdown.append(message.getContent()).append("\n\n");
+
+            // 如果有模型信息（AI 回复），附加显示
+            if (ROLE_ASSISTANT.equals(message.getRole()) && message.getModel() != null) {
+                markdown.append("*模型: ").append(message.getModel());
+                if (message.getTokens() != null && message.getTokens() > 0) {
+                    markdown.append(" | Tokens: ").append(message.getTokens());
+                }
+                markdown.append("*\n\n");
+            }
+
+            markdown.append("---\n\n");
+        }
+
+        return markdown.toString();
+    }
+
+    /**
+     * 格式化日期时间为可读字符串
+     *
+     * @param dateTime 日期时间
+     * @return 格式化后的字符串
+     */
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "未知时间";
+        }
+        return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    /**
+     * 转义 Markdown 特殊字符（标题中的）
+     *
+     * @param text 原始文本
+     * @return 转义后的文本
+     */
+    private String escapeMarkdown(String text) {
+        if (text == null || text.isEmpty()) {
+            return "未命名会话";
+        }
+        // 转义标题中可能破坏格式的字符
+        return text.replace("#", "\\#")
+                .replace("*", "\\*")
+                .replace("_", "\\_");
+    }
+
+    /**
+     * 提交对话消息的用户反馈（质量评估）
+     *
+     * @param messageId 消息 ID
+     * @param userId    用户 ID
+     * @param score     评分（1-5）
+     * @param comment   反馈备注（可选）
+     */
+    public void submitFeedback(Long messageId, String userId, Integer score, String comment) {
+        if (messageId == null || score == null || score < 1 || score > 5) {
+            throw new IllegalArgumentException("参数不合法：messageId 和 score(1-5) 为必填项");
+        }
+
+        ChatMessage message = messageRepository.findById(messageId);
+        if (message == null) {
+            throw new IllegalArgumentException("消息不存在: " + messageId);
+        }
+
+        // 验证消息归属
+        if (!userId.equals(message.getUserId())) {
+            throw new IllegalArgumentException("无权反馈他人的消息");
+        }
+
+        message.setFeedbackScore(score);
+        message.setFeedbackComment(comment);
+        message.setFeedbackTime(LocalDateTime.now());
+        messageRepository.update(message);
+
+        log.info("用户反馈已记录: messageId={}, userId={}, score={}", messageId, userId, score);
     }
 }

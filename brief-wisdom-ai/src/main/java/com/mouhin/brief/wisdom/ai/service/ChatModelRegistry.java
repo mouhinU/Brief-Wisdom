@@ -96,17 +96,14 @@ public class ChatModelRegistry {
         // 思考模式下使用不同的缓存 key
         String cacheKey = buildCacheKey(provider, modelName, thinkingMode);
 
-        ChatModel chatModel = modelCache.get(cacheKey);
-        if (chatModel != null) {
-            return chatModel;
-        }
-
-        // 创建带思考模式配置的 ChatModel
-        chatModel = createChatModelWithThinkingMode(provider, modelName, thinkingMode);
-        if (chatModel != null) {
-            modelCache.put(cacheKey, chatModel);
-            log.info("[AI] 创建带思考模式的 ChatModel: provider={}, model={}, mode={}", provider, modelName, thinkingMode);
-        }
+        // 使用 computeIfAbsent 保证原子性，避免并发创建重复实例
+        ChatModel chatModel = modelCache.computeIfAbsent(cacheKey, key -> {
+            ChatModel model = createChatModelWithThinkingMode(provider, modelName, thinkingMode);
+            if (model != null) {
+                log.info("[AI] 创建带思考模式的 ChatModel: provider={}, model={}, mode={}", provider, modelName, thinkingMode);
+            }
+            return model;
+        });
 
         return chatModel;
     }

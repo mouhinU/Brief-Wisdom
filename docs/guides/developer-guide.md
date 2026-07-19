@@ -144,7 +144,7 @@ brief-wisdom-web (Web 入口)
 |------|------|------|
 | Spring Boot | 4.0.7 | 应用框架 |
 | Spring AI | 2.0.0 | AI 集成（DashScope/DeepSeek/OpenAI/Anthropic） |
-| MyBatis-Plus | 3.5.5 | ORM 框架 |
+| MyBatis-Plus | 3.5.16 | ORM 框架 |
 | Redis | 6.0+ | 缓存 + Session 存储 + 向量检索（RediSearch） |
 | Redisson | 3.40.2 | 分布式锁（独立客户端，避免冲突） |
 | Spring Security | 7 | 认证授权（RBAC） |
