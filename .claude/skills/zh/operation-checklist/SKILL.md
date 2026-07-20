@@ -2,6 +2,7 @@
 name: 操作检查清单 Skill
 description: 当你需要在 Brief-Wisdom 中快速完成任务分解、实施前检查或变更评审时使用。
 ---
+
 # 操作检查清单 Skill
 
 ## 作用

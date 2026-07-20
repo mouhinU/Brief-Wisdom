@@ -40,7 +40,7 @@ public class AiAuditLogRepository {
      */
     public Page<AiAuditLog> findByPage(int page, int size, String userId, String auditType, String riskLevel) {
         LambdaQueryWrapper<AiAuditLog> wrapper = new LambdaQueryWrapper<>();
-        
+
         if (userId != null && !userId.isBlank()) {
             wrapper.eq(AiAuditLog::getUserId, userId);
         }
@@ -50,10 +50,10 @@ public class AiAuditLogRepository {
         if (riskLevel != null && !riskLevel.isBlank()) {
             wrapper.eq(AiAuditLog::getRiskLevel, riskLevel);
         }
-        
+
         // 按创建时间倒序排列
         wrapper.orderByDesc(AiAuditLog::getCreateTime);
-        
+
         return mapper.selectPage(new Page<>(page, size), wrapper);
     }
 
@@ -69,7 +69,7 @@ public class AiAuditLogRepository {
         LambdaQueryWrapper<AiAuditLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AiAuditLog::getSessionId, sessionId);
         wrapper.orderByDesc(AiAuditLog::getCreateTime);
-        
+
         return mapper.selectPage(new Page<>(page, size), wrapper);
     }
 

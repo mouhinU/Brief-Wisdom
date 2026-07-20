@@ -2,6 +2,7 @@
 name: Resume Module Skill
 description: Use this skill for resume CRUD, AI polish, editor features, and resume-related UI integration.
 ---
+
 # Resume Module Skill
 
 ## Purpose

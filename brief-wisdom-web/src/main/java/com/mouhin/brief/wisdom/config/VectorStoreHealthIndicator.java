@@ -29,8 +29,8 @@ public class VectorStoreHealthIndicator implements HealthIndicator {
                     .build();
         }
         return Health.down()
-                    .withDetail("index", "brief-wisdom-knowledge")
-                    .withDetail("status", "RediSearch module not available, vector search disabled")
-                    .build();
+                .withDetail("index", "brief-wisdom-knowledge")
+                .withDetail("status", "RediSearch module not available, vector search disabled")
+                .build();
     }
 }

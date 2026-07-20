@@ -22,11 +22,11 @@
 
 ### 必需软件
 
-| 软件 | 版本要求 | 说明 |
-|------|---------|------|
-| JDK | 21+ | 推荐使用 Adoptium Temurin 21 |
-| Maven | 3.8+ | 或使用项目自带 `mvnw` |
-| MySQL | 8.0+ | 本地开发建议使用 Docker 容器 |
+| 软件    | 版本要求 | 说明                        |
+|-------|------|---------------------------|
+| JDK   | 21+  | 推荐使用 Adoptium Temurin 21  |
+| Maven | 3.8+ | 或使用项目自带 `mvnw`            |
+| MySQL | 8.0+ | 本地开发建议使用 Docker 容器        |
 | Redis | 6.0+ | 推荐启用 RediSearch 模块以支持向量检索 |
 
 ### 推荐工具
@@ -103,6 +103,7 @@ mvn spring-boot:run -pl brief-wisdom-web
 - **登录页面**: http://localhost:8090/login.html
 
 **默认账号**:
+
 - 访客用户: `default-user` / `guest`
 - 超级管理员: `admin` / `mouhin`
 
@@ -140,15 +141,15 @@ brief-wisdom-web (Web 入口)
 
 ### 核心技术栈
 
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| Spring Boot | 4.0.7 | 应用框架 |
-| Spring AI | 2.0.0 | AI 集成（DashScope/DeepSeek/OpenAI/Anthropic） |
-| MyBatis-Plus | 3.5.16 | ORM 框架 |
-| Redis | 6.0+ | 缓存 + Session 存储 + 向量检索（RediSearch） |
-| Redisson | 3.40.2 | 分布式锁（独立客户端，避免冲突） |
-| Spring Security | 7 | 认证授权（RBAC） |
-| SpringDoc | 2.8.6 | API 文档（OpenAPI 3） |
+| 技术              | 版本     | 用途                                         |
+|-----------------|--------|--------------------------------------------|
+| Spring Boot     | 4.0.7  | 应用框架                                       |
+| Spring AI       | 2.0.0  | AI 集成（DashScope/DeepSeek/OpenAI/Anthropic） |
+| MyBatis-Plus    | 3.5.16 | ORM 框架                                     |
+| Redis           | 6.0+   | 缓存 + Session 存储 + 向量检索（RediSearch）         |
+| Redisson        | 3.40.2 | 分布式锁（独立客户端，避免冲突）                           |
+| Spring Security | 7      | 认证授权（RBAC）                                 |
+| SpringDoc       | 2.8.6  | API 文档（OpenAPI 3）                          |
 
 详细技术栈请参考 [README.md](../README.md#技术栈)。
 
@@ -220,6 +221,7 @@ chore:    构建过程或辅助工具变动
 **原因**: 序列化器变更后旧缓存数据不兼容。
 
 **解决**: 清空缓存
+
 ```bash
 redis-cli FLUSHDB
 # 或清空指定缓存域
@@ -249,7 +251,8 @@ redis-cli KEYS "bw:*" | xargs redis-cli DEL
 
 **原因**: Redis 未安装 RediSearch 模块。
 
-**解决**: 系统会优雅降级（LazyVectorStore），应用正常运行但向量检索不可用。安装 RediSearch 模块或启用 Redis Stack 即可。详见 [RAG 架构设计](architecture/rag-architecture.md)。
+**解决**: 系统会优雅降级（LazyVectorStore），应用正常运行但向量检索不可用。安装 RediSearch 模块或启用 Redis Stack
+即可。详见 [RAG 架构设计](architecture/rag-architecture.md)。
 
 ---
 

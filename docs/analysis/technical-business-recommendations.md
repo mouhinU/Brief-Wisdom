@@ -10,21 +10,21 @@
 
 本次文档整理将项目文档从 18 个文件优化为 10 个文件，消除重复、合并碎片、补全缺失。当前文档体系如下：
 
-| 文件 | 行数 | 说明 |
-|------|------|------|
-| README.md | 370 | 项目全景：14 个核心能力区域、12 个 AI 工具、技术栈、快速开始 |
-| AGENTS.md | 443 | 编码规范（基于《Java 开发手册》v1.5.0 定制） |
-| CHANGELOG.md | 136 | 版本变更记录（2026-07-10 + 2026-07-16 两期） |
-| docs/README.md | 112 | 文档索引与导航 |
-| docs/architecture/sync-architecture.md | 320 | SSE/WebSocket 实时同步架构 |
-| docs/architecture/rag-architecture.md | 188 | Redis Vector Store RAG 设计 |
-| docs/architecture/chat-memory.md | 162 | 跨会话记忆功能设计 |
-| docs/features/ai-polish/README.md | 262 | AI 润色组件完整文档 |
-| docs/guides/developer-guide.md | 317 | 开发者快速入门 |
-| docs/guides/database-schema.md | 483 | 数据库表结构（含全部 17 张表） |
-| docs/guides/LOG_CONFIGURATION.md | 148 | 日志配置说明 |
-| docs/guides/MARKDOWN_IMPORT_GUIDE.md | 235 | Markdown 导入指南 |
-| docs/analysis/README.md | 126 | 项目能力总结与未来规划 |
+| 文件                                     | 行数  | 说明                                  |
+|----------------------------------------|-----|-------------------------------------|
+| README.md                              | 370 | 项目全景：14 个核心能力区域、12 个 AI 工具、技术栈、快速开始 |
+| AGENTS.md                              | 443 | 编码规范（基于《Java 开发手册》v1.5.0 定制）        |
+| CHANGELOG.md                           | 136 | 版本变更记录（2026-07-10 + 2026-07-16 两期）  |
+| docs/README.md                         | 112 | 文档索引与导航                             |
+| docs/architecture/sync-architecture.md | 320 | SSE/WebSocket 实时同步架构                |
+| docs/architecture/rag-architecture.md  | 188 | Redis Vector Store RAG 设计           |
+| docs/architecture/chat-memory.md       | 162 | 跨会话记忆功能设计                           |
+| docs/features/ai-polish/README.md      | 262 | AI 润色组件完整文档                         |
+| docs/guides/developer-guide.md         | 317 | 开发者快速入门                             |
+| docs/guides/database-schema.md         | 483 | 数据库表结构（含全部 17 张表）                   |
+| docs/guides/LOG_CONFIGURATION.md       | 148 | 日志配置说明                              |
+| docs/guides/MARKDOWN_IMPORT_GUIDE.md   | 235 | Markdown 导入指南                       |
+| docs/analysis/README.md                | 126 | 项目能力总结与未来规划                         |
 
 ---
 
@@ -32,7 +32,8 @@
 
 ### 建议 1：补充定时提醒的调度执行机制（优先级 P1）
 
-**现状**：`chat_reminder` 表和 `ReminderTool` 已实现提醒的创建和查询，但项目中没有 `@EnableScheduling` 和 `@Scheduled` 任务。提醒创建后只能被动查询，无法主动推送给用户。
+**现状**：`chat_reminder` 表和 `ReminderTool` 已实现提醒的创建和查询，但项目中没有 `@EnableScheduling` 和 `@Scheduled`
+任务。提醒创建后只能被动查询，无法主动推送给用户。
 
 **建议**：引入调度机制，在提醒到期时通过 SSE/WebSocket 推送通知。
 
@@ -65,7 +66,8 @@ public class ReminderScheduler {
 
 ### 建议 2：流式对话 Token/Cost 追踪（优先级 P1）
 
-**现状**：`chatStreamWithSession()` 返回 `Flux<String>` 后，Token 和 Cost 均记为 0。前端调用 `saveStreamedMessage()` 保存消息时也没有 Token 数据。这意味着流式对话的使用量和费用完全丢失。
+**现状**：`chatStreamWithSession()` 返回 `Flux<String>` 后，Token 和 Cost 均记为 0。前端调用 `saveStreamedMessage()`
+保存消息时也没有 Token 数据。这意味着流式对话的使用量和费用完全丢失。
 
 **建议**：利用 Spring AI 2.0 的流式元数据能力，在 `Flux<ChatResponse>` 的最后一个 chunk 中提取 Usage 信息。
 
@@ -77,32 +79,37 @@ flux.doOnComplete(() -> {
 });
 ```
 
-如果 Spring AI 2.0 的流式响应不包含 Usage 元数据（取决于提供商），可以在前端流结束后异步调用一次非流式 API 获取 Token 估算值，或按字符数近似计算。
+如果 Spring AI 2.0 的流式响应不包含 Usage 元数据（取决于提供商），可以在前端流结束后异步调用一次非流式 API 获取 Token
+估算值，或按字符数近似计算。
 
 **工作量**：约 4-6 小时。
 
 ### 建议 3：单元测试覆盖率提升（优先级 P1）
 
-**现状**：整个项目仅有 `AuthServiceImplTest`（9 个用例），核心服务（AiAgentService、KnowledgeVectorService、ChatMemoryService、RateLimitService、ContentFilterService 等）均无测试。按 AGENTS.md 要求，语句覆盖率目标 70%，核心模块 100%。
+**现状**：整个项目仅有 `AuthServiceImplTest`（9
+个用例），核心服务（AiAgentService、KnowledgeVectorService、ChatMemoryService、RateLimitService、ContentFilterService 等）均无测试。按
+AGENTS.md 要求，语句覆盖率目标 70%，核心模块 100%。
 
 **建议**：按优先级补充测试：
 
-| 服务 | 测试重点 | 优先级 |
-|------|---------|--------|
-| ContentFilterService | 关键词拦截、提示注入检测、PII 过滤 | 最高 |
-| RateLimitService | 限流阈值、Lua 脚本原子性 | 最高 |
-| ChatMemoryService | 正则提取、upsert 逻辑、上下文构建 | 高 |
-| KnowledgeVectorService | 向量化存储、相似度搜索、降级处理 | 高 |
-| AiAgentService | 上下文构建、页面感知、费用计算 | 中 |
-| ChatModelRegistry | 多提供商路由、缓存、回退逻辑 | 中 |
+| 服务                     | 测试重点                 | 优先级 |
+|------------------------|----------------------|-----|
+| ContentFilterService   | 关键词拦截、提示注入检测、PII 过滤  | 最高  |
+| RateLimitService       | 限流阈值、Lua 脚本原子性       | 最高  |
+| ChatMemoryService      | 正则提取、upsert 逻辑、上下文构建 | 高   |
+| KnowledgeVectorService | 向量化存储、相似度搜索、降级处理     | 高   |
+| AiAgentService         | 上下文构建、页面感知、费用计算      | 中   |
+| ChatModelRegistry      | 多提供商路由、缓存、回退逻辑       | 中   |
 
 **工作量**：每个服务约 3-5 个测试类，总计约 2-3 天。
 
 ### 建议 4：ProjectCodeIndexService 内存优化（优先级 P2）
 
-**现状**：`ProjectCodeIndexService` 在 `@PostConstruct` 时将项目所有 `.java`、`.yml`、`.xml`、`.md`、`.sql` 文件加载到内存，单文件上限 1MB。随着项目增长，内存占用会持续增加，且每次启动都要全量扫描。
+**现状**：`ProjectCodeIndexService` 在 `@PostConstruct` 时将项目所有 `.java`、`.yml`、`.xml`、`.md`、`.sql` 文件加载到内存，单文件上限
+1MB。随着项目增长，内存占用会持续增加，且每次启动都要全量扫描。
 
 **建议**：
+
 - 短期：增加总文件数量上限（如 5000 个），超出时只索引核心模块（`brief-wisdom-ai`、`brief-wisdom-common`）
 - 中期：改为文件系统监听（`WatchService`），增量更新索引
 - 长期：索引持久化到 Redis 或 SQLite，启动时加载而非扫描
@@ -132,7 +139,8 @@ CREATE INDEX idx_knowledge_doc_kb_id ON knowledge_document(kb_id);
 
 ### 建议 6：健康检查端点增强（优先级 P2）
 
-**现状**：Actuator 已接入，但 `/actuator/health` 不反映 VectorStore 和 EmbeddingModel 的实际状态。LazyVectorStore 的降级状态对外不可见。
+**现状**：Actuator 已接入，但 `/actuator/health` 不反映 VectorStore 和 EmbeddingModel 的实际状态。LazyVectorStore
+的降级状态对外不可见。
 
 **建议**：自定义 `HealthIndicator`，将关键组件状态暴露到健康检查端点。
 
@@ -174,7 +182,8 @@ app:
 
 **现状**：日志使用 SLF4J 占位符格式，但缺少结构化字段。在排查 AI 对话问题时，需要从大量文本日志中人工搜索。
 
-**建议**：引入 JSON 格式日志输出（Logback `LogstashEncoder`），便于 ELK/Loki 等日志系统检索。关键字段包括：`userId`、`sessionId`、`modelName`、`tokens`、`cost`、`toolName`。
+**建议**：引入 JSON 格式日志输出（Logback `LogstashEncoder`），便于 ELK/Loki 等日志系统检索。关键字段包括：`userId`、
+`sessionId`、`modelName`、`tokens`、`cost`、`toolName`。
 
 ```xml
 <!-- logback-spring.xml -->
@@ -197,9 +206,11 @@ MDC.clear();
 
 ### 建议 9：service 模块迁移收尾（优先级 P3）
 
-**现状**：`brief-wisdom-service` 模块注释标注"逐步迁移至领域模块"，但仍有通用业务逻辑存在。当前依赖链中 service 作为中间层增加了不必要的复杂度。
+**现状**：`brief-wisdom-service` 模块注释标注"逐步迁移至领域模块"，但仍有通用业务逻辑存在。当前依赖链中 service
+作为中间层增加了不必要的复杂度。
 
-**建议**：审计 `brief-wisdom-service` 中剩余的类，按职责迁移到对应领域模块（ai/system/resume）或 common 模块。迁移完成后移除 service 模块，简化依赖链为 `web → ai/system/resume → persistence → common`。
+**建议**：审计 `brief-wisdom-service` 中剩余的类，按职责迁移到对应领域模块（ai/system/resume）或 common 模块。迁移完成后移除
+service 模块，简化依赖链为 `web → ai/system/resume → persistence → common`。
 
 **工作量**：取决于剩余代码量，预计 1-2 天。
 
@@ -244,6 +255,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 **现状**：文档向量化时整体截断到 4000 字符，没有智能分块。对于长文档（如完整的 AGENTS.md），可能丢失尾部内容或混合多个不相关主题。
 
 **建议**：
+
 - 引入按标题/段落分块（RecursiveCharacterTextSplitter 思路）
 - 每个 chunk 独立向量化，保留原文档引用
 - 检索后增加重排序步骤（基于关键词匹配度 + 向量相似度加权）
@@ -255,6 +267,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 **现状**：前端为原生 HTML/CSS/JS，部分页面在移动端体验不佳（如系统设置页的多 tab 布局、简历管理页的在线编辑器）。
 
 **建议**：
+
 - 添加 PWA manifest + Service Worker，支持"添加到主屏幕"
 - 关键页面（聊天、简历展示）做响应式适配
 - 聊天界面支持移动端键盘弹出时的视口调整
@@ -274,6 +287,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 **现状**：系统为单用户模式设计，每个用户的会话和知识库完全隔离。
 
 **建议**：中长期引入团队概念：
+
 - 团队知识库（多人共享的文档集合）
 - 共享会话（团队成员可以查看和续接彼此的对话）
 - 团队管理界面（邀请成员、设置团队角色）
@@ -286,23 +300,23 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ## 四、优先级总览
 
-| 优先级 | 建议 | 预计工作量 |
-|--------|------|-----------|
-| **P1** | 定时提醒调度执行 | 2-3 小时 |
-| **P1** | 流式对话 Token 追踪 | 4-6 小时 |
-| **P1** | 单元测试覆盖率提升 | 2-3 天 |
+| 优先级    | 建议                    | 预计工作量  |
+|--------|-----------------------|--------|
+| **P1** | 定时提醒调度执行              | 2-3 小时 |
+| **P1** | 流式对话 Token 追踪         | 4-6 小时 |
+| **P1** | 单元测试覆盖率提升             | 2-3 天  |
 | **P2** | ProjectCodeIndex 内存优化 | 1-2 小时 |
-| **P2** | 补充数据库索引 | 30 分钟 |
-| **P2** | 健康检查增强 | 1-2 小时 |
-| **P2** | SMS 真实集成 | 4-6 小时 |
-| **P2** | 对话导出功能 | 1 天 |
-| **P2** | 知识库分块与重排序 | 2-3 天 |
-| **P2** | 移动端/PWA 适配 | 3-5 天 |
-| **P3** | 结构化日志 | 3-4 小时 |
-| **P3** | service 模块迁移收尾 | 1-2 天 |
-| **P3** | Docker 生产部署 | 4-6 小时 |
-| **P3** | 对话质量评估 | 2-3 天 |
-| **P3** | 团队协作能力 | 2-3 周 |
+| **P2** | 补充数据库索引               | 30 分钟  |
+| **P2** | 健康检查增强                | 1-2 小时 |
+| **P2** | SMS 真实集成              | 4-6 小时 |
+| **P2** | 对话导出功能                | 1 天    |
+| **P2** | 知识库分块与重排序             | 2-3 天  |
+| **P2** | 移动端/PWA 适配            | 3-5 天  |
+| **P3** | 结构化日志                 | 3-4 小时 |
+| **P3** | service 模块迁移收尾        | 1-2 天  |
+| **P3** | Docker 生产部署           | 4-6 小时 |
+| **P3** | 对话质量评估                | 2-3 天  |
+| **P3** | 团队协作能力                | 2-3 周  |
 
 ---
 
@@ -312,7 +326,8 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 1. **功能完整度高**：12 个 AI 工具、7 种认证方式、完整的 RBAC 体系、RAG 知识库、跨会话记忆，在同类个人项目中属于功能矩阵非常完整的实现。
 
-2. **架构设计合理**：领域模块划分清晰（ai/system/resume），依赖方向单一（上层→下层），通过 SPI 接口（ToolContextProvider/ResumeDataProvider）实现模块解耦，具备较好的可扩展性。
+2. **架构设计合理**：领域模块划分清晰（ai/system/resume），依赖方向单一（上层→下层），通过 SPI
+   接口（ToolContextProvider/ResumeDataProvider）实现模块解耦，具备较好的可扩展性。
 
 3. **安全意识强**：三层内容安全防线、分布式限流、XSS 防护、审计日志，安全考量比较全面。
 

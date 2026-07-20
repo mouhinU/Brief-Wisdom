@@ -2,10 +2,10 @@ package com.mouhin.brief.wisdom.ai.controller;
 
 import com.mouhin.brief.wisdom.ai.req.AiModelSaveRequest;
 import com.mouhin.brief.wisdom.ai.req.AiModelUpdateRequest;
+import com.mouhin.brief.wisdom.ai.service.AiModelService;
 import com.mouhin.brief.wisdom.common.ai.AiModelDTO;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
-import com.mouhin.brief.wisdom.ai.service.AiModelService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

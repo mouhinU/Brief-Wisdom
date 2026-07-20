@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
  *       max-size: 200
  * </pre>
  */
+
 /**
  * PaginationProperties
  *

@@ -1,4 +1,3 @@
-
 package com.mouhin.brief.wisdom.resume.controller;
 
 import com.mouhin.brief.wisdom.resume.dto.WorkExperienceVO;
@@ -16,6 +15,7 @@ import java.util.List;
 /**
  * 简历数据 REST 接口
  */
+
 /**
  * ResumeController
  *

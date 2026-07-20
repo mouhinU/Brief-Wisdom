@@ -14,9 +14,13 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class UserListQueryRequest extends PageRequest {
 
-    /** 用户级别筛选（可选） */
+    /**
+     * 用户级别筛选（可选）
+     */
     private String level;
 
-    /** 关键词搜索（可选） */
+    /**
+     * 关键词搜索（可选）
+     */
     private String keyword;
 }

@@ -33,22 +33,28 @@ public class MarkdownImportService {
     @Autowired
     private KnowledgeService knowledgeService;
 
-    /** 导入根目录，默认为 user.dir */
+    /**
+     * 导入根目录，默认为 user.dir
+     */
     @Value("${app.knowledge.import-base-dir:}")
     private String importBaseDir;
 
-    /** 允许导入的相对目录，逗号分隔 */
+    /**
+     * 允许导入的相对目录，逗号分隔
+     */
     @Value("${app.knowledge.import-allowed-dirs:docs}")
     private String importAllowedDirs;
 
-    /** 允许导入的根目录相对文件，逗号分隔 */
+    /**
+     * 允许导入的根目录相对文件，逗号分隔
+     */
     @Value("${app.knowledge.import-allowed-files:AGENTS.md}")
     private String importAllowedFiles;
 
     /**
      * 批量导入指定目录下的所有 Markdown 文件到知识库
      *
-     * @param baseId 目标知识库 ID
+     * @param baseId    目标知识库 ID
      * @param sourceDir 源目录路径（相对于项目根目录）
      * @param recursive 是否递归子目录
      * @return 导入结果（新增/更新/失败计数）
@@ -68,8 +74,8 @@ public class MarkdownImportService {
 
         try (Stream<Path> paths = recursive ? Files.walk(basePath) : Files.list(basePath)) {
             paths.filter(Files::isRegularFile)
-                 .filter(path -> path.toString().endsWith(".md"))
-                 .forEach(path -> upsertMarkdownFile(baseId, path, result));
+                    .filter(path -> path.toString().endsWith(".md"))
+                    .forEach(path -> upsertMarkdownFile(baseId, path, result));
         } catch (IOException e) {
             log.error("遍历目录失败: {}", sourceDir, e);
             throw new RuntimeException("遍历目录失败", e);

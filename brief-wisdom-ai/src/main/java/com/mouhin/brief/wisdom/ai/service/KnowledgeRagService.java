@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,14 +27,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KnowledgeRagService {
 
+    /**
+     * 注入上下文的最大字符数（避免超出 token 限制）
+     */
+    private static final int MAX_CONTEXT_LENGTH = 3000;
+    /**
+     * 最多注入的文档数量
+     */
+    private static final int MAX_DOCUMENTS = 5;
     private final KnowledgeVectorService knowledgeVectorService;
     private final ProjectCodeIndexService projectCodeIndexService;
-
-    /** 注入上下文的最大字符数（避免超出 token 限制） */
-    private static final int MAX_CONTEXT_LENGTH = 3000;
-
-    /** 最多注入的文档数量 */
-    private static final int MAX_DOCUMENTS = 5;
 
     /**
      * 根据用户消息检索相关知识文档（基于向量相似度）

@@ -27,24 +27,27 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class DatabaseQueryTool {
 
-    private final JdbcTemplate jdbcTemplate;
-    private final ToolContextProvider toolContextProvider;
-
-    /** 危险 SQL 关键词（禁止非 SELECT 操作） */
+    /**
+     * 危险 SQL 关键词（禁止非 SELECT 操作）
+     */
     private static final Pattern DANGEROUS_SQL_PATTERN = Pattern.compile(
             "\\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE)\\b",
             Pattern.CASE_INSENSITIVE);
-
-    /** 最大返回行数 */
+    /**
+     * 最大返回行数
+     */
     private static final int MAX_ROWS = 100;
-
-    /** 默认返回行数 */
+    /**
+     * 默认返回行数
+     */
     private static final int DEFAULT_ROWS = 10;
+    private final JdbcTemplate jdbcTemplate;
+    private final ToolContextProvider toolContextProvider;
 
     /**
      * 执行只读 SQL 查询
      *
-     * @param sql    SELECT SQL 语句
+     * @param sql     SELECT SQL 语句
      * @param maxRows 最大返回行数
      * @return 查询结果
      */

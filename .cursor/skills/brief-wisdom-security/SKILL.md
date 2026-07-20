@@ -22,13 +22,13 @@ description: >-
 1. **Route level** — `SecurityConfig.authorizeHttpRequests`
 2. **Method level** — `@RequiresPermission("module:action")` via `PermissionInterceptor`
 
-| Path pattern | Required |
-|--------------|----------|
-| `/api/knowledge/**` | `admin` or `super_admin` |
-| `/api/user/**`, `/api/menu/**` (manage) | `admin` or `super_admin` |
-| `/api/role/**` | `super_admin` |
-| `/api/ai/manage/**` | `admin` or `super_admin` |
-| `/api/ai/**` (chat) | `permitAll` (guest fingerprint supported) |
+| Path pattern                            | Required                                  |
+|-----------------------------------------|-------------------------------------------|
+| `/api/knowledge/**`                     | `admin` or `super_admin`                  |
+| `/api/user/**`, `/api/menu/**` (manage) | `admin` or `super_admin`                  |
+| `/api/role/**`                          | `super_admin`                             |
+| `/api/ai/manage/**`                     | `admin` or `super_admin`                  |
+| `/api/ai/**` (chat)                     | `permitAll` (guest fingerprint supported) |
 
 `super_admin` bypasses all `@RequiresPermission` checks.
 

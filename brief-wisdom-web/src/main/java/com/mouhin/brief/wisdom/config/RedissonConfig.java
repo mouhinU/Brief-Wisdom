@@ -1,6 +1,5 @@
 package com.mouhin.brief.wisdom.config;
 
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -17,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
  * <p>
  * 这里仅创建 RedissonClient 用于分布式锁，Redis 连接工厂由 Spring Boot 默认的 Lettuce 提供。
  */
+
 /**
  * RedissonConfig
  *

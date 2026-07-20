@@ -1,9 +1,9 @@
 package com.mouhin.brief.wisdom.config;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -39,7 +39,9 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    /** CORS 允许的域名列表，逗号分隔 */
+    /**
+     * CORS 允许的域名列表，逗号分隔
+     */
     @Value("${app.cors.allowed-origins:http://localhost:8090,http://localhost:3000}")
     private String allowedOrigins;
 

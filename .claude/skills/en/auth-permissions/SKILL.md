@@ -2,15 +2,18 @@
 name: Authentication and Permissions Skill
 description: Use this skill for login, role management, permission checks, OAuth integration, session handling, and security-sensitive endpoints.
 ---
+
 # Authentication and Permissions Skill
 
 ## Purpose
 
-Use this skill for login, role management, permission checks, OAuth integration, session handling, and security-sensitive endpoints.
+Use this skill for login, role management, permission checks, OAuth integration, session handling, and
+security-sensitive endpoints.
 
 ## When to Use This Skill
 
-Use it when changing login behavior, permissions, roles, menu access, OAuth flows, or any endpoint that affects security boundaries.
+Use it when changing login behavior, permissions, roles, menu access, OAuth flows, or any endpoint that affects security
+boundaries.
 
 ## Rules
 

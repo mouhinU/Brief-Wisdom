@@ -2,6 +2,7 @@
 name: Knowledge Base Skill
 description: Use this skill for knowledge base CRUD, document import, retrieval, vector integration, or AI knowledge features.
 ---
+
 # Knowledge Base Skill
 
 ## Purpose
@@ -10,7 +11,8 @@ Use this skill for knowledge base CRUD, document import, retrieval, vector integ
 
 ## When to Use This Skill
 
-Use it for document import, knowledge ingestion, retrieval logic, or changes that connect knowledge data with AI features.
+Use it for document import, knowledge ingestion, retrieval logic, or changes that connect knowledge data with AI
+features.
 
 ## Rules
 
@@ -49,4 +51,5 @@ Do not allow unsafe file paths, weak permission checks, or unvalidated import be
 
 ## Example Prompt
 
-Add a new knowledge base import flow and ensure it is safe, permission-checked, and aligned with the existing retrieval service.
+Add a new knowledge base import flow and ensure it is safe, permission-checked, and aligned with the existing retrieval
+service.

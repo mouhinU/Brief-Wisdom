@@ -1,6 +1,5 @@
 {
   "app.name": "Brief-Wisdom 智慧简历",
-
   "nav.home": "首页",
   "nav.resume": "简历管理",
   "nav.ai": "AI 助手",
@@ -8,7 +7,6 @@
   "nav.settings": "系统设置",
   "nav.about": "关于",
   "nav.logout": "退出登录",
-
   "common.save": "保存",
   "common.cancel": "取消",
   "common.delete": "删除",
@@ -25,7 +23,6 @@
   "common.back": "返回",
   "common.close": "关闭",
   "common.refresh": "刷新",
-
   "resume.manage.title": "简历数据管理",
   "resume.online.editor": "在线编辑",
   "resume.work.experience": "工作经历",
@@ -43,7 +40,6 @@
   "resume.project.duty": "个人职责",
   "resume.project.achievement": "项目成果",
   "resume.tech.stack": "技术栈",
-
   "ai.manage.title": "AI助手管理",
   "ai.session.history": "会话历史",
   "ai.knowledge": "知识库",
@@ -62,11 +58,9 @@
   "ai.last.7days": "近7天",
   "ai.last.30days": "近30天",
   "ai.last.90days": "近90天",
-
   "knowledge.manage.title": "知识库管理",
   "knowledge.document": "文档",
   "knowledge.create.doc": "新建文档",
-
   "settings.title": "系统设置",
   "settings.language": "语言",
   "settings.language.zh": "中文",

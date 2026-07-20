@@ -22,10 +22,14 @@ public class PageRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** 当前页码（从 1 开始），默认 1 */
+    /**
+     * 当前页码（从 1 开始），默认 1
+     */
     private int page = 1;
 
-    /** 每页条数，默认 20 */
+    /**
+     * 每页条数，默认 20
+     */
     private int size = 20;
 
     /**

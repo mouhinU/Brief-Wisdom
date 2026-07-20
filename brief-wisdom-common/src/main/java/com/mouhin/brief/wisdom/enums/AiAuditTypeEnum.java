@@ -7,6 +7,7 @@ import lombok.Getter;
  * <p>
  * 定义 AI 对话过程中的审计日志类型，用于追踪和记录内容安全相关事件。
  */
+
 /**
  * AiAuditTypeEnum 枚举
  *

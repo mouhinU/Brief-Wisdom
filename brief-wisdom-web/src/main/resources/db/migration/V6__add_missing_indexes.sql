@@ -5,5 +5,4 @@
 CREATE INDEX idx_chat_reminder_status_time ON chat_reminder(status, remind_time);
 CREATE INDEX idx_chat_reminder_user_id ON chat_reminder(user_id);
 
--- knowledge_document: 按知识库查询
-CREATE INDEX idx_knowledge_doc_kb_id ON knowledge_document(kb_id);
+-- knowledge_document: base_id 索引已在 V2 通过复合索引 (base_id, file_name(191)) 覆盖，无需重复创建

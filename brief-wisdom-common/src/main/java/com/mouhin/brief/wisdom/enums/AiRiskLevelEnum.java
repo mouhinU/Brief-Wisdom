@@ -7,6 +7,7 @@ import lombok.Getter;
  * <p>
  * 定义 AI 内容安全检测的风险等级，用于评估和分级处理安全事件。
  */
+
 /**
  * AiRiskLevelEnum 枚举
  *

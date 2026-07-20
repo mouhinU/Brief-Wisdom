@@ -24,6 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
  *   <li>返回其他任意对象 → 自动包装为 {@code Result.success(body)}</li>
  * </ul>
  */
+
 /**
  * ResultAutoWrapperAdvice
  *

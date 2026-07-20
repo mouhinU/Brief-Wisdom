@@ -6,12 +6,12 @@ import com.mouhin.brief.wisdom.ai.service.KnowledgeVectorService;
 import com.mouhin.brief.wisdom.ai.service.MarkdownImportService;
 import com.mouhin.brief.wisdom.ai.service.UrlFetchService;
 import com.mouhin.brief.wisdom.common.knowledge.*;
+import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
+import com.mouhin.brief.wisdom.exception.BizException;
 import com.mouhin.brief.wisdom.knowledge.req.DocumentBatchDeleteRequest;
 import com.mouhin.brief.wisdom.knowledge.req.DocumentListQueryRequest;
 import com.mouhin.brief.wisdom.knowledge.req.DocumentSearchQueryRequest;
 import com.mouhin.brief.wisdom.knowledge.req.KnowledgeBasePagedQueryRequest;
-import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
-import com.mouhin.brief.wisdom.exception.BizException;
 import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +25,7 @@ import java.util.List;
 /**
  * 知识库管理 REST 接口
  */
+
 /**
  * KnowledgeController
  *

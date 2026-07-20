@@ -8,6 +8,7 @@ import lombok.Getter;
  * 统一定义常见异常的错误码和错误消息，便于全局管理和国际化扩展。
  * 使用方式：throw new BizException(BizExceptionEnums.PARAM_ERROR, "用户名不能为空");
  */
+
 /**
  * BizExceptionEnums 枚举
  *

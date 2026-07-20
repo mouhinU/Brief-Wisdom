@@ -33,12 +33,12 @@ public class DistributedLockService {
     /**
      * 尝试获取锁并执行业务逻辑（非阻塞）
      *
-     * @param lockKey  锁的标识
-     * @param waitTime 等待获取锁的最长时间
+     * @param lockKey   锁的标识
+     * @param waitTime  等待获取锁的最长时间
      * @param leaseTime 锁的持有时间（自动释放）
-     * @param unit     时间单位
-     * @param action   要执行的业务逻辑
-     * @param <T>      返回值类型
+     * @param unit      时间单位
+     * @param action    要执行的业务逻辑
+     * @param <T>       返回值类型
      * @return 业务逻辑的返回值；获取锁失败返回 null
      */
     public <T> T tryLockAndExecute(String lockKey, long waitTime, long leaseTime, TimeUnit unit, Supplier<T> action) {

@@ -2,7 +2,6 @@ package com.mouhin.brief.wisdom.ai.service;
 
 import com.mouhin.brief.wisdom.persistence.model.ChatMemory;
 import com.mouhin.brief.wisdom.persistence.repository.ChatMemoryRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,8 +12,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
@@ -27,14 +27,12 @@ import static org.mockito.Mockito.*;
 @DisplayName("ChatMemoryService 对话记忆服务测试")
 class ChatMemoryServiceTest {
 
-    @Mock
-    private ChatMemoryRepository chatMemoryRepository;
-
-    @InjectMocks
-    private ChatMemoryService chatMemoryService;
-
     private static final String USER_ID = "test-user-001";
     private static final String SESSION_ID = "session-001";
+    @Mock
+    private ChatMemoryRepository chatMemoryRepository;
+    @InjectMocks
+    private ChatMemoryService chatMemoryService;
 
     @Test
     @DisplayName("saveMemory 新增记忆应调用 repository.save")

@@ -14,6 +14,8 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class DocumentSearchQueryRequest extends PageRequest {
 
-    /** 搜索关键词 */
+    /**
+     * 搜索关键词
+     */
     private String keyword;
 }

@@ -23,14 +23,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReminderScheduler {
 
+    /**
+     * 提醒到期事件类型
+     */
+    private static final String REMINDER_DUE_EVENT = "reminder_due";
+    /**
+     * 提醒完成状态
+     */
+    private static final int STATUS_COMPLETED = 1;
     private final ChatReminderRepository chatReminderRepository;
     private final ChatSyncService chatSyncService;
-
-    /** 提醒到期事件类型 */
-    private static final String REMINDER_DUE_EVENT = "reminder_due";
-
-    /** 提醒完成状态 */
-    private static final int STATUS_COMPLETED = 1;
 
     /**
      * 每分钟检查并处理到期的提醒

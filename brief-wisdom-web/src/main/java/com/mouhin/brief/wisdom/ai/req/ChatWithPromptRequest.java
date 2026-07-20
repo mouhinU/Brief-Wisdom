@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.ai.req;
 
 import lombok.Data;
+
 /**
  * ChatWithPromptRequest
  *

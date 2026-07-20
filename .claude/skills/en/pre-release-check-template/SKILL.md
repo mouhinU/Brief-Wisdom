@@ -2,6 +2,7 @@
 name: Pre-Release Check Template Skill
 description: Use this skill before release or deployment to verify that a change is safe, complete, and ready for production.
 ---
+
 # Pre-Release Check Template Skill
 
 ## Purpose
@@ -10,7 +11,8 @@ Use this skill before release or deployment to verify that a change is safe, com
 
 ## When to Use This Skill
 
-Use it before merging, deploying, or handing off a feature that affects user-facing workflows, permissions, data, or infrastructure.
+Use it before merging, deploying, or handing off a feature that affects user-facing workflows, permissions, data, or
+infrastructure.
 
 ## Recommended Workflow
 

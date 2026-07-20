@@ -2,7 +2,6 @@ package com.mouhin.brief.wisdom.ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.prompt.SystemPrompts;
-import com.mouhin.brief.wisdom.ai.service.ChatModelRegistry;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
@@ -21,7 +20,9 @@ import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.anthropic.AnthropicChatOptions;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -29,6 +30,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ import reactor.core.publisher.Flux;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+
 /**
  * AiAgentService
  *
@@ -180,8 +183,9 @@ public class AiAgentService {
      */
     @Transactional
     public void deleteSession(String sessionId) {
+        log.info("[会话] 删除会话, sessionId: {}", sessionId);
         sessionRepository.deleteBySessionId(sessionId);
-        log.info("删除会话: {}", sessionId);
+        log.info("[会话] 会话删除完成: {}", sessionId);
 
         // SSE 通知其他设备：会话已删除
         // 删除时无法确定 userId，广播给所有已连接用户
@@ -195,6 +199,7 @@ public class AiAgentService {
      * @param newTitle  新标题
      */
     public void renameSession(String sessionId, String newTitle) {
+        log.info("[会话] 重命名会话, sessionId: {}, newTitle: {}", sessionId, newTitle);
         ChatSession session = sessionRepository.findBySessionId(sessionId);
         if (session == null) {
             throw new AIException("会话不存在: " + sessionId);
@@ -202,9 +207,10 @@ public class AiAgentService {
         if (newTitle == null || newTitle.isBlank()) {
             throw new AIException("标题不能为空");
         }
+        String oldTitle = session.getTitle();
         session.setTitle(newTitle.trim());
         sessionRepository.update(session);
-        log.info("重命名会话: {} -> {}", sessionId, newTitle);
+        log.info("[会话] 重命名完成: '{}' -> '{}'", oldTitle, newTitle.trim());
     }
 
     /**
@@ -223,6 +229,7 @@ public class AiAgentService {
      * @return 会话元数据列表
      */
     public List<SessionMetaDTO> listSessions(String userId) {
+        log.info("[会话] 查询用户会话列表, userId: {}", userId);
         List<ChatSession> sessions = sessionRepository.findByUserIdOrderByUpdateTimeDesc(userId);
 
         // 批量获取所有会话的最后消息时间（避免 N+1 查询）
@@ -266,6 +273,7 @@ public class AiAgentService {
      * @return 分页结果
      */
     public PageResult<SessionMetaDTO> listSessionsPaged(String userId, int page, int size) {
+        log.info("[会话] 分页查询用户会话列表, userId: {}, page: {}, size: {}", userId, page, size);
         Page<ChatSession> pageResult = sessionRepository.findByUserIdOrderByUpdateTimeDesc(userId, page, size);
 
         // 批量获取所有会话的最后消息时间（避免 N+1 查询）
@@ -298,6 +306,8 @@ public class AiAgentService {
         result.setPages(pageResult.getPages());
         result.setHasMore(pageResult.getCurrent() < pageResult.getPages());
 
+        log.info("[会话] 分页查询完成, userId: {}, 总数: {}, 当前页: {}, 每页: {}",
+                userId, result.getTotal(), result.getPage(), result.getSize());
         return result;
     }
 
@@ -330,8 +340,11 @@ public class AiAgentService {
      * @return 消息列表
      */
     public List<ChatMessageDTO> getSessionHistory(String sessionId) {
+        log.info("[会话] 查询会话历史(全量), sessionId: {}", sessionId);
         List<ChatMessage> messages = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
-        return messages.stream().map(this::toChatMessageDTO).toList();
+        List<ChatMessageDTO> dtos = messages.stream().map(this::toChatMessageDTO).toList();
+        log.info("[会话] 查询会话历史完成, sessionId: {}, 消息数: {}", sessionId, dtos.size());
+        return dtos;
     }
 
     /**
@@ -345,6 +358,7 @@ public class AiAgentService {
      * @return 分页结果
      */
     public PageResult<ChatMessageDTO> getSessionHistoryPaged(String sessionId, int page, int size) {
+        log.info("[会话] 分页查询会话历史, sessionId: {}, page: {}, size: {}", sessionId, page, size);
         // 使用数据库级别分页，避免全量加载到内存
         Page<ChatMessage> pageResult = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId, page, size);
 
@@ -362,6 +376,8 @@ public class AiAgentService {
         result.setPages(pageResult.getPages());
         result.setHasMore(pageResult.getCurrent() < pageResult.getPages());
 
+        log.info("[会话] 分页查询历史完成, sessionId: {}, 总数: {}, 当前页: {}",
+                sessionId, result.getTotal(), result.getPage());
         return result;
     }
 
@@ -420,7 +436,7 @@ public class AiAgentService {
      * <p>
      * 流式模式下无法精确获取输入 Token 数量，仅按输出 Token 估算费用。
      *
-     * @param modelName       模型名称
+     * @param modelName        模型名称
      * @param completionTokens 估算的输出 Token 数量
      * @return 估算的费用（元）
      */
@@ -475,27 +491,38 @@ public class AiAgentService {
     }
 
     /**
-     * 根据提供商构建对应的 ChatOptions
+     * 根据提供商构建对应的 ChatOptions（默认包含工具）
      *
      * @param provider  提供商标识
      * @param modelName 模型名称
      * @return 提供商匹配的 ChatOptions
      */
     private ChatOptions buildChatOptions(String provider, String modelName) {
-        // 获取所有注册的工具回调
-        var toolCallbacks = toolCallbackProvider.getToolCallbacks();
+        return buildChatOptions(provider, modelName, true);
+    }
 
+    /**
+     * 根据提供商构建对应的 ChatOptions
+     *
+     * @param provider     提供商标识
+     * @param modelName    模型名称
+     * @param includeTools 是否包含工具回调（流式模式暂不支持工具调用，传 false）
+     * @return 提供商匹配的 ChatOptions
+     */
+    private ChatOptions buildChatOptions(String provider, String modelName, boolean includeTools) {
         if ("anthropic".equals(provider)) {
-            return AnthropicChatOptions.builder()
-                    .model(modelName)
-                    .toolCallbacks(toolCallbacks)
-                    .build();
+            AnthropicChatOptions.Builder builder = AnthropicChatOptions.builder().model(modelName);
+            if (includeTools) {
+                builder.toolCallbacks(toolCallbackProvider.getToolCallbacks());
+            }
+            return builder.build();
         }
         // OpenAI 兼容协议（dashscope / openai / deepseek）
-        return OpenAiChatOptions.builder()
-                .model(modelName)
-                .toolCallbacks(toolCallbacks)
-                .build();
+        OpenAiChatOptions.Builder builder = OpenAiChatOptions.builder().model(modelName);
+        if (includeTools) {
+            builder.toolCallbacks(toolCallbackProvider.getToolCallbacks());
+        }
+        return builder.build();
     }
 
     /**
@@ -903,33 +930,133 @@ public class AiAgentService {
         String provider = resolveProvider(model);
         String thinkingMode = resolveThinkingMode(model);
         ChatModel chatModel = chatModelRegistry.getChatModel(provider, model, thinkingMode);
+        if (chatModel == null) {
+            log.error("[AI] 无法获取 ChatModel: provider={}, model={}, thinkingMode={}", provider, model, thinkingMode);
+            throw new AIException("AI 模型不可用，请稍后重试");
+        }
 
+        // 有工具时使用 call() 路径（支持工具调用循环），无工具时使用 stream() 路径（流式输出）
+        boolean hasTools = toolCallbackProvider != null && toolCallbackProvider.getToolCallbacks().length > 0;
+
+        if (hasTools) {
+            // === 工具可用路径：手动实现工具调用循环（兼容 DashScope 等 OpenAI 兼容协议） ===
+            log.info("[AI] 工具已注册，使用手动工具调用循环");
+            ChatOptions chatOptions = buildChatOptions(provider, model, true);
+            ToolCallback[] toolCallbacks = toolCallbackProvider.getToolCallbacks();
+
+            // 构建可变的消息列表（用于多轮工具调用）
+            List<org.springframework.ai.chat.messages.Message> messages = new ArrayList<>();
+            messages.add(new SystemMessage(systemPrompt));
+            messages.add(new UserMessage(context.toString()));
+
+            long startTime = System.currentTimeMillis();
+            String response = "";
+            int maxToolRounds = 5;
+            int round = 0;
+
+            try {
+                while (round < maxToolRounds) {
+                    round++;
+                    Prompt prompt = new Prompt(messages, chatOptions);
+                    ChatResponse chatResponse = chatModel.call(prompt);
+
+                    if (chatResponse == null || chatResponse.getResult() == null || chatResponse.getResult().getOutput() == null) {
+                        return Flux.error(new AIException("AI 模型返回为空，请稍后重试"));
+                    }
+
+                    AssistantMessage assistantMessage = chatResponse.getResult().getOutput();
+
+                    if (!assistantMessage.hasToolCalls()) {
+                        // 模型没有调用工具，返回最终文本回复
+                        response = assistantMessage.getText();
+                        if (response == null) {
+                            response = "";
+                        }
+                        log.info("[AI] 工具调用循环结束，共 {} 轮", round);
+                        break;
+                    }
+
+                    // 模型调用了工具，执行工具并将结果加入消息列表
+                    log.info("[AI] 第 {} 轮工具调用，工具数: {}", round, assistantMessage.getToolCalls().size());
+                    messages.add(assistantMessage);
+
+                    List<ToolResponseMessage.ToolResponse> toolResponses = new ArrayList<>();
+                    for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
+                        String toolName = toolCall.name();
+                        String toolArgs = toolCall.arguments();
+                        log.info("[AI] 调用工具: {}, 参数: {}", toolName, toolArgs);
+
+                        // 查找对应的 ToolCallback
+                        ToolCallback matchedCallback = null;
+                        for (ToolCallback callback : toolCallbacks) {
+                            if (callback.getToolDefinition().name().equals(toolName)) {
+                                matchedCallback = callback;
+                                break;
+                            }
+                        }
+
+                        String toolResult;
+                        if (matchedCallback != null) {
+                            try {
+                                toolResult = matchedCallback.call(toolArgs);
+                                log.info("[AI] 工具 {} 执行成功，结果长度: {}", toolName, toolResult.length());
+                            } catch (Exception e) {
+                                toolResult = "工具执行失败: " + e.getMessage();
+                                log.error("[AI] 工具 {} 执行失败: {}", toolName, e.getMessage());
+                            }
+                        } else {
+                            toolResult = "未找到工具: " + toolName;
+                            log.warn("[AI] 未找到工具: {}", toolName);
+                        }
+
+                        toolResponses.add(new ToolResponseMessage.ToolResponse(
+                                toolCall.id(), toolName, toolResult));
+                    }
+
+                    // 将工具执行结果作为 ToolResponseMessage 加入消息列表
+                    messages.add(ToolResponseMessage.builder().responses(toolResponses).build());
+                }
+
+                if (round >= maxToolRounds) {
+                    log.warn("[AI] 工具调用达到最大轮次 {}，强制结束", maxToolRounds);
+                }
+            } catch (Exception e) {
+                log.error("[AI] 模型调用失败: {}", e.getMessage(), e);
+                return Flux.error(new AIException(translateApiError(e)));
+            }
+
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.info("[AI] 模型: {}, 总耗时: {}ms, 工具调用轮次: {}", model, elapsed, round);
+
+            // 输出过滤
+            response = contentFilterService.filterOutput(response, sessionId, userId, null);
+            log.info("[AI] 回复(含工具调用, 模型: {}): {}", model, response);
+
+            chatSyncService.notifyUser(userId, "message_added", sessionId);
+            return Flux.just(response);
+        }
+
+        // === 无工具路径：使用 stream() 流式输出 ===
         Prompt prompt = new Prompt(
                 List.of(new SystemMessage(systemPrompt), new UserMessage(context.toString())),
-                buildChatOptions(provider, model)
+                buildChatOptions(provider, model, false)
         );
-
-        // 使用 stream() 获取流式响应
         return chatModel.stream(prompt)
                 .map(chatResponse -> {
-                    // 防御性编程：流式响应中某些 chunk 可能没有 result
                     var generation = chatResponse.getResult();
                     if (generation == null) {
-                        log.debug("[流式] 收到空 result 的 chunk，跳过");
                         return "";
                     }
                     var output = generation.getOutput();
                     if (output == null) {
-                        log.debug("[流式] 收到空 output 的 chunk，跳过");
                         return "";
                     }
                     String text = output.getText();
                     return text != null ? text : "";
                 })
-                .filter(text -> !text.isEmpty()) // 过滤掉空字符串
+                .filter(text -> !text.isEmpty())
                 .doOnComplete(() -> {
                     log.info("[流式] 完成");
-                    // 流式完成后，通知其他设备
                     chatSyncService.notifyUser(userId, "message_added", sessionId);
                 })
                 .doOnError(error -> {
@@ -1095,9 +1222,9 @@ public class AiAgentService {
      * 3. 更新会话统计
      * 4. 记录审计日志
      *
-     * @param sessionId     会话ID
-     * @param userId        用户ID
-     * @param message       用户消息内容
+     * @param sessionId      会话ID
+     * @param userId         用户ID
+     * @param message        用户消息内容
      * @param blockedKeyword 命中的敏感词
      */
     @Transactional
@@ -1146,9 +1273,9 @@ public class AiAgentService {
 
             // 第四步：记录审计日志（在聊天记录之后）
             contentFilterService.logInputBlocked(
-                    sessionId, 
-                    userId, 
-                    blockedKeyword, 
+                    sessionId,
+                    userId,
+                    blockedKeyword,
                     maskContentForAudit(message)
             );
             log.info("[内容安全] 审计日志已记录 - sessionId: {}, messageCount: {}", sessionId, messageCount);
@@ -1164,10 +1291,10 @@ public class AiAgentService {
      * <p>
      * 与 saveBlockedMessages 类似，但专门用于 Prompt 注入攻击。
      *
-     * @param sessionId   会话ID
-     * @param userId      用户ID
-     * @param message     用户消息内容
-     * @param attackType  攻击类型
+     * @param sessionId  会话ID
+     * @param userId     用户ID
+     * @param message    用户消息内容
+     * @param attackType 攻击类型
      */
     @Transactional
     public void savePromptInjectionBlocked(String sessionId, String userId, String message, String attackType) {

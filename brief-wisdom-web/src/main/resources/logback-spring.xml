@@ -5,8 +5,10 @@
     <property name="LOG_HOME" value="logs"/>
     <property name="APP_NAME" value="brief-wisdom"/>
     <!-- MDC 结构化日志：包含 userId 和 sessionId 上下文 -->
-    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{userId:-}] [%X{sessionId:-}] %-5level %logger{36} - %msg%n"/>
-    <property name="CONSOLE_LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{userId:-}] [%X{sessionId:-}] %highlight(%-5level) %cyan(%logger{36}) - %msg%n"/>
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{userId:-}] [%X{sessionId:-}] %-5level %logger{36} - %msg%n"/>
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{userId:-}] [%X{sessionId:-}] %highlight(%-5level) %cyan(%logger{36}) - %msg%n"/>
 
     <!-- 控制台输出 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -92,7 +94,7 @@
     </appender>
 
     <!-- Logger 配置 -->
-    
+
     <!-- AI 模块日志（开发环境 DEBUG，生产环境 INFO） -->
     <logger name="com.mouhin.brief.wisdom.ai" additivity="false">
         <appender-ref ref="AI_FILE"/>
@@ -109,10 +111,10 @@
     <logger name="org.springframework" level="INFO"/>
     <logger name="org.springframework.web" level="INFO"/>
     <logger name="org.springframework.security" level="WARN"/>
-    
+
     <!-- MyBatis SQL 日志（开发环境 DEBUG，生产环境 WARN） -->
     <logger name="com.mouhin.brief.wisdom.persistence.mapper" level="WARN"/>
-    
+
     <!-- 抑制 Chrome DevTools 探测请求的无资源告警 -->
     <logger name="org.springframework.web.servlet.resource.NoResourceFoundException" level="ERROR"/>
     <logger name="org.springframework.web.servlet.resource.ResourceHttpRequestHandler" level="ERROR"/>

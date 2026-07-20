@@ -25,6 +25,20 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TranslationTool {
 
+    private static final Map<String, String> LANGUAGE_MAP = Map.ofEntries(
+            Map.entry("en", "英文"),
+            Map.entry("zh", "中文"),
+            Map.entry("ja", "日文"),
+            Map.entry("ko", "韩文"),
+            Map.entry("fr", "法文"),
+            Map.entry("de", "德文"),
+            Map.entry("es", "西班牙文"),
+            Map.entry("ru", "俄文"),
+            Map.entry("pt", "葡萄牙文"),
+            Map.entry("it", "意大利文"),
+            Map.entry("ar", "阿拉伯文"),
+            Map.entry("th", "泰文"),
+            Map.entry("vi", "越南文"));
     private final ChatModelRegistry chatModelRegistry;
 
     /**
@@ -88,19 +102,4 @@ public class TranslationTool {
         }
         return LANGUAGE_MAP.getOrDefault(langCode.toLowerCase(), langCode);
     }
-
-    private static final Map<String, String> LANGUAGE_MAP = Map.ofEntries(
-            Map.entry("en", "英文"),
-            Map.entry("zh", "中文"),
-            Map.entry("ja", "日文"),
-            Map.entry("ko", "韩文"),
-            Map.entry("fr", "法文"),
-            Map.entry("de", "德文"),
-            Map.entry("es", "西班牙文"),
-            Map.entry("ru", "俄文"),
-            Map.entry("pt", "葡萄牙文"),
-            Map.entry("it", "意大利文"),
-            Map.entry("ar", "阿拉伯文"),
-            Map.entry("th", "泰文"),
-            Map.entry("vi", "越南文"));
 }

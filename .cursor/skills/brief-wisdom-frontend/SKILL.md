@@ -72,13 +72,13 @@ Reference: [components/README.md](../../../brief-wisdom-web/src/main/resources/s
 
 ## Page Entry Points
 
-| Page | Entry JS | Tab manager |
-|------|----------|-------------|
+| Page            | Entry JS                  | Tab manager         |
+|-----------------|---------------------------|---------------------|
 | system-settings | `system-settings-lite.js` | Tab → component map |
-| ai-manage | `ai-manage-lite.js` | Tab → component map |
-| resume-manage | `resume-manage-lite.js` | Tab → component map |
-| chat | `chat.js` | Standalone |
-| login | `auth-page.js` | Standalone |
+| ai-manage       | `ai-manage-lite.js`       | Tab → component map |
+| resume-manage   | `resume-manage-lite.js`   | Tab → component map |
+| chat            | `chat.js`                 | Standalone          |
+| login           | `auth-page.js`            | Standalone          |
 
 New admin tabs: register in the lite JS + add template/component pair.
 

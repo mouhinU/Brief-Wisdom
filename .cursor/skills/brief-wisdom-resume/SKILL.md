@@ -11,7 +11,8 @@ description: >-
 
 ## Authority
 
-Full coding rules live in [AGENTS.md](../../../AGENTS.md). This skill captures the resume-specific patterns the agent should follow.
+Full coding rules live in [AGENTS.md](../../../AGENTS.md). This skill captures the resume-specific patterns the agent
+should follow.
 
 ## Module Scope
 

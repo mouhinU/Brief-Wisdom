@@ -99,19 +99,19 @@ app:
     providers:
       dashscope:
         type: openai               # DashScope 走 OpenAI 兼容协议
-        api-key: ${DASHSCOPE_API_KEY:}
+        api-key: ${DASHSCOPE_API_KEY:${AI_API_KEY:}}
         base-url: https://ws-9kyl51kfnjmu4lp0.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
         model: qwen-max
-#      openai:
-#        type: openai
-#        api-key: ${OPENAI_API_KEY:your-openai-api-key}
-#        base-url: https://api.openai.com
-#        model: gpt-4o
-#      anthropic:
-#        type: anthropic
-#        api-key: ${ANTHROPIC_API_KEY:your-anthropic-api-key}
-#        base-url: https://api.anthropic.com
-#        model: claude-sonnet-4-20250514
+      #      openai:
+      #        type: openai
+      #        api-key: ${OPENAI_API_KEY:your-openai-api-key}
+      #        base-url: https://api.openai.com
+      #        model: gpt-4o
+      #      anthropic:
+      #        type: anthropic
+      #        api-key: ${ANTHROPIC_API_KEY:your-anthropic-api-key}
+      #        base-url: https://api.anthropic.com
+      #        model: claude-sonnet-4-20250514
       deepseek:
         type: openai
         api-key: ${DEEPSEEK_API_KEY:}
@@ -121,11 +121,11 @@ app:
     # transport: sse    # 同步传输方式：sse（Server-Sent Events）或 websocket（双向通信）
     transport: websocket    # 同步传输方式：sse（Server-Sent Events）或 websocket（双向通信）
 
-# AI 聊天模式配置
+  # AI 聊天模式配置
   chat:
     streaming: true    # 是否启用流式输出（打字机效果），true=流式，false=普通阻塞式
 
-# 分页配置 - 按业务维度配置每页查询条数
+  # 分页配置 - 按业务维度配置每页查询条数
   pagination:
     session-list:
       default-size: 20    # 会话列表默认每页条数

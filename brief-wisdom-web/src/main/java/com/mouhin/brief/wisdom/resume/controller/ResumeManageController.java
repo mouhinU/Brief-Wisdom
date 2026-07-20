@@ -132,7 +132,7 @@ public class ResumeManageController {
     @Operation(summary = "更新项目成果")
     @PutMapping("/achievements/{id}")
     public ProjectAchievementDTO updateAchievement(@PathVariable Long id,
-                                                 @RequestBody ProjectAchievementSaveRequest request) {
+                                                   @RequestBody ProjectAchievementSaveRequest request) {
         return resumeManageService.updateAchievement(toAchievement(id, request));
     }
 

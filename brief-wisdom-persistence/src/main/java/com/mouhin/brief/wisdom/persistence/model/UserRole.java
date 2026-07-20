@@ -1,6 +1,9 @@
 package com.mouhin.brief.wisdom.persistence.model;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -8,6 +11,7 @@ import java.io.Serializable;
 /**
  * 用户-角色关联实体类
  */
+
 /**
  * UserRole
  *

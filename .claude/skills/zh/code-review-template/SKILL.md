@@ -2,6 +2,7 @@
 name: 代码评审模板 Skill
 description: 当你需要对 Brief-Wisdom 的变更进行正确性、可维护性、安全性和一致性评审时使用。
 ---
+
 # 代码评审模板 Skill
 
 ## 作用

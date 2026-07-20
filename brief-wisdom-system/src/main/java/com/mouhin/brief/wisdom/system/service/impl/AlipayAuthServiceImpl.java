@@ -2,6 +2,8 @@ package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
+import com.mouhin.brief.wisdom.exception.AuthException;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.model.UserOauth;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
@@ -19,9 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
-import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
-import com.mouhin.brief.wisdom.exception.AuthException;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

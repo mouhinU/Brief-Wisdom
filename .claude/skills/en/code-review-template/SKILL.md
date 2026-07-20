@@ -2,11 +2,13 @@
 name: Code Review Template Skill
 description: Use this skill when you need to review a change in Brief-Wisdom for correctness, maintainability, security, and consistency.
 ---
+
 # Code Review Template Skill
 
 ## Purpose
 
-Use this skill when you need to review a change in Brief-Wisdom for correctness, maintainability, security, and consistency.
+Use this skill when you need to review a change in Brief-Wisdom for correctness, maintainability, security, and
+consistency.
 
 ## When to Use This Skill
 

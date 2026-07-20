@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -31,15 +30,13 @@ public class ThreadPoolConfig {
      */
     @Bean("briefWisdomExecutor")
     public Executor briefWisdomExecutor() {
-        ThreadFactory virtualThreadFactory = Thread.ofVirtual()
-                .name("bw-vt-", 0)
-                .factory();
         return new ThreadPoolExecutor(
                 4,
                 32,
-                60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(1024),
-                virtualThreadFactory,
+                60L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(512),
+                Thread.ofVirtual().name("bw-vt-", 0).factory(),
                 new ThreadPoolExecutor.CallerRunsPolicy()
         );
     }

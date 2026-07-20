@@ -39,9 +39,9 @@ public class AiAuditService {
     /**
      * 记录输入拦截事件
      *
-     * @param sessionId      会话ID
-     * @param userId         用户ID
-     * @param keyword        触发的关键词
+     * @param sessionId       会话ID
+     * @param userId          用户ID
+     * @param keyword         触发的关键词
      * @param originalContent 原始内容（脱敏后）
      */
     @Transactional
@@ -94,10 +94,10 @@ public class AiAuditService {
     /**
      * 记录风险检测事件
      *
-     * @param sessionId      会话ID
-     * @param userId         用户ID
-     * @param riskLevel      风险等级（LOW/MEDIUM/HIGH/CRITICAL）
-     * @param description    风险描述
+     * @param sessionId       会话ID
+     * @param userId          用户ID
+     * @param riskLevel       风险等级（LOW/MEDIUM/HIGH/CRITICAL）
+     * @param description     风险描述
      * @param confidenceScore 置信度分数 (0-1)
      */
     @Transactional

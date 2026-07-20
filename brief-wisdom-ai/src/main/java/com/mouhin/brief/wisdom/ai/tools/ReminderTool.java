@@ -1,8 +1,8 @@
 package com.mouhin.brief.wisdom.ai.tools;
 
+import com.mouhin.brief.wisdom.common.tool.ToolContextProvider;
 import com.mouhin.brief.wisdom.persistence.model.ChatReminder;
 import com.mouhin.brief.wisdom.persistence.repository.ChatReminderRepository;
-import com.mouhin.brief.wisdom.common.tool.ToolContextProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -31,14 +31,12 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class ReminderTool {
 
-    private final ChatReminderRepository chatReminderRepository;
-    private final ToolContextProvider toolContextProvider;
-
     private static final DateTimeFormatter DISPLAY_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
     private static final Pattern RELATIVE_TIME_PATTERN =
             Pattern.compile("(\\d+)\\s*(分钟|小时|天|秒)后");
+    private final ChatReminderRepository chatReminderRepository;
+    private final ToolContextProvider toolContextProvider;
 
     /**
      * 创建提醒事项

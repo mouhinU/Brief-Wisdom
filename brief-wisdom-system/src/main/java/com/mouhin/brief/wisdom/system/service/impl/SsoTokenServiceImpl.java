@@ -33,21 +33,23 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class SsoTokenServiceImpl implements SsoTokenService {
 
+    private static final String TOKEN_KEY_PREFIX = "bw:sso:token:";
     private final StringRedisTemplate stringRedisTemplate;
-
-    /** 令牌有效期（小时） */
+    /**
+     * 令牌有效期（小时）
+     */
     @Value("${app.sso.token-expire-hours:24}")
     private int tokenExpireHours;
-
-    /** 签名密钥（生产环境应通过配置中心管理） */
+    /**
+     * 签名密钥（生产环境应通过配置中心管理）
+     */
     @Value("${app.sso.secret:brief-wisdom-sso-secret-key-2026}")
     private String secret;
-
-    /** SSO 服务地址 */
+    /**
+     * SSO 服务地址
+     */
     @Value("${app.sso.server-url:http://localhost:8090}")
     private String serverUrl;
-
-    private static final String TOKEN_KEY_PREFIX = "bw:sso:token:";
 
     @Override
     public String generateToken(String userId, String username) {

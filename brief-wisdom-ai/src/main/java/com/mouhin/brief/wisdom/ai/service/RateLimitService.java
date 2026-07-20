@@ -5,7 +5,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -45,10 +44,14 @@ public class RateLimitService {
     private static final String SECOND_KEY_PREFIX = "bw:ratelimit:s:";
     private static final String DAY_KEY_PREFIX = "bw:ratelimit:day:";
 
-    /** 秒级限流 key 的过期时间（秒） */
+    /**
+     * 秒级限流 key 的过期时间（秒）
+     */
     private static final int SECOND_KEY_TTL_SECONDS = 5;
 
-    /** 天级限流 key 的过期时间（秒）：2 天 */
+    /**
+     * 天级限流 key 的过期时间（秒）：2 天
+     */
     private static final int DAY_KEY_TTL_SECONDS = 172800;
 
     private static final DateTimeFormatter SECOND_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -59,14 +62,15 @@ public class RateLimitService {
      */
     private static final String INCR_WITH_EXPIRE_LUA =
             "local key = KEYS[1] " +
-            "local expire = tonumber(ARGV[1]) " +
-            "local count = redis.call('INCR', key) " +
-            "if count == 1 then " +
-            "  redis.call('EXPIRE', key, expire) " +
-            "end " +
-            "return count";
+                    "local expire = tonumber(ARGV[1]) " +
+                    "local count = redis.call('INCR', key) " +
+                    "if count == 1 then " +
+                    "  redis.call('EXPIRE', key, expire) " +
+                    "end " +
+                    "return count";
 
     private static final DefaultRedisScript<Long> INCR_WITH_EXPIRE_SCRIPT;
+
     static {
         INCR_WITH_EXPIRE_SCRIPT = new DefaultRedisScript<>();
         INCR_WITH_EXPIRE_SCRIPT.setScriptText(INCR_WITH_EXPIRE_LUA);

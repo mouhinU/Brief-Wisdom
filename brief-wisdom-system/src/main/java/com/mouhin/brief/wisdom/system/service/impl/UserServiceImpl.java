@@ -28,7 +28,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    /** 重置密码默认值 */
+    /**
+     * 重置密码默认值
+     */
     private static final String DEFAULT_RESET_PASSWORD = "123456";
 
     private final ChatUserRepository chatUserRepository;

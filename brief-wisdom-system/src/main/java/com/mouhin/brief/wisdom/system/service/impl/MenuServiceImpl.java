@@ -1,8 +1,8 @@
 package com.mouhin.brief.wisdom.system.service.impl;
 
-import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.common.menu.MenuDTO;
 import com.mouhin.brief.wisdom.common.menu.MenuTreeDTO;
+import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import com.mouhin.brief.wisdom.persistence.repository.RoleMenuRepository;
 import com.mouhin.brief.wisdom.persistence.repository.SysMenuRepository;

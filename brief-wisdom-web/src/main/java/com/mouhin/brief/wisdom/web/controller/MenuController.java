@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 菜单 REST 接口
  */
+
 /**
  * MenuController
  *
@@ -56,7 +57,7 @@ public class MenuController {
         jakarta.servlet.http.HttpSession session = request.getSession(false);
         if (session != null) {
             com.mouhin.brief.wisdom.persistence.model.ChatUser user =
-                (com.mouhin.brief.wisdom.persistence.model.ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY);
+                    (com.mouhin.brief.wisdom.persistence.model.ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY);
             if (user != null) {
                 // 已登录：基于角色过滤菜单
                 java.util.List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());

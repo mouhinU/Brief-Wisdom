@@ -50,8 +50,8 @@ public class I18nUtils {
     /**
      * 获取国际化消息（指定默认值）
      *
-     * @param code         消息代码
-     * @param args         参数数组
+     * @param code           消息代码
+     * @param args           参数数组
      * @param defaultMessage 默认消息
      * @return 国际化消息
      */

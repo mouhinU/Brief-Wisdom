@@ -8,38 +8,38 @@
 
 ### 系统管理组件
 
-| 组件名 | 文件 | 功能 |
-|--------|------|------|
+| 组件名  | 文件                   | 功能                |
+|------|----------------------|-------------------|
 | 用户管理 | `user-management.js` | 用户 CRUD、级别修改、角色分配 |
-| 角色管理 | `role-management.js` | 角色 CRUD、菜单权限分配 |
-| 菜单管理 | `menu-management.js` | 树形菜单配置、显示控制 |
+| 角色管理 | `role-management.js` | 角色 CRUD、菜单权限分配    |
+| 菜单管理 | `menu-management.js` | 树形菜单配置、显示控制       |
 
 ### AI 管理组件
 
-| 组件名 | 文件 | 功能 |
-|--------|------|------|
+| 组件名     | 文件                    | 功能                 |
+|---------|-----------------------|--------------------|
 | AI 模型管理 | `model-management.js` | 模型 CRUD、启用/禁用、激活切换 |
-| 会话历史 | `session-history.js` | 按用户/级别查询会话 |
-| 费用统计 | `cost-statistics.js` | 多维度费用分析、可视化图表 |
-| 审计日志 | `audit-log.js` | AI 交互审计、统计分析 |
+| 会话历史    | `session-history.js`  | 按用户/级别查询会话         |
+| 费用统计    | `cost-statistics.js`  | 多维度费用分析、可视化图表      |
+| 审计日志    | `audit-log.js`        | AI 交互审计、统计分析       |
 
 ### 简历管理组件
 
-| 组件名 | 文件 | 功能 |
-|--------|------|------|
-| 工作经历 | `experience-management.js` | 工作经历 CRUD |
-| 项目经历 | `project-management.js` | 项目 CRUD |
-| 项目成果 | `achievement-management.js` | 成果 CRUD |
-| 技术栈 | `tech-stack-management.js` | 技术栈 CRUD |
-| 在线编辑器 | `online-editor.js` | 分步式编辑、AI 润色 |
+| 组件名   | 文件                          | 功能          |
+|-------|-----------------------------|-------------|
+| 工作经历  | `experience-management.js`  | 工作经历 CRUD   |
+| 项目经历  | `project-management.js`     | 项目 CRUD     |
+| 项目成果  | `achievement-management.js` | 成果 CRUD     |
+| 技术栈   | `tech-stack-management.js`  | 技术栈 CRUD    |
+| 在线编辑器 | `online-editor.js`          | 分步式编辑、AI 润色 |
 
 ### 其他组件
 
-| 组件名 | 文件 | 功能 |
-|--------|------|------|
-| AI 助手 | `ai-assistant.template.js` | AI 聊天界面模板 |
-| 知识库管理 | `knowledge-management.js` | 知识库 CRUD、文档上传 |
-| 组件加载器 | `component-loader.js` | 统一注册和初始化组件 |
+| 组件名   | 文件                         | 功能            |
+|-------|----------------------------|---------------|
+| AI 助手 | `ai-assistant.template.js` | AI 聊天界面模板     |
+| 知识库管理 | `knowledge-management.js`  | 知识库 CRUD、文档上传 |
+| 组件加载器 | `component-loader.js`      | 统一注册和初始化组件    |
 
 ---
 

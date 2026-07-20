@@ -2,6 +2,7 @@
 name: Bug 修复模板 Skill
 description: 当你需要在 Brief-Wisdom 中以可复现、低风险的方式修复缺陷时使用。
 ---
+
 # Bug 修复模板 Skill
 
 ## 作用

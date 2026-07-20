@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
  *   redirect-uri: ${DINGTALK_REDIRECT_URI}
  * </pre>
  */
+
 /**
  * DingtalkProperties
  *

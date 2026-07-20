@@ -109,12 +109,24 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         if (base == null) {
             throw new AIException("知识库不存在: " + id);
         }
-        if (bo.getName() != null) { base.setName(bo.getName()); }
-        if (bo.getDescription() != null) { base.setDescription(bo.getDescription()); }
-        if (bo.getIcon() != null) { base.setIcon(bo.getIcon()); }
-        if (bo.getParentId() != null) { base.setParentId(bo.getParentId()); }
-        if (bo.getSortOrder() != null) { base.setSortOrder(bo.getSortOrder()); }
-        if (bo.getIsPublic() != null) { base.setIsPublic(bo.getIsPublic()); }
+        if (bo.getName() != null) {
+            base.setName(bo.getName());
+        }
+        if (bo.getDescription() != null) {
+            base.setDescription(bo.getDescription());
+        }
+        if (bo.getIcon() != null) {
+            base.setIcon(bo.getIcon());
+        }
+        if (bo.getParentId() != null) {
+            base.setParentId(bo.getParentId());
+        }
+        if (bo.getSortOrder() != null) {
+            base.setSortOrder(bo.getSortOrder());
+        }
+        if (bo.getIsPublic() != null) {
+            base.setIsPublic(bo.getIsPublic());
+        }
         knowledgeBaseRepository.update(base);
         return toBaseDTO(base);
     }
@@ -404,9 +416,15 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     }
 
     private void copyBoToDoc(KnowledgeDocumentBO bo, KnowledgeDocument doc) {
-        if (bo.getBaseId() != null) { doc.setBaseId(bo.getBaseId()); }
-        if (bo.getTitle() != null) { doc.setTitle(bo.getTitle()); }
-        if (bo.getDocType() != null) { doc.setDocType(bo.getDocType()); }
+        if (bo.getBaseId() != null) {
+            doc.setBaseId(bo.getBaseId());
+        }
+        if (bo.getTitle() != null) {
+            doc.setTitle(bo.getTitle());
+        }
+        if (bo.getDocType() != null) {
+            doc.setDocType(bo.getDocType());
+        }
         doc.setContent(bo.getContent());
         doc.setFileUrl(bo.getFileUrl());
         doc.setFileName(bo.getFileName());
@@ -415,7 +433,11 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         doc.setLinkUrl(bo.getLinkUrl());
         doc.setLinkDesc(bo.getLinkDesc());
         doc.setTags(bo.getTags());
-        if (bo.getSortOrder() != null) { doc.setSortOrder(bo.getSortOrder()); }
-        if (bo.getStatus() != null) { doc.setStatus(bo.getStatus()); }
+        if (bo.getSortOrder() != null) {
+            doc.setSortOrder(bo.getSortOrder());
+        }
+        if (bo.getStatus() != null) {
+            doc.setStatus(bo.getStatus());
+        }
     }
 }

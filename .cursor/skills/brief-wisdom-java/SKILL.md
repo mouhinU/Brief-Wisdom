@@ -11,7 +11,8 @@ description: >-
 
 ## Authority
 
-Full coding rules live in [AGENTS.md](../../../AGENTS.md). This skill captures **project-specific** patterns the agent must follow.
+Full coding rules live in [AGENTS.md](../../../AGENTS.md). This skill captures **project-specific** patterns the agent
+must follow.
 
 ## Module Layout
 
@@ -30,13 +31,13 @@ brief-wisdom-service  → Legacy shared services (prefer domain modules)
 
 ## Layer Responsibilities
 
-| Layer | Location | Rules |
-|-------|----------|-------|
-| Controller | `brief-wisdom-web/.../controller/` | Thin: validate input, delegate to Service, return DTO/`Result` |
-| Service interface | `{module}/service/` | No `Impl` suffix on interface |
-| Service impl | `{module}/service/impl/` | `XxxServiceImpl implements XxxService` |
-| Repository | `brief-wisdom-persistence/.../repository/` | Data access; catch → `DAOException`, no logging |
-| Entity | `brief-wisdom-persistence/.../model/` | Maps to DB table; `@TableLogic` on `isDeleted` |
+| Layer             | Location                                   | Rules                                                          |
+|-------------------|--------------------------------------------|----------------------------------------------------------------|
+| Controller        | `brief-wisdom-web/.../controller/`         | Thin: validate input, delegate to Service, return DTO/`Result` |
+| Service interface | `{module}/service/`                        | No `Impl` suffix on interface                                  |
+| Service impl      | `{module}/service/impl/`                   | `XxxServiceImpl implements XxxService`                         |
+| Repository        | `brief-wisdom-persistence/.../repository/` | Data access; catch → `DAOException`, no logging                |
+| Entity            | `brief-wisdom-persistence/.../model/`      | Maps to DB table; `@TableLogic` on `isDeleted`                 |
 
 ## Naming Quick Reference
 

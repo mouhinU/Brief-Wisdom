@@ -19,14 +19,14 @@ public final class SafePathUtils {
     /**
      * 解析相对路径并校验其位于 baseRoot 之下，且处于允许的目录或文件白名单内
      *
-     * @param baseRoot       基础根目录（绝对路径）
-     * @param relativePath   相对路径
-     * @param allowedDirs    允许访问的相对目录列表（如 docs）
-     * @param allowedFiles   允许访问的根目录相对文件列表（如 AGENTS.md）
+     * @param baseRoot     基础根目录（绝对路径）
+     * @param relativePath 相对路径
+     * @param allowedDirs  允许访问的相对目录列表（如 docs）
+     * @param allowedFiles 允许访问的根目录相对文件列表（如 AGENTS.md）
      * @return 规范化后的安全绝对路径
      */
     public static Path resolveAllowedPath(Path baseRoot, String relativePath,
-                                        List<String> allowedDirs, List<String> allowedFiles) {
+                                          List<String> allowedDirs, List<String> allowedFiles) {
         if (relativePath == null || relativePath.isBlank()) {
             throw new IllegalArgumentException("路径不能为空");
         }

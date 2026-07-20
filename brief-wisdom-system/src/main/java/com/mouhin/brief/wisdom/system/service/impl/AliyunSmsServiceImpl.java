@@ -26,24 +26,26 @@ import java.util.concurrent.TimeUnit;
 @ConditionalOnProperty(name = "app.sms.provider", havingValue = "aliyun")
 public class AliyunSmsServiceImpl implements SmsService {
 
-    private final StringRedisTemplate stringRedisTemplate;
-
-    /** 验证码有效期（分钟） */
+    /**
+     * 验证码有效期（分钟）
+     */
     private static final int CODE_EXPIRE_MINUTES = 5;
-
-    /** 发送间隔限制（秒）—— 同一手机号两次发送至少间隔 60 秒 */
+    /**
+     * 发送间隔限制（秒）—— 同一手机号两次发送至少间隔 60 秒
+     */
     private static final int SEND_INTERVAL_SECONDS = 60;
-
-    /** 每日发送次数上限 */
+    /**
+     * 每日发送次数上限
+     */
     private static final int DAILY_SEND_LIMIT = 10;
-
-    /** Redis key 前缀 */
+    /**
+     * Redis key 前缀
+     */
     private static final String CODE_KEY_PREFIX = "bw:sms:code:";
     private static final String RATE_KEY_PREFIX = "bw:sms:rate:";
     private static final String DAILY_KEY_PREFIX = "bw:sms:daily:";
-
     private static final SecureRandom RANDOM = new SecureRandom();
-
+    private final StringRedisTemplate stringRedisTemplate;
     @Value("${app.sms.aliyun.access-key-id:}")
     private String accessKeyId;
 

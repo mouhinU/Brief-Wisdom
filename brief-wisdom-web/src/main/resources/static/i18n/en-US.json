@@ -1,6 +1,5 @@
 {
   "app.name": "Brief-Wisdom Smart Resume",
-
   "nav.home": "Home",
   "nav.resume": "Resume",
   "nav.ai": "AI Assistant",
@@ -8,7 +7,6 @@
   "nav.settings": "Settings",
   "nav.about": "About",
   "nav.logout": "Logout",
-
   "common.save": "Save",
   "common.cancel": "Cancel",
   "common.delete": "Delete",
@@ -25,7 +23,6 @@
   "common.back": "Back",
   "common.close": "Close",
   "common.refresh": "Refresh",
-
   "resume.manage.title": "Resume Data Management",
   "resume.online.editor": "Online Editor",
   "resume.work.experience": "Work Experience",
@@ -43,7 +40,6 @@
   "resume.project.duty": "Responsibilities",
   "resume.project.achievement": "Achievements",
   "resume.tech.stack": "Tech Stack",
-
   "ai.manage.title": "AI Assistant Management",
   "ai.session.history": "Session History",
   "ai.knowledge": "Knowledge Base",
@@ -62,11 +58,9 @@
   "ai.last.7days": "Last 7 days",
   "ai.last.30days": "Last 30 days",
   "ai.last.90days": "Last 90 days",
-
   "knowledge.manage.title": "Knowledge Base",
   "knowledge.document": "Documents",
   "knowledge.create.doc": "New Document",
-
   "settings.title": "System Settings",
   "settings.language": "Language",
   "settings.language.zh": "中文",

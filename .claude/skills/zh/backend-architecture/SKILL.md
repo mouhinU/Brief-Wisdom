@@ -2,6 +2,7 @@
 name: 后端架构 Skill
 description: 用于 Brief-Wisdom 的核心后端变更，如接口、服务、仓储、DTO 以及模块边界调整。
 ---
+
 # 后端架构 Skill
 
 ## 作用

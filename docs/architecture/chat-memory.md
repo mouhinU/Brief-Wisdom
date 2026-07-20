@@ -8,7 +8,8 @@
 
 ## 功能概述
 
-跨会话记忆允许 AI 在多次对话中记住用户的关键信息，例如姓名、公司、技术栈偏好、当前项目等。这些信息在每次对话时自动注入到系统提示词中，使 AI 能够提供更个性化的回答。
+跨会话记忆允许 AI 在多次对话中记住用户的关键信息，例如姓名、公司、技术栈偏好、当前项目等。这些信息在每次对话时自动注入到系统提示词中，使
+AI 能够提供更个性化的回答。
 
 记忆的来源有两种：
 
@@ -49,25 +50,25 @@
 
 位于 `brief-wisdom-persistence` 模块，映射到 `chat_memory` 表。
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 自增主键 |
-| userId | String | 用户 ID |
-| category | String | 记忆类别：`preference` / `fact` / `context` |
-| memoryKey | String | 记忆键（如 `name`、`tech_stack`、`company`） |
-| memoryValue | String | 记忆值 |
-| sourceSessionId | String | 来源会话 ID |
-| accessCount | Integer | 访问次数（默认 0） |
-| create_time | DATETIME | 创建时间 |
-| update_time | DATETIME | 更新时间 |
+| 字段              | 类型       | 说明                                     |
+|-----------------|----------|----------------------------------------|
+| id              | BIGINT   | 自增主键                                   |
+| userId          | String   | 用户 ID                                  |
+| category        | String   | 记忆类别：`preference` / `fact` / `context` |
+| memoryKey       | String   | 记忆键（如 `name`、`tech_stack`、`company`）   |
+| memoryValue     | String   | 记忆值                                    |
+| sourceSessionId | String   | 来源会话 ID                                |
+| accessCount     | Integer  | 访问次数（默认 0）                             |
+| create_time     | DATETIME | 创建时间                                   |
+| update_time     | DATETIME | 更新时间                                   |
 
 ### 记忆类别
 
-| 类别 | 说明 | 示例 |
-|------|------|------|
-| `fact` | 用户事实信息 | 姓名、公司、角色 |
-| `preference` | 用户偏好 | 技术栈、编码风格 |
-| `context` | 当前上下文 | 正在做的项目 |
+| 类别           | 说明     | 示例       |
+|--------------|--------|----------|
+| `fact`       | 用户事实信息 | 姓名、公司、角色 |
+| `preference` | 用户偏好   | 技术栈、编码风格 |
+| `context`    | 当前上下文  | 正在做的项目   |
 
 ---
 
@@ -103,14 +104,14 @@
 
 **extractMemoriesFromMessage(userId, userMessage, sessionId)**：通过正则表达式从用户消息中自动提取记忆。支持的匹配模式：
 
-| 模式 | 示例 | 提取结果 |
-|------|------|---------|
-| `我叫XXX` | "我叫张三" | fact / name / 张三 |
-| `我在XXX公司/企业/单位/工作` | "我在阿里巴巴工作" | fact / company / 阿里巴巴 |
-| `我是XXX开发/工程师/...` | "我是Java开发" | fact / role / Java开发 |
-| `我用XXX语言/框架/技术` | "我用Spring框架" | preference / tech_stack / Spring |
-| `我喜欢XXX风格/方式/模式` | "我喜欢函数式风格" | preference / style / 函数式风格 |
-| `我在做XXX项目/系统/平台` | "我在做订单系统" | context / current_project / 订单系统 |
+| 模式                 | 示例           | 提取结果                             |
+|--------------------|--------------|----------------------------------|
+| `我叫XXX`            | "我叫张三"       | fact / name / 张三                 |
+| `我在XXX公司/企业/单位/工作` | "我在阿里巴巴工作"   | fact / company / 阿里巴巴            |
+| `我是XXX开发/工程师/...`  | "我是Java开发"   | fact / role / Java开发             |
+| `我用XXX语言/框架/技术`    | "我用Spring框架" | preference / tech_stack / Spring |
+| `我喜欢XXX风格/方式/模式`   | "我喜欢函数式风格"   | preference / style / 函数式风格       |
+| `我在做XXX项目/系统/平台`   | "我在做订单系统"    | context / current_project / 订单系统 |
 
 **listMemories() / deleteMemory() / clearMemories() / recordAccess()**：记忆管理操作。
 
@@ -149,13 +150,13 @@ chatMemoryService.extractMemoriesFromMessage(userId, message, sessionId);
 
 ## 关键文件清单
 
-| 文件 | 模块 | 职责 |
-|------|------|------|
-| `ChatMemory.java` | persistence | 记忆实体 |
-| `ChatMemoryMapper.java` | persistence | MyBatis-Plus Mapper |
-| `ChatMemoryRepository.java` | persistence | 数据访问层 |
-| `ChatMemoryService.java` | ai | 记忆核心服务 |
-| `MemoryManagementTool.java` | ai | AI 可调用的记忆管理工具 |
+| 文件                          | 模块          | 职责                  |
+|-----------------------------|-------------|---------------------|
+| `ChatMemory.java`           | persistence | 记忆实体                |
+| `ChatMemoryMapper.java`     | persistence | MyBatis-Plus Mapper |
+| `ChatMemoryRepository.java` | persistence | 数据访问层               |
+| `ChatMemoryService.java`    | ai          | 记忆核心服务              |
+| `MemoryManagementTool.java` | ai          | AI 可调用的记忆管理工具       |
 
 ---
 

@@ -2,6 +2,7 @@
 name: Bug Fix Template Skill
 description: Use this skill when you need to fix a bug in Brief-Wisdom in a reproducible and low-risk way.
 ---
+
 # Bug Fix Template Skill
 
 ## Purpose
@@ -10,7 +11,8 @@ Use this skill when you need to fix a bug in Brief-Wisdom in a reproducible and 
 
 ## When to Use This Skill
 
-Use it for runtime errors, incorrect behavior, regressions, null issues, permission bugs, API failures, or UI inconsistencies.
+Use it for runtime errors, incorrect behavior, regressions, null issues, permission bugs, API failures, or UI
+inconsistencies.
 
 ## Recommended Workflow
 

@@ -2,6 +2,7 @@
 name: 测试补全模板 Skill
 description: 当你需要为 Brief-Wisdom 的变更补充或完善测试时使用。
 ---
+
 # 测试补全模板 Skill
 
 ## 作用

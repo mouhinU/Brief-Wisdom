@@ -13,12 +13,18 @@ import java.util.List;
 @Data
 public class ResumeSuggestRequest {
 
-    /** 个人描述/求职意向 */
+    /**
+     * 个人描述/求职意向
+     */
     private String personalSummary;
 
-    /** 工作经历列表（JSON 结构） */
+    /**
+     * 工作经历列表（JSON 结构）
+     */
     private List<FullPolishRequest.ExperienceItem> experiences;
 
-    /** 期望分析的维度：overall-整体评估, layout-排版建议, content-内容优化, keywords-关键词优化 */
+    /**
+     * 期望分析的维度：overall-整体评估, layout-排版建议, content-内容优化, keywords-关键词优化
+     */
     private List<String> dimensions;
 }

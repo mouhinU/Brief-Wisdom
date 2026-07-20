@@ -1,17 +1,12 @@
 package com.mouhin.brief.wisdom;
 
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration;
+import org.springframework.ai.model.openai.autoconfigure.*;
+import org.springframework.ai.vectorstore.redis.autoconfigure.RedisVectorStoreAutoConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration;
-import org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration;
-import org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration;
-import org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration;
-import org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration;
-import org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration;
-import org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration;
-import org.springframework.ai.vectorstore.redis.autoconfigure.RedisVectorStoreAutoConfiguration;
 
 @SpringBootApplication(
         scanBasePackages = {"com.mouhin.brief.wisdom"},

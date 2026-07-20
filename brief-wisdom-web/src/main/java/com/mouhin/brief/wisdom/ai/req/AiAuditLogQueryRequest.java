@@ -14,12 +14,18 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class AiAuditLogQueryRequest extends PageRequest {
 
-    /** 用户ID筛选（可选） */
+    /**
+     * 用户ID筛选（可选）
+     */
     private String userId;
 
-    /** 审计类型筛选（可选：INPUT_BLOCKED/OUTPUT_FILTERED/RISK_DETECTED） */
+    /**
+     * 审计类型筛选（可选：INPUT_BLOCKED/OUTPUT_FILTERED/RISK_DETECTED）
+     */
     private String auditType;
 
-    /** 风险等级筛选（可选：LOW/MEDIUM/HIGH/CRITICAL） */
+    /**
+     * 风险等级筛选（可选：LOW/MEDIUM/HIGH/CRITICAL）
+     */
     private String riskLevel;
 }

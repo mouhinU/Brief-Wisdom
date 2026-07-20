@@ -3,9 +3,9 @@ package com.mouhin.brief.wisdom.web.controller;
 import com.mouhin.brief.wisdom.common.PageResult;
 import com.mouhin.brief.wisdom.common.manage.UserDTO;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
+import com.mouhin.brief.wisdom.system.service.UserService;
 import com.mouhin.brief.wisdom.web.req.UpdateLevelRequest;
 import com.mouhin.brief.wisdom.web.req.UserListQueryRequest;
-import com.mouhin.brief.wisdom.system.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +17,7 @@ import java.util.List;
 /**
  * 用户管理 Controller - 系统设置页面使用
  */
+
 /**
  * UserController
  *

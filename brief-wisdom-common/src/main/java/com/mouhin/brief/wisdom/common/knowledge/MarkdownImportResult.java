@@ -11,13 +11,19 @@ import lombok.Data;
 @Data
 public class MarkdownImportResult {
 
-    /** 新增文档数 */
+    /**
+     * 新增文档数
+     */
     private int createdCount;
 
-    /** 更新文档数 */
+    /**
+     * 更新文档数
+     */
     private int updatedCount;
 
-    /** 失败文件数 */
+    /**
+     * 失败文件数
+     */
     private int failedCount;
 
     public void incrementCreated() {

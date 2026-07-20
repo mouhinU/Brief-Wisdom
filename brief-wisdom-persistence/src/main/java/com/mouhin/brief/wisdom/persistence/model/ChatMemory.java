@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.persistence.model;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -17,27 +18,39 @@ import lombok.EqualsAndHashCode;
 @TableName("chat_memory")
 public class ChatMemory extends BaseEntity {
 
-    /** 用户ID */
+    /**
+     * 用户ID
+     */
     @TableField(value = "user_id")
     private String userId;
 
-    /** 记忆分类：preference-偏好, fact-事实, context-上下文 */
+    /**
+     * 记忆分类：preference-偏好, fact-事实, context-上下文
+     */
     @TableField(value = "category")
     private String category;
 
-    /** 记忆键（如：preferred_language, tech_stack） */
+    /**
+     * 记忆键（如：preferred_language, tech_stack）
+     */
     @TableField(value = "memory_key")
     private String memoryKey;
 
-    /** 记忆值 */
+    /**
+     * 记忆值
+     */
     @TableField(value = "memory_value")
     private String memoryValue;
 
-    /** 来源会话ID */
+    /**
+     * 来源会话ID
+     */
     @TableField(value = "source_session_id")
     private String sourceSessionId;
 
-    /** 访问次数（用于权重排序） */
+    /**
+     * 访问次数（用于权重排序）
+     */
     @TableField(value = "access_count")
     private Integer accessCount = 0;
 }

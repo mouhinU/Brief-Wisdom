@@ -1487,6 +1487,16 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
     eventSource.addEventListener("complete", function () {
       eventSource.close();
       activeEventSource = null;
+      toggleStopButton(false);
+
+      if (!fullText || fullText.trim().length === 0) {
+        // 流式完成但内容为空（模型未返回有效内容），显示错误提示
+        messageContent.innerHTML = '<div class="message-error">AI 未返回有效内容，请检查模型配置或稍后重试</div>';
+        aiMessageDiv.classList.add("message-empty");
+        resolve();
+        return;
+      }
+
       // 移除光标
       messageContent.innerHTML = renderMarkdown(fullText);
 
@@ -1502,7 +1512,6 @@ async function sendMessageStream(sessionId, message, model, pageContext) {
           updateCurrentSessionItem(sessionId);
           resolve();
         });
-      toggleStopButton(false);
     });
   });
 }

@@ -1,13 +1,7 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mouhin.brief.wisdom.ai.req.ChatRequest;
-import com.mouhin.brief.wisdom.ai.req.ChatWithPromptRequest;
-import com.mouhin.brief.wisdom.ai.req.MessageHistoryQueryRequest;
-import com.mouhin.brief.wisdom.ai.req.QuestionRequest;
-import com.mouhin.brief.wisdom.ai.req.SaveStreamedMessageRequest;
-import com.mouhin.brief.wisdom.ai.req.SessionCreateRequest;
-import com.mouhin.brief.wisdom.ai.req.SessionListQueryRequest;
+import com.mouhin.brief.wisdom.ai.req.*;
 import com.mouhin.brief.wisdom.ai.service.AiAgentService;
 import com.mouhin.brief.wisdom.ai.service.AiModelService;
 import com.mouhin.brief.wisdom.common.PageResult;
@@ -30,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.Disposable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +34,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
-import reactor.core.Disposable;
 /**
  * AiAgentController
  *
@@ -115,13 +109,11 @@ public class AiAgentController {
     @Operation(summary = "流式聊天（SSE）", description = "流式输出 AI 回复，前端使用 EventSource 接收，支持主动终止")
     @GetMapping(value = "/chat/session/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStreamWithSession(
-            @Parameter(description = "会话ID", required = true) @PathVariable String sessionId,
-            ChatRequest request) {
+            @Parameter(description = "会话ID", required = true) @PathVariable String sessionId, ChatRequest request) {
+
         String userId = userContextHelper.getCurrentUserId();
 
-        log.info("收到流式聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}",
-                sessionId, userId, request.getMessage(), request.getModel());
-
+        log.info("收到流式聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}", sessionId, userId, request.getMessage(), request.getModel());
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
 
         // SseEmitter 生命周期回调：连接完成或超时时清理订阅
@@ -144,12 +136,9 @@ public class AiAgentController {
                 // 订阅流式响应，保存 Disposable 以支持主动终止
                 final StringBuilder contentAccumulator = new StringBuilder();
                 final String resolvedModel = request.getModel() != null ? request.getModel() : aiAgentService.getActiveModelName();
+
                 Disposable subscription = aiAgentService.chatStreamWithSession(
-                        sessionId,
-                        userId,
-                        request.getMessage(),
-                        request.getModel(),
-                        request.getPageContext()
+                        sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext()
                 ).subscribe(
                         chunk -> {
                             try {
@@ -183,18 +172,16 @@ public class AiAgentController {
                             activeStreamSubscriptions.remove(userId);
                             log.info("[流式] 完成");
 
-                            // 估算 Token 和费用并自动保存
+                            // 记录 Token 估算日志（消息由前端 /message/save 统一保存，避免重复）
                             try {
                                 String fullContent = contentAccumulator.toString();
                                 if (StringUtils.isNotBlank(fullContent)) {
                                     int tokens = aiAgentService.estimateStreamingTokens(fullContent);
                                     double cost = aiAgentService.estimateStreamingCost(resolvedModel, tokens);
-                                    aiAgentService.saveStreamedMessage(
-                                            sessionId, userId, fullContent, resolvedModel, tokens, cost);
                                     log.info("[流式] Token/Cost 已记录 - tokens: {}, cost: {}", tokens, cost);
                                 }
                             } catch (Exception e) {
-                                log.error("[流式] 自动保存消息失败: {}", e.getMessage(), e);
+                                log.debug("[流式] Token 估算失败: {}", e.getMessage());
                             }
 
                             try {
@@ -263,8 +250,7 @@ public class AiAgentController {
     public String createSession(@RequestBody(required = false) SessionCreateRequest request) {
         String userId = userContextHelper.getCurrentUserId();
         String pageContext = (request != null) ? request.getPageContext() : null;
-        String sessionId = aiAgentService.createSession(userId, pageContext);
-        return sessionId;
+        return aiAgentService.createSession(userId, pageContext);
     }
 
     /**
@@ -272,8 +258,7 @@ public class AiAgentController {
      */
     @Operation(summary = "删除会话", description = "删除指定的 AI 对话会话")
     @DeleteMapping("/session/{sessionId}")
-    public Boolean deleteSession(
-            @Parameter(description = "会话ID", required = true) @PathVariable String sessionId) {
+    public Boolean deleteSession(@Parameter(description = "会话ID", required = true) @PathVariable String sessionId) {
         aiAgentService.deleteSession(sessionId);
         return true;
     }
@@ -283,9 +268,7 @@ public class AiAgentController {
      */
     @Operation(summary = "重命名会话标题")
     @PutMapping("/session/{sessionId}/title")
-    public Boolean renameSession(
-            @Parameter(description = "会话ID", required = true) @PathVariable String sessionId,
-            @RequestBody Map<String, String> body) {
+    public Boolean renameSession(@Parameter(description = "会话ID", required = true) @PathVariable String sessionId, @RequestBody Map<String, String> body) {
         String newTitle = body.get("title");
         aiAgentService.renameSession(sessionId, newTitle);
         return true;
@@ -432,7 +415,13 @@ public class AiAgentController {
         String userId = userContextHelper.getCurrentUserId();
         log.info("收到保存流式消息请求 - sessionId: {}, userId: {}, model: {}",
                 request.getSessionId(), userId, request.getModel());
-        
+
+        // 空内容防护：模型未返回有效内容时不保存
+        if (request.getContent() == null || request.getContent().isBlank()) {
+            log.warn("[流式] 跳过保存空内容消息 - sessionId: {}, userId: {}", request.getSessionId(), userId);
+            return true;
+        }
+
         aiAgentService.saveStreamedMessage(
                 request.getSessionId(),
                 userId,
@@ -441,7 +430,7 @@ public class AiAgentController {
                 request.getTokens(),
                 request.getCost()
         );
-        
+
         return true;
     }
 

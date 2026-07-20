@@ -1,6 +1,7 @@
 # AGENTS.md — Brief-Wisdom 编码规范
 
-> 本规范基于《Java开发手册》v1.5.0（华山版），结合 Brief-Wisdom 项目技术栈（Spring Boot 3.5.7 / Java 17 / MyBatis-Plus / Redis / Spring AI）进行定制化裁剪。**所有 AI 生成的代码必须严格遵循以下规则。**
+> 本规范基于《Java开发手册》v1.5.0（华山版），结合 Brief-Wisdom 项目技术栈（Spring Boot 3.5.7 / Java 17 / MyBatis-Plus /
+> Redis / Spring AI）进行定制化裁剪。**所有 AI 生成的代码必须严格遵循以下规则。**
 
 ---
 
@@ -14,12 +15,12 @@
 
 ### 1.2 风格要求
 
-| 元素 | 风格 | 正例 | 反例 |
-|------|------|------|------|
-| 类名 | UpperCamelCase | `UserService`、`ChatMessageDTO` | `userService`、`ChatmessageDto` |
-| 方法名 / 参数名 / 成员变量 / 局部变量 | lowerCamelCase | `localValue`、`getHttpMessage()` | `LocalValue`、`gethttpmessage()` |
-| 常量 | 全大写 + 下划线分隔 | `MAX_STOCK_COUNT`、`CACHE_EXPIRED_TIME` | `MAX_COUNT` |
-| 包名 | 全小写，单数形式 | `com.mouhin.brief.wisdom.util` | `com.mouhin.Brief.Wisdom.Utils` |
+| 元素                      | 风格             | 正例                                     | 反例                              |
+|-------------------------|----------------|----------------------------------------|---------------------------------|
+| 类名                      | UpperCamelCase | `UserService`、`ChatMessageDTO`         | `userService`、`ChatmessageDto`  |
+| 方法名 / 参数名 / 成员变量 / 局部变量 | lowerCamelCase | `localValue`、`getHttpMessage()`        | `LocalValue`、`gethttpmessage()` |
+| 常量                      | 全大写 + 下划线分隔    | `MAX_STOCK_COUNT`、`CACHE_EXPIRED_TIME` | `MAX_COUNT`                     |
+| 包名                      | 全小写，单数形式       | `com.mouhin.brief.wisdom.util`         | `com.mouhin.Brief.Wisdom.Utils` |
 
 - 类名例外（保持全大写后缀）：`DO` / `BO` / `DTO` / `VO` / `AO` / `PO` / `UID`。
 - 抽象类以 `Abstract` 或 `Base` 开头；异常类以 `Exception` 结尾；测试类以 `Test` 结尾。
@@ -38,14 +39,14 @@
 
 ### 1.5 各层方法命名
 
-| 操作 | 前缀 |
-|------|------|
-| 获取单个对象 | `get` |
+| 操作     | 前缀                           |
+|--------|------------------------------|
+| 获取单个对象 | `get`                        |
 | 获取多个对象 | `list`（复数结尾，如 `listObjects`） |
-| 获取统计值 | `count` |
-| 插入 | `save` / `insert` |
-| 删除 | `remove` / `delete` |
-| 修改 | `update` |
+| 获取统计值  | `count`                      |
+| 插入     | `save` / `insert`            |
+| 删除     | `remove` / `delete`          |
+| 修改     | `update`                     |
 
 ### 1.6 领域模型命名
 
@@ -78,13 +79,14 @@
 ## 三、代码格式
 
 - **缩进**：采用 4 个空格缩进，禁止使用 tab 字符。
-- **大括号**：左大括号前不换行，左大括号后换行，右大括号前换行，右大括号后有 `else` 不换行，终止的右大括号后必须换行。空大括号直接写 `{}`。
+- **大括号**：左大括号前不换行，左大括号后换行，右大括号前换行，右大括号后有 `else` 不换行，终止的右大括号后必须换行。空大括号直接写
+  `{}`。
 - **空格**：
-  - 左小括号和字符之间无空格，右小括号和字符之间无空格。
-  - `if` / `for` / `while` / `switch` / `do` 等保留字与括号之间加空格。
-  - 任何二目、三目运算符左右两边各一个空格。
-  - 注释双斜线与注释内容之间有且仅有一个空格。
-  - 方法参数逗号后必须加空格。
+    - 左小括号和字符之间无空格，右小括号和字符之间无空格。
+    - `if` / `for` / `while` / `switch` / `do` 等保留字与括号之间加空格。
+    - 任何二目、三目运算符左右两边各一个空格。
+    - 注释双斜线与注释内容之间有且仅有一个空格。
+    - 方法参数逗号后必须加空格。
 - **单行字符数**不超过 120 个，超出换行时第二行缩进 4 个空格，运算符和点号与下文一起换行。
 - **单方法行数**推荐不超过 80 行。
 - 不同逻辑、不同语义的代码之间插入一个空行分隔，不要插入多个空行。
@@ -197,8 +199,8 @@ public ThreadPoolExecutor briefWisdomExecutor() {
 - 代码修改时注释同步修改。
 - 谨慎注释掉代码，无用代码直接删除。
 - 特殊标记格式：
-  - `// TODO (作者, 日期, [预计处理时间]) 描述`
-  - `// FIXME (作者, 日期, [预计处理时间]) 描述`
+    - `// TODO (作者, 日期, [预计处理时间]) 描述`
+    - `// FIXME (作者, 日期, [预计处理时间]) 描述`
 
 ### 本项目类注释模板
 
@@ -359,6 +361,7 @@ brief-wisdom-common     → 公共模块（DTO、Result、常量、注解）
 ```
 
 各业务模块统一采用 **接口 + impl** 分层模式：
+
 - 接口定义在 `{module}.service` 包（如 `ai.service.KnowledgeService`）
 - 实现类在 `{module}.service.impl` 包（如 `ai.service.impl.KnowledgeServiceImpl`）
 - Controller 注入接口类型，Spring 自动匹配实现
@@ -378,12 +381,12 @@ brief-wisdom-common     → 公共模块（DTO、Result、常量、注解）
 
 ### 14.4 领域模型
 
-| 模型 | 说明 | 所在模块 |
-|------|------|----------|
-| DO | 与数据库表一一对应 | `brief-wisdom-persistence` |
-| DTO | 数据传输对象 | `brief-wisdom-common` |
-| VO | 展示层对象 | `brief-wisdom-resume` / `brief-wisdom-common` |
-| Query | 查询对象（超过 2 个参数禁止用 Map 传输） | 各层接收 |
+| 模型    | 说明                       | 所在模块                                          |
+|-------|--------------------------|-----------------------------------------------|
+| DO    | 与数据库表一一对应                | `brief-wisdom-persistence`                    |
+| DTO   | 数据传输对象                   | `brief-wisdom-common`                         |
+| VO    | 展示层对象                    | `brief-wisdom-resume` / `brief-wisdom-common` |
+| Query | 查询对象（超过 2 个参数禁止用 Map 传输） | 各层接收                                          |
 
 ---
 

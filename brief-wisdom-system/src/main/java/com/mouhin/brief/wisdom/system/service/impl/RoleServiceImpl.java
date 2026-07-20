@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.system.service.impl;
 
 import com.mouhin.brief.wisdom.common.role.RoleDTO;
+import com.mouhin.brief.wisdom.constants.CachePrefix;
 import com.mouhin.brief.wisdom.exception.SystemSettingsException;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import com.mouhin.brief.wisdom.persistence.model.SysRole;
@@ -18,9 +19,6 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.mouhin.brief.wisdom.constants.CachePrefix;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -35,6 +33,14 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class RoleServiceImpl implements RoleService {
 
+    /**
+     * 系统预置角色 Key 列表（不可删除）
+     */
+    private static final List<String> SYSTEM_ROLE_KEYS = List.of("super_admin", "admin", "normal");
+    /**
+     * 默认角色 Key
+     */
+    private static final String DEFAULT_ROLE_KEY = "normal";
     private final SysRoleRepository sysRoleRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleMenuRepository roleMenuRepository;
@@ -123,12 +129,6 @@ public class RoleServiceImpl implements RoleService {
         sysRoleRepository.update(role);
         log.info("更新角色: id={}, roleName={}", role.getId(), role.getRoleName());
     }
-
-    /** 系统预置角色 Key 列表（不可删除） */
-    private static final List<String> SYSTEM_ROLE_KEYS = List.of("super_admin", "admin", "normal");
-
-    /** 默认角色 Key */
-    private static final String DEFAULT_ROLE_KEY = "normal";
 
     /**
      * 删除角色

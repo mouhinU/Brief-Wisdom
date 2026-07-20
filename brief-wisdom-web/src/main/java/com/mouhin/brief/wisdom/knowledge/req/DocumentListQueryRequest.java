@@ -14,9 +14,13 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class DocumentListQueryRequest extends PageRequest {
 
-    /** 知识库ID */
+    /**
+     * 知识库ID
+     */
     private Long baseId;
 
-    /** 文档类型筛选（可选） */
+    /**
+     * 文档类型筛选（可选）
+     */
     private String docType;
 }

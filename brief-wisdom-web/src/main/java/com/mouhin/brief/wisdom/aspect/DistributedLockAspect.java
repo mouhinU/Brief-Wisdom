@@ -43,7 +43,7 @@ public class DistributedLockAspect {
     /**
      * 环绕通知：拦截带 {@link DistributedLock} 注解的方法，自动加锁/释放
      *
-     * @param joinPoint      连接点
+     * @param joinPoint       连接点
      * @param distributedLock 分布式锁注解
      * @return 目标方法返回值
      * @throws Throwable 目标方法抛出的异常

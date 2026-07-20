@@ -19,19 +19,29 @@ public class ClientOnlineStatusDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** 传输方式：sse 或 websocket */
+    /**
+     * 传输方式：sse 或 websocket
+     */
     private String transport;
 
-    /** 在线用户总数（去重） */
+    /**
+     * 在线用户总数（去重）
+     */
     private int totalOnlineUsers;
 
-    /** 总连接数（同一用户多端连接会累计） */
+    /**
+     * 总连接数（同一用户多端连接会累计）
+     */
     private int totalConnections;
 
-    /** 服务端当前时间戳（毫秒） */
+    /**
+     * 服务端当前时间戳（毫秒）
+     */
     private long serverTime;
 
-    /** 每个用户的连接详情列表 */
+    /**
+     * 每个用户的连接详情列表
+     */
     private List<UserConnectionInfo> userConnections;
 
     /**
@@ -42,13 +52,19 @@ public class ClientOnlineStatusDTO implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
-        /** 用户ID */
+        /**
+         * 用户ID
+         */
         private String userId;
 
-        /** 用户昵称 */
+        /**
+         * 用户昵称
+         */
         private String nickname;
 
-        /** 该用户的连接数 */
+        /**
+         * 该用户的连接数
+         */
         private int connectionCount;
     }
 }

@@ -1,6 +1,7 @@
 package com.mouhin.brief.wisdom.web.req;
 
 import lombok.Data;
+
 /**
  * UpdateLevelRequest
  *

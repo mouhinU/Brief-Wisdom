@@ -16,27 +16,31 @@ Brief-Wisdom/
 ## 📋 日志文件说明
 
 ### 1. 主日志文件 (`brief-wisdom.log`)
+
 - **记录内容**: 所有 INFO、WARN、ERROR 级别的日志
-- **滚动策略**: 
-  - 按天分割：`brief-wisdom-2026-07-05.0.log`
-  - 单文件最大: 100MB
-  - 保留天数: 30天
-  - 总大小上限: 10GB
+- **滚动策略**:
+    - 按天分割：`brief-wisdom-2026-07-05.0.log`
+    - 单文件最大: 100MB
+    - 保留天数: 30天
+    - 总大小上限: 10GB
 
 ### 2. 错误日志文件 (`brief-wisdom-error.log`)
+
 - **记录内容**: 仅 ERROR 级别的错误日志
 - **滚动策略**:
-  - 按天分割：`brief-wisdom-error-2026-07-05.0.log`
-  - 单文件最大: 100MB
-  - 保留天数: 90天（错误日志保留更久）
-  - 总大小上限: 5GB
+    - 按天分割：`brief-wisdom-error-2026-07-05.0.log`
+    - 单文件最大: 100MB
+    - 保留天数: 90天（错误日志保留更久）
+    - 总大小上限: 5GB
 
 ### 3. AI 模块日志 (`brief-wisdom-ai.log`)
+
 - **记录内容**: `com.mouhin.brief.wisdom.ai` 包下的所有日志（DEBUG级别）
 - **用途**: 追踪 AI 调用、模型切换、Token 消耗等
 - **滚动策略**: 同主日志文件
 
 ### 4. 简历模块日志 (`brief-wisdom-resume.log`)
+
 - **记录内容**: `com.mouhin.brief.wisdom.resume` 包下的所有日志（DEBUG级别）
 - **用途**: 追踪简历 CRUD、AI 润色请求等
 - **滚动策略**: 同主日志文件
@@ -44,20 +48,23 @@ Brief-Wisdom/
 ## 🔧 日志配置特性
 
 ### 自动清理
+
 - 启动时自动清理超过保留天数的旧日志
 - 当日志总大小超过上限时，自动删除最旧的日志
 
 ### 实时生效
+
 - 配置文件修改后 60 秒内自动重新加载（无需重启应用）
 - 配置扫描间隔: `scanPeriod="60 seconds"`
 
 ### 控制台输出
+
 - 开发环境：同时输出到控制台和文件
 - 彩色显示：不同日志级别用不同颜色区分
-  - ERROR: 红色
-  - WARN: 黄色
-  - INFO: 绿色
-  - DEBUG: 蓝色
+    - ERROR: 红色
+    - WARN: 黄色
+    - INFO: 绿色
+    - DEBUG: 蓝色
 
 ## 📝 日志格式
 
@@ -66,6 +73,7 @@ Brief-Wisdom/
 ```
 
 格式说明：
+
 - `2026-07-05 14:30:25.123`: 时间戳
 - `[http-nio-8090-exec-1]`: 线程名
 - `INFO`: 日志级别
@@ -75,18 +83,22 @@ Brief-Wisdom/
 ## 🎯 特殊配置
 
 ### MyBatis SQL 日志
+
 - Mapper 层的 SQL 语句会以 DEBUG 级别输出
 - 方便调试数据库操作
 
 ### Spring Security 日志
+
 - 设置为 WARN 级别，减少不必要的认证日志
 
 ### Chrome DevTools 警告抑制
+
 - 将无资源告警设置为 ERROR 级别，避免控制台刷屏
 
 ## 💡 使用建议
 
 ### 查看最新日志
+
 ```bash
 # Mac/Linux
 tail -f logs/brief-wisdom.log
@@ -96,6 +108,7 @@ Get-Content logs/brief-wisdom.log -Wait -Tail 50
 ```
 
 ### 搜索特定错误
+
 ```bash
 # 查找包含 "AI" 的错误日志
 grep "AI" logs/brief-wisdom-error.log
@@ -105,12 +118,14 @@ grep "2026-07-05" logs/brief-wisdom-error.log
 ```
 
 ### 查看 AI 相关日志
+
 ```bash
 # 实时查看 AI 模块日志
 tail -f logs/brief-wisdom-ai.log
 ```
 
 ### 清理日志
+
 ```bash
 # 手动清理所有日志（谨慎使用）
 rm -rf logs/*.log
@@ -129,6 +144,7 @@ rm -rf logs/*.log
 ```
 
 可用级别（从低到高）：
+
 - `TRACE`: 最详细
 - `DEBUG`: 调试信息
 - `INFO`: 一般信息

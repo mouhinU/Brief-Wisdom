@@ -28,20 +28,24 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class KnowledgeVectorService {
 
+    /**
+     * 向量搜索默认返回的文档数量
+     */
+    private static final int DEFAULT_TOP_K = 5;
+    /**
+     * 相似度阈值（低于此值的结果将被过滤）
+     */
+    private static final double SIMILARITY_THRESHOLD = 0.3;
+    /**
+     * 单个分块的最大字符数
+     */
+    private static final int MAX_CHUNK_SIZE = 2000;
+    /**
+     * 分块之间的重叠字符数（保证上下文连续性）
+     */
+    private static final int CHUNK_OVERLAP = 200;
     private final VectorStore vectorStore;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
-
-    /** 向量搜索默认返回的文档数量 */
-    private static final int DEFAULT_TOP_K = 5;
-
-    /** 相似度阈值（低于此值的结果将被过滤） */
-    private static final double SIMILARITY_THRESHOLD = 0.3;
-
-    /** 单个分块的最大字符数 */
-    private static final int MAX_CHUNK_SIZE = 2000;
-
-    /** 分块之间的重叠字符数（保证上下文连续性） */
-    private static final int CHUNK_OVERLAP = 200;
 
     /**
      * 将知识库文档向量化并存入 Redis Vector Store
@@ -98,9 +102,9 @@ public class KnowledgeVectorService {
      * 优先在 Markdown 标题（#/##/###）处切分，其次在段落边界切分，
      * 最后在任意位置切分以保证块大小不超过上限。相邻块之间保留重叠以维持上下文。
      *
-     * @param text      原始文本
-     * @param maxChunk  单块最大字符数
-     * @param overlap   块间重叠字符数
+     * @param text     原始文本
+     * @param maxChunk 单块最大字符数
+     * @param overlap  块间重叠字符数
      * @return 分块列表
      */
     List<String> splitIntoChunks(String text, int maxChunk, int overlap) {

@@ -25,7 +25,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AiModelServiceImpl implements AiModelService {
 
-    /** 默认模型名称（当无激活模型时使用） */
+    /**
+     * 默认模型名称（当无激活模型时使用）
+     */
     private static final String DEFAULT_MODEL_NAME = "qwen-plus";
 
     private final AiModelRepository aiModelRepository;

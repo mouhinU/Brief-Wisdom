@@ -3,6 +3,7 @@ package com.mouhin.brief.wisdom.exception;
 
 import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
 import lombok.Getter;
+
 /**
  * BizException
  *
@@ -13,9 +14,8 @@ import lombok.Getter;
 @Getter
 public class BizException extends RuntimeException {
 
-    private String code;
-
     private static final long serialVersionUID = 1L;
+    private String code;
 
     /**
      * 使用错误消息创建异常

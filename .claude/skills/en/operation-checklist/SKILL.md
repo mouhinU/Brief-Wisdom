@@ -2,6 +2,7 @@
 name: Operation Checklist Skill
 description: Use this skill when you need a fast, repeatable checklist before implementing or reviewing a change in Brief-Wisdom.
 ---
+
 # Operation Checklist Skill
 
 ## Purpose
@@ -10,7 +11,8 @@ Use this skill when you need a fast, repeatable checklist before implementing or
 
 ## When to Use This Skill
 
-Use it for task triage, implementation planning, or pre-review validation across backend, frontend, AI, or system modules.
+Use it for task triage, implementation planning, or pre-review validation across backend, frontend, AI, or system
+modules.
 
 ## Core Checklist
 

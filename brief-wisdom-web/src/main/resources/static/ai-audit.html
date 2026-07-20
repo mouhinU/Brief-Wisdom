@@ -2,33 +2,33 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>AI 安全审计日志</title>
     <!-- 引入全局样式 -->
-    <link rel="stylesheet" href="/css/ai-manage.css">
+    <link href="/css/ai-manage.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🔒 AI 安全审计日志</h1>
-        </header>
-        
-        <!-- 组件容器 -->
-        <main id="audit-log-tab-content"></main>
-    </div>
-    
-    <!-- 引入组件文件（按依赖顺序） -->
-    <script src="/components/audit-log.template.js?v=1"></script>
-    <script src="/components/audit-log.js?v=1"></script>
-    
-    <!-- 初始化组件 -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('[ai-audit.html] 页面加载完成，初始化审计日志组件');
-            AuditLog.init({
-                containerId: 'audit-log-tab-content'
-            });
+<div class="container">
+    <header>
+        <h1>🔒 AI 安全审计日志</h1>
+    </header>
+
+    <!-- 组件容器 -->
+    <main id="audit-log-tab-content"></main>
+</div>
+
+<!-- 引入组件文件（按依赖顺序） -->
+<script src="/components/audit-log.template.js?v=1"></script>
+<script src="/components/audit-log.js?v=1"></script>
+
+<!-- 初始化组件 -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('[ai-audit.html] 页面加载完成，初始化审计日志组件');
+        AuditLog.init({
+            containerId: 'audit-log-tab-content'
         });
-    </script>
+    });
+</script>
 </body>
 </html>

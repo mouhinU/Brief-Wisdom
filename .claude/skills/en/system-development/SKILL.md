@@ -2,11 +2,13 @@
 name: System Development Skill
 description: Use this skill for system-level development work in Brief-Wisdom, including backend modules, authentication, permissions, shared services, and deployment-related changes.
 ---
+
 # System Development Skill
 
 ## Purpose
 
-Use this skill for system-level development work in Brief-Wisdom, including backend modules, authentication, permissions, shared services, and deployment-related changes.
+Use this skill for system-level development work in Brief-Wisdom, including backend modules, authentication,
+permissions, shared services, and deployment-related changes.
 
 ## When to Use This Skill
 
@@ -47,7 +49,8 @@ Developers working on backend, system, AI, or deployment tasks.
 
 ## Avoid
 
-Do not bypass existing security checks, introduce duplicated patterns, or make repo-wide changes without checking the relevant module first.
+Do not bypass existing security checks, introduce duplicated patterns, or make repo-wide changes without checking the
+relevant module first.
 
 ## Example Prompt
 

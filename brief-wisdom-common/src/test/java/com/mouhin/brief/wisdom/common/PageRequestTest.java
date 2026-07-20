@@ -3,7 +3,7 @@ package com.mouhin.brief.wisdom.common;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * PageRequest 分页请求参数测试

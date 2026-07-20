@@ -1,7 +1,7 @@
 package com.mouhin.brief.wisdom.config;
 
-import com.mouhin.brief.wisdom.websocket.WebSocketSyncHandler;
 import com.mouhin.brief.wisdom.interceptor.WebSocketSyncHandshakeInterceptor;
+import com.mouhin.brief.wisdom.websocket.WebSocketSyncHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

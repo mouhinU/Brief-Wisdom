@@ -21,8 +21,6 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.mouhin.brief.wisdom.constants.CachePrefix.USER_PERMS_CACHE;
-
 /**
  * Redis 配置类
  * <p>
@@ -38,6 +36,7 @@ import static com.mouhin.brief.wisdom.constants.CachePrefix.USER_PERMS_CACHE;
  *   <li>bw:session:{id} — 用户会话</li>
  * </ul>
  */
+
 /**
  * RedisConfig
  *
@@ -74,35 +73,6 @@ public class RedisConfig {
         );
         return mapper;
     }
-
-    /**
-     * 包装序列化器：确保顶层值始终携带 @class 类型信息
-     * <p>
-     * GenericJackson2JsonRedisSerializer 对顶层集合（如 ArrayList）不添加 @class，
-     * 导致 Spring Cache 以 Object 类型反序列化时无法还原原始类型。
-     * 此包装器将值先包装为 Object[] {value}，强制顶层也携带类型信息。
-     */
-    private static class TypePreservingSerializer implements RedisSerializer<Object> {
-        private final GenericJackson2JsonRedisSerializer delegate;
-
-        TypePreservingSerializer(ObjectMapper mapper) {
-            this.delegate = new GenericJackson2JsonRedisSerializer(mapper);
-        }
-
-        @Override
-        public byte[] serialize(Object value) throws SerializationException {
-            if (value == null) return null;
-            return delegate.serialize(new Object[]{value});
-        }
-
-        @Override
-        public Object deserialize(byte[] bytes) throws SerializationException {
-            if (bytes == null || bytes.length == 0) return null;
-            Object[] wrapper = (Object[]) delegate.deserialize(bytes);
-            return wrapper != null ? wrapper[0] : null;
-        }
-    }
-
 
     /**
      * 通用 RedisTemplate（Key=String, Value=JSON）
@@ -177,5 +147,33 @@ public class RedisConfig {
                 .withInitialCacheConfigurations(configMap)
                 .transactionAware()
                 .build();
+    }
+
+    /**
+     * 包装序列化器：确保顶层值始终携带 @class 类型信息
+     * <p>
+     * GenericJackson2JsonRedisSerializer 对顶层集合（如 ArrayList）不添加 @class，
+     * 导致 Spring Cache 以 Object 类型反序列化时无法还原原始类型。
+     * 此包装器将值先包装为 Object[] {value}，强制顶层也携带类型信息。
+     */
+    private static class TypePreservingSerializer implements RedisSerializer<Object> {
+        private final GenericJackson2JsonRedisSerializer delegate;
+
+        TypePreservingSerializer(ObjectMapper mapper) {
+            this.delegate = new GenericJackson2JsonRedisSerializer(mapper);
+        }
+
+        @Override
+        public byte[] serialize(Object value) throws SerializationException {
+            if (value == null) return null;
+            return delegate.serialize(new Object[]{value});
+        }
+
+        @Override
+        public Object deserialize(byte[] bytes) throws SerializationException {
+            if (bytes == null || bytes.length == 0) return null;
+            Object[] wrapper = (Object[]) delegate.deserialize(bytes);
+            return wrapper != null ? wrapper[0] : null;
+        }
     }
 }

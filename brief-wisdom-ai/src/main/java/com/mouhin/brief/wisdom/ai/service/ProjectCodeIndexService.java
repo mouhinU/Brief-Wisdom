@@ -1,16 +1,18 @@
 package com.mouhin.brief.wisdom.ai.service;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -31,11 +33,9 @@ import java.util.stream.Collectors;
 @Service
 public class ProjectCodeIndexService {
 
-    /** 项目根目录（通过 application.yml 配置，支持环境变量和系统属性覆盖） */
-    @Value("${app.project.root:${PROJECT_ROOT:/Users/mac/CodeDir/Brief-Wisdom}}")
-    private String projectRoot;
-
-    /** 需要索引的文件扩展名 */
+    /**
+     * 需要索引的文件扩展名
+     */
     private static final Set<String> INDEXED_EXTENSIONS = Set.of(
             ".java",      // Java 源代码
             ".yml",       // YAML 配置
@@ -45,27 +45,38 @@ public class ProjectCodeIndexService {
             ".md",        // Markdown 文档
             ".sql"        // SQL 脚本
     );
-
-    /** 需要排除的目录 */
+    /**
+     * 需要排除的目录
+     */
     private static final Set<String> EXCLUDED_DIRS = Set.of(
             "target", "node_modules", ".git", ".idea", ".vscode",
             "logs", ".qoder", ".mvn"
     );
-
-    /** 最大索引文件大小（1MB） */
+    /**
+     * 最大索引文件大小（1MB）
+     */
     private static final long MAX_FILE_SIZE = 1_000_000;
-
-    /** 最大索引文件数量，防止内存无限增长 */
+    /**
+     * 最大索引文件数量，防止内存无限增长
+     */
     private static final int MAX_INDEX_FILES = 5000;
-
-    /** 代码文件索引存储 */
+    /**
+     * 代码文件索引存储
+     */
     private final Map<String, CodeFileIndex> codeIndex = new ConcurrentHashMap<>();
-
-    /** 模块结构索引 */
+    /**
+     * 模块结构索引
+     */
     private final Map<String, ModuleStructure> moduleIndex = new ConcurrentHashMap<>();
-
-    /** 已索引文件计数器，用于限制最大索引数量 */
+    /**
+     * 已索引文件计数器，用于限制最大索引数量
+     */
     private final AtomicInteger indexedFileCount = new AtomicInteger(0);
+    /**
+     * 项目根目录（通过 application.yml 配置，支持环境变量和系统属性覆盖）
+     */
+    @Value("${app.project.root:${PROJECT_ROOT:/Users/mac/CodeDir/Brief-Wisdom}}")
+    private String projectRoot;
 
     /**
      * 初始化时构建索引
@@ -75,8 +86,8 @@ public class ProjectCodeIndexService {
         log.info("[项目索引] 开始构建项目代码索引...");
         try {
             buildProjectIndex();
-            log.info("[项目索引] 索引构建完成，共索引 {} 个文件，{} 个模块", 
-                     codeIndex.size(), moduleIndex.size());
+            log.info("[项目索引] 索引构建完成，共索引 {} 个文件，{} 个模块",
+                    codeIndex.size(), moduleIndex.size());
         } catch (Exception e) {
             log.error("[项目索引] 索引构建失败: {}", e.getMessage(), e);
         }
@@ -138,7 +149,7 @@ public class ProjectCodeIndexService {
 
         for (ModuleStructure module : moduleIndex.values()) {
             sb.append("- **").append(module.getModuleName()).append("**: ")
-              .append(module.getDescription()).append("\n");
+                    .append(module.getDescription()).append("\n");
             sb.append("  - 路径: `").append(module.getRelativePath()).append("`\n");
             sb.append("  - 文件数: ").append(module.getFileCount()).append("\n");
         }
@@ -412,34 +423,54 @@ public class ProjectCodeIndexService {
      */
     @Data
     public static class CodeFileIndex {
-        /** 文件相对路径 */
+        /**
+         * 文件相对路径
+         */
         private String filePath;
 
-        /** 文件名 */
+        /**
+         * 文件名
+         */
         private String fileName;
 
-        /** 文件扩展名 */
+        /**
+         * 文件扩展名
+         */
         private String extension;
 
-        /** 文件类型 */
+        /**
+         * 文件类型
+         */
         private String fileType;
 
-        /** 文件大小（字节） */
+        /**
+         * 文件大小（字节）
+         */
         private Long fileSize;
 
-        /** 行数 */
+        /**
+         * 行数
+         */
         private Integer lineCount;
 
-        /** 包名 */
+        /**
+         * 包名
+         */
         private String packageName;
 
-        /** 类名 */
+        /**
+         * 类名
+         */
         private String className;
 
-        /** 文件摘要/注释 */
+        /**
+         * 文件摘要/注释
+         */
         private String summary;
 
-        /** 相关度分数 */
+        /**
+         * 相关度分数
+         */
         private Double relevanceScore = 0.0;
     }
 
@@ -448,19 +479,29 @@ public class ProjectCodeIndexService {
      */
     @Data
     public static class ModuleStructure {
-        /** 模块名称 */
+        /**
+         * 模块名称
+         */
         private String moduleName;
 
-        /** 模块显示名称 */
+        /**
+         * 模块显示名称
+         */
         private String name;
 
-        /** 模块描述 */
+        /**
+         * 模块描述
+         */
         private String description;
 
-        /** 相对路径 */
+        /**
+         * 相对路径
+         */
         private String relativePath;
 
-        /** 文件数量 */
+        /**
+         * 文件数量
+         */
         private Integer fileCount;
     }
 }

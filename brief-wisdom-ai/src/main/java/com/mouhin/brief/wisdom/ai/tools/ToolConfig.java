@@ -32,18 +32,18 @@ public class ToolConfig {
      * 通过 MethodToolCallbackProvider 扫描各工具类中的 @Tool 注解方法，
      * 自动生成 ToolCallback 供 ChatModel 使用。
      *
-     * @param knowledgeSearchTool     知识库搜索工具
-     * @param codeSearchTool          代码搜索工具
-     * @param memoryManagementTool    记忆管理工具
-     * @param webFetchTool            网页抓取工具
-     * @param dateTimeTool            日期时间工具
-     * @param calculatorTool          数学计算工具
-     * @param resumeAnalysisTool      简历分析工具
-     * @param systemStatusTool        系统状态工具
-     * @param translationTool         文本翻译工具
-     * @param knowledgeDocMgmtTool    知识文档管理工具
-     * @param reminderTool            定时提醒工具
-     * @param databaseQueryTool       SQL 查询工具
+     * @param knowledgeSearchTool  知识库搜索工具
+     * @param codeSearchTool       代码搜索工具
+     * @param memoryManagementTool 记忆管理工具
+     * @param webFetchTool         网页抓取工具
+     * @param dateTimeTool         日期时间工具
+     * @param calculatorTool       数学计算工具
+     * @param resumeAnalysisTool   简历分析工具
+     * @param systemStatusTool     系统状态工具
+     * @param translationTool      文本翻译工具
+     * @param knowledgeDocMgmtTool 知识文档管理工具
+     * @param reminderTool         定时提醒工具
+     * @param databaseQueryTool    SQL 查询工具
      * @return ToolCallbackProvider 实例
      */
     @Bean

@@ -2,6 +2,7 @@
 name: DevOps and Deployment Skill
 description: Use this skill for Docker, Maven build, environment configuration, deployment behavior, and runtime-related changes.
 ---
+
 # DevOps and Deployment Skill
 
 ## Purpose
@@ -10,7 +11,8 @@ Use this skill for Docker, Maven build, environment configuration, deployment be
 
 ## When to Use This Skill
 
-Use it for Docker config changes, Maven build updates, environment variables, deployment steps, or runtime setup adjustments.
+Use it for Docker config changes, Maven build updates, environment variables, deployment steps, or runtime setup
+adjustments.
 
 ## Rules
 
@@ -36,7 +38,8 @@ High for deployment-affecting changes; medium for local configuration consistenc
 
 ## Default Output Expectations
 
-Describe the changed environment or deployment surface, any config impact, and the verification command or startup check.
+Describe the changed environment or deployment surface, any config impact, and the verification command or startup
+check.
 
 ## Applicable Users
 

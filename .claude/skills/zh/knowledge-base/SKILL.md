@@ -2,6 +2,7 @@
 name: 知识库 Skill
 description: 用于知识库 CRUD、文档导入、检索、向量集成或 AI 知识相关功能。
 ---
+
 # 知识库 Skill
 
 ## 作用

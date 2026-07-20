@@ -22,5 +22,8 @@
     }
   ],
   "lang": "zh-CN",
-  "categories": ["productivity", "utilities"]
+  "categories": [
+    "productivity",
+    "utilities"
+  ]
 }

@@ -2,11 +2,13 @@
 name: Frontend UI Skill
 description: Use this skill for static frontend pages, admin UI components, modal flows, i18n, and API integration in the web resources.
 ---
+
 # Frontend UI Skill
 
 ## Purpose
 
-Use this skill for static frontend pages, admin UI components, modal flows, i18n, and API integration in the web resources.
+Use this skill for static frontend pages, admin UI components, modal flows, i18n, and API integration in the web
+resources.
 
 ## When to Use This Skill
 

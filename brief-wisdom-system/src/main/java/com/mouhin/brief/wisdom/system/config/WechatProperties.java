@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
  *     redirect-uri: ${WECHAT_REDIRECT_URI}
  * </pre>
  */
+
 /**
  * WechatProperties
  *

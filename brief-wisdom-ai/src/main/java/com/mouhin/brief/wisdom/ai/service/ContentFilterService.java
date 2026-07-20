@@ -26,12 +26,6 @@ import java.util.regex.Pattern;
 @Service
 public class ContentFilterService {
 
-    private final AiAuditService auditService;
-
-    public ContentFilterService(AiAuditService auditService) {
-        this.auditService = auditService;
-    }
-
     /**
      * 输入敏感关键词列表（命中即拦截，不调用模型）
      * <p>
@@ -44,7 +38,6 @@ public class ContentFilterService {
             // 有害类
             "自杀方法", "自残教程", "如何杀人", "下毒方法"
     );
-
     /**
      * Prompt 注入攻击模式（正则表达式）
      * <p>
@@ -76,7 +69,6 @@ public class ContentFilterService {
             // 多语言混淆
             Pattern.compile("(?i)(translate|翻译)\\s+(to|为)\\s+(english|英文|chinese|中文).*(and\\s*then|然后).*(execute|执行|follow|遵循)")
     );
-
     /**
      * 输出敏感词模式（检测 AI 回复中不应出现的内容）
      * <p>
@@ -90,17 +82,20 @@ public class ContentFilterService {
             // 银行卡号模式（16-19位数字）
             Pattern.compile("(?<!\\d)\\d{16,19}(?!\\d)")
     );
-
     /**
      * 输出命中时的替换提示
      */
     private static final String SENSITIVE_REPLACEMENT = "[敏感信息已过滤]";
-
     /**
      * 安全提示消息（当输出被过滤时返回给用户）
      */
     private static final String FILTERED_RESPONSE =
             "抱歉，回复中包含敏感信息，已被安全过滤。请调整您的问题后重试。";
+    private final AiAuditService auditService;
+
+    public ContentFilterService(AiAuditService auditService) {
+        this.auditService = auditService;
+    }
 
     /**
      * 检查输入是否包含违规关键词（仅检测，不记录日志）

@@ -909,6 +909,21 @@ body {
     font-size: 12px;
 }
 
+/* AI 未返回有效内容时的错误提示样式 */
+.message.message-empty .message-content {
+    border-left: 3px solid #f59e0b;
+    opacity: 0.85;
+}
+
+.message-error {
+    padding: 10px 14px;
+    background-color: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    color: #92400e;
+    font-size: 13px;
+    border-radius: 4px;
+}
+
 .chat-input-container {
     padding: 15px 20px;
     background: white;

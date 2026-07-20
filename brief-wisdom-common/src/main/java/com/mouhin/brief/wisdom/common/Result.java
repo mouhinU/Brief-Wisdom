@@ -19,16 +19,24 @@ public class Result<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** 是否成功 */
+    /**
+     * 是否成功
+     */
     private boolean success;
 
-    /** 错误码（0000 表示成功，其他见 BizExceptionEnums） */
+    /**
+     * 错误码（0000 表示成功，其他见 BizExceptionEnums）
+     */
     private String code;
 
-    /** 提示信息 */
+    /**
+     * 提示信息
+     */
     private String msg;
 
-    /** 响应数据 */
+    /**
+     * 响应数据
+     */
     private T data;
 
     /**
@@ -75,9 +83,9 @@ public class Result<T> implements Serializable {
     /**
      * 返回失败结果（指定错误码和错误信息）
      *
-     * @param code     错误码
-     * @param errMsg   错误提示信息
-     * @param <T>      数据类型
+     * @param code   错误码
+     * @param errMsg 错误提示信息
+     * @param <T>    数据类型
      * @return 失败的 Result 对象
      */
     public static <T> Result<T> fail(String code, String errMsg) {

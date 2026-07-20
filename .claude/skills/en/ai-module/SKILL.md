@@ -2,11 +2,13 @@
 name: AI Module Skill
 description: Use this skill for AI chat, model management, knowledge retrieval, rate limiting, content filtering, streaming, or audit-related features.
 ---
+
 # AI Module Skill
 
 ## Purpose
 
-Use this skill for AI chat, model management, knowledge retrieval, rate limiting, content filtering, streaming, or audit-related features.
+Use this skill for AI chat, model management, knowledge retrieval, rate limiting, content filtering, streaming, or
+audit-related features.
 
 ## When to Use This Skill
 
