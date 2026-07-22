@@ -131,8 +131,7 @@ public class MenuController {
     @Operation(summary = "删除菜单")
     @DeleteMapping("/{id}")
     @RequiresPermission("menu:manage")
-    public Boolean deleteMenu(
-            @Parameter(description = "菜单ID", required = true) @PathVariable Long id) {
+    public Boolean deleteMenu(@Parameter(description = "菜单ID", required = true) @PathVariable Long id) {
         menuService.deleteMenu(id);
         return true;
     }

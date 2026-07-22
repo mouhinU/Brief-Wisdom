@@ -77,6 +77,10 @@ public class AiAgentService {
     private static final int AUDIT_CONTENT_MAX_LENGTH = 50;
     // 占位符
     private static final String NA_PLACEHOLDER = "N/A";
+    // AI 调用重试次数（针对瞬时故障，如响应格式异常、网络抖动）
+    private static final int AI_CALL_MAX_RETRIES = 2;
+    // 重试基础等待时间（毫秒），实际等待 = base * attempt
+    private static final long AI_CALL_RETRY_DELAY_MS = 500L;
     private final ChatModelRegistry chatModelRegistry;
     private final ChatSessionRepository sessionRepository;
     private final ChatMessageRepository messageRepository;
@@ -555,13 +559,38 @@ public class AiAgentService {
                 buildChatOptions(provider, model)
         );
         long startTime = System.currentTimeMillis();
-        ChatResponse chatResponse;
-        try {
-            chatResponse = chatModel.call(prompt);
-        } catch (Exception e) {
-            log.error("[AI调用] 模型调用失败: {}", e.getMessage(), e);
-            throw new AIException(translateApiError(e));
+        ChatResponse chatResponse = null;
+        Exception lastException = null;
+
+        for (int attempt = 0; attempt <= AI_CALL_MAX_RETRIES; attempt++) {
+            try {
+                chatResponse = chatModel.call(prompt);
+                break;
+            } catch (Exception e) {
+                lastException = e;
+                if (isNonRetryableError(e)) {
+                    log.error("[AI调用] 不可重试错误: {}", e.getMessage());
+                    throw new AIException(translateApiError(e));
+                }
+                if (attempt < AI_CALL_MAX_RETRIES) {
+                    long delay = AI_CALL_RETRY_DELAY_MS * (attempt + 1);
+                    log.warn("[AI调用] 第 {} 次调用失败，{}ms 后重试: {}", attempt + 1, delay, e.getMessage());
+                    try {
+                        Thread.sleep(delay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new AIException("AI 服务调用被中断");
+                    }
+                }
+            }
         }
+
+        if (chatResponse == null) {
+            log.error("[AI调用] 重试 {} 次后仍失败: {}", AI_CALL_MAX_RETRIES,
+                    lastException != null ? lastException.getMessage() : "unknown");
+            throw new AIException(translateApiError(lastException));
+        }
+
         long elapsed = System.currentTimeMillis() - startTime;
 
         // NPE 防护：检查响应链
@@ -748,13 +777,38 @@ public class AiAgentService {
                 buildChatOptions(provider, model)
         );
         long startTime = System.currentTimeMillis();
-        ChatResponse chatResponse;
-        try {
-            chatResponse = chatModel.call(prompt);
-        } catch (Exception e) {
-            log.error("[AI调用] 模型调用失败: {}", e.getMessage(), e);
-            throw new AIException(translateApiError(e));
+        ChatResponse chatResponse = null;
+        Exception lastException = null;
+
+        for (int attempt = 0; attempt <= AI_CALL_MAX_RETRIES; attempt++) {
+            try {
+                chatResponse = chatModel.call(prompt);
+                break;
+            } catch (Exception e) {
+                lastException = e;
+                if (isNonRetryableError(e)) {
+                    log.error("[AI调用] 不可重试错误: {}", e.getMessage());
+                    throw new AIException(translateApiError(e));
+                }
+                if (attempt < AI_CALL_MAX_RETRIES) {
+                    long delay = AI_CALL_RETRY_DELAY_MS * (attempt + 1);
+                    log.warn("[AI调用] 第 {} 次调用失败，{}ms 后重试: {}", attempt + 1, delay, e.getMessage());
+                    try {
+                        Thread.sleep(delay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new AIException("AI 服务调用被中断");
+                    }
+                }
+            }
         }
+
+        if (chatResponse == null) {
+            log.error("[AI调用] 重试 {} 次后仍失败: {}", AI_CALL_MAX_RETRIES,
+                    lastException != null ? lastException.getMessage() : "unknown");
+            throw new AIException(translateApiError(lastException));
+        }
+
         long elapsed = System.currentTimeMillis() - startTime;
 
         // 提取回复内容
@@ -1041,7 +1095,22 @@ public class AiAgentService {
                 List.of(new SystemMessage(systemPrompt), new UserMessage(context.toString())),
                 buildChatOptions(provider, model, false)
         );
+
+        // 捕获流式响应中的 Usage 元数据和完整文本，用于服务端保存消息
+        java.util.concurrent.atomic.AtomicReference<Usage> lastUsage = new java.util.concurrent.atomic.AtomicReference<>();
+        StringBuilder responseAccumulator = new StringBuilder();
+        final String resolvedModel = model;
+
         return chatModel.stream(prompt)
+                .doOnNext(chatResponse -> {
+                    // 捕获最后一个 chunk 的 Usage 元数据（提供商通常在最后一个 chunk 返回）
+                    if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
+                        Usage usage = chatResponse.getMetadata().getUsage();
+                        if (usage.getTotalTokens() != null && usage.getTotalTokens() > 0) {
+                            lastUsage.set(usage);
+                        }
+                    }
+                })
                 .map(chatResponse -> {
                     var generation = chatResponse.getResult();
                     if (generation == null) {
@@ -1055,13 +1124,80 @@ public class AiAgentService {
                     return text != null ? text : "";
                 })
                 .filter(text -> !text.isEmpty())
+                .doOnNext(responseAccumulator::append)
                 .doOnComplete(() -> {
-                    log.info("[流式] 完成");
+                    String fullResponse = responseAccumulator.toString();
+                    log.info("[流式] 完成, 响应长度: {}", fullResponse.length());
+
+                    // 服务端保存 AI 消息（含真实/估算 Token 数据），避免前端保存时丢失 Token 信息
+                    if (!fullResponse.isBlank()) {
+                        try {
+                            String filteredResponse = contentFilterService.filterOutput(fullResponse, sessionId, userId, null);
+                            int tokens;
+                            double cost;
+                            Usage usage = lastUsage.get();
+                            if (usage != null && usage.getTotalTokens() != null && usage.getTotalTokens() > 0) {
+                                tokens = usage.getTotalTokens();
+                                int promptTokens = usage.getPromptTokens() != null ? usage.getPromptTokens() : 0;
+                                int completionTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens() : 0;
+                                cost = calculateCost(resolvedModel, promptTokens, completionTokens);
+                                log.info("[流式] 使用真实 Token 数据 - tokens: {}, cost: {}", tokens, cost);
+                            } else {
+                                tokens = estimateStreamingTokens(fullResponse);
+                                cost = estimateStreamingCost(resolvedModel, tokens);
+                                log.info("[流式] 使用估算 Token 数据 - tokens: {}, cost: {}", tokens, cost);
+                            }
+
+                            ChatMessage aiMsg = new ChatMessage();
+                            aiMsg.setSessionId(sessionId);
+                            aiMsg.setUserId(userId);
+                            aiMsg.setRole(ROLE_ASSISTANT);
+                            aiMsg.setContent(filteredResponse);
+                            aiMsg.setModel(resolvedModel);
+                            aiMsg.setTokens(tokens);
+                            aiMsg.setCost(cost);
+                            aiMsg.setMessageType(MESSAGE_TYPE_TEXT);
+                            messageRepository.save(aiMsg);
+
+                            // 更新会话消息计数
+                            long messageCount = messageRepository.countBySessionId(sessionId);
+                            ChatSession currentSession = sessionRepository.findBySessionId(sessionId);
+                            if (currentSession != null) {
+                                currentSession.setMessageCount((int) messageCount);
+                                sessionRepository.update(currentSession);
+                            }
+                        } catch (Exception e) {
+                            log.warn("[流式] 服务端保存 AI 消息失败，将由前端兜底保存: {}", e.getMessage());
+                        }
+                    }
+
                     chatSyncService.notifyUser(userId, "message_added", sessionId);
                 })
                 .doOnError(error -> {
                     log.error("[流式] 错误: {}", error.getMessage());
                 });
+    }
+
+    /**
+     * 判断异常是否为不可重试错误（认证失败、余额不足、权限拒绝等）
+     * <p>
+     * 此类错误重试无意义，应立即失败并返回明确提示。
+     *
+     * @param error 异常
+     * @return true 表示不可重试
+     */
+    private boolean isNonRetryableError(Throwable error) {
+        Throwable cause = error;
+        while (cause.getCause() != null && cause instanceof java.util.concurrent.CompletionException) {
+            cause = cause.getCause();
+        }
+        String msg = cause.getMessage();
+        if (msg == null) {
+            return false;
+        }
+        return msg.contains("401") || msg.contains("Unauthorized")
+                || msg.contains("402") || msg.contains("Insufficient Balance") || msg.contains("insufficient")
+                || msg.contains("403") || msg.contains("Forbidden");
     }
 
     /**
@@ -1094,6 +1230,9 @@ public class AiAgentService {
         if (msg.contains("timeout") || msg.contains("Timeout") || msg.contains("SocketTimeout")) {
             return "AI 服务响应超时，请稍后重试";
         }
+        if (msg.contains("choices") || msg.contains("InvalidData")) {
+            return "AI 模型返回数据异常，请稍后重试";
+        }
         return "AI 服务异常，请稍后重试";
     }
 
@@ -1124,11 +1263,48 @@ public class AiAgentService {
         log.info("用户消息: {}", userMessage);
 
         ChatModel chatModel = chatModelRegistry.getDefaultChatModel();
+        if (chatModel == null) {
+            log.error("[AI调用] chatWithSystemPrompt 无法获取默认 ChatModel");
+            throw new AIException("AI 模型不可用，请稍后重试");
+        }
         Prompt prompt = new Prompt(
                 List.of(new SystemMessage(systemPrompt), new UserMessage(userMessage))
         );
         long startTime = System.currentTimeMillis();
-        ChatResponse chatResponse = chatModel.call(prompt);
+        ChatResponse chatResponse = null;
+        Exception lastException = null;
+
+        for (int attempt = 0; attempt <= AI_CALL_MAX_RETRIES; attempt++) {
+            try {
+                chatResponse = chatModel.call(prompt);
+                break;
+            } catch (Exception e) {
+                lastException = e;
+                // 不可重试的错误立即抛出（认证失败、余额不足、权限拒绝）
+                if (isNonRetryableError(e)) {
+                    log.error("[AI调用] chatWithSystemPrompt 不可重试错误: {}", e.getMessage());
+                    throw new AIException(translateApiError(e));
+                }
+                if (attempt < AI_CALL_MAX_RETRIES) {
+                    long delay = AI_CALL_RETRY_DELAY_MS * (attempt + 1);
+                    log.warn("[AI调用] chatWithSystemPrompt 第 {} 次调用失败，{}ms 后重试: {}",
+                            attempt + 1, delay, e.getMessage());
+                    try {
+                        Thread.sleep(delay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new AIException("AI 服务调用被中断");
+                    }
+                }
+            }
+        }
+
+        if (chatResponse == null) {
+            log.error("[AI调用] chatWithSystemPrompt 重试 {} 次后仍失败: {}",
+                    AI_CALL_MAX_RETRIES, lastException != null ? lastException.getMessage() : "unknown");
+            throw new AIException(translateApiError(lastException));
+        }
+
         long elapsed = System.currentTimeMillis() - startTime;
 
         // NPE 防护：检查响应链
@@ -1450,6 +1626,23 @@ public class AiAgentService {
             throw new AIException("无权访问此会话");
         }
 
+        // 幂等检查：流式完成后服务端已自动保存 AI 消息，避免前端重复保存
+        List<ChatMessage> recentMessages = messageRepository.findRecentMessages(sessionId, 1);
+        if (!recentMessages.isEmpty()) {
+            ChatMessage lastMsg = recentMessages.get(0);
+            if (ROLE_ASSISTANT.equals(lastMsg.getRole()) && content != null && content.equals(lastMsg.getContent())) {
+                log.info("流式消息已由服务端保存，跳过重复保存 - sessionId: {}", sessionId);
+                // 如果服务端保存时使用的是估算值，而前端提供了更准确的 token 数据，则更新
+                if (tokens != null && tokens > 0 && (lastMsg.getTokens() == null || lastMsg.getTokens() == 0)) {
+                    lastMsg.setTokens(tokens);
+                    lastMsg.setCost(cost != null ? cost : 0.0);
+                    messageRepository.update(lastMsg);
+                    log.info("已更新流式消息的 Token 数据 - sessionId: {}, tokens: {}", sessionId, tokens);
+                }
+                return;
+            }
+        }
+
         // 保存 AI 回复
         ChatMessage aiMsg = new ChatMessage();
         aiMsg.setSessionId(sessionId);
@@ -1458,7 +1651,6 @@ public class AiAgentService {
         aiMsg.setContent(content);
         aiMsg.setModel(model);
         aiMsg.setMessageType(MESSAGE_TYPE_TEXT);
-        // 流式模式下使用估算的 token 和费用
         aiMsg.setTokens(tokens != null ? tokens : 0);
         aiMsg.setCost(cost != null ? cost : 0.0);
         messageRepository.save(aiMsg);

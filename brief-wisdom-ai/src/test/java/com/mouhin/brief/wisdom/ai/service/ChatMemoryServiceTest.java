@@ -12,16 +12,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * ChatMemoryService 对话记忆服务测试
+ * ChatMemoryService 对话记忆服务单元测试
+ * <p>
+ * 覆盖记忆的增删改查、上下文构建、自动提取等核心能力。
  *
  * @author Brief-Wisdom
- * @date 2026-07-03
+ * @date 2026-07-21
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ChatMemoryService 对话记忆服务测试")
@@ -29,24 +30,32 @@ class ChatMemoryServiceTest {
 
     private static final String USER_ID = "test-user-001";
     private static final String SESSION_ID = "session-001";
+    private static final String CATEGORY_FACT = "fact";
+    private static final String CATEGORY_PREFERENCE = "preference";
+    private static final String CATEGORY_CONTEXT = "context";
+
     @Mock
     private ChatMemoryRepository chatMemoryRepository;
+
     @InjectMocks
     private ChatMemoryService chatMemoryService;
 
+    // ===== saveMemory 测试 =====
+
     @Test
-    @DisplayName("saveMemory 新增记忆应调用 repository.save")
-    void testSaveNewMemory() {
+    @DisplayName("saveMemory - 新增记忆：findByUserIdAndKey 返回 null 时应调用 save")
+    void testSaveMemory_newMemory() {
         when(chatMemoryRepository.findByUserIdAndKey(USER_ID, "name")).thenReturn(null);
 
-        chatMemoryService.saveMemory(USER_ID, "fact", "name", "张三", SESSION_ID);
+        chatMemoryService.saveMemory(USER_ID, CATEGORY_FACT, "name", "张三", SESSION_ID);
 
         ArgumentCaptor<ChatMemory> captor = ArgumentCaptor.forClass(ChatMemory.class);
         verify(chatMemoryRepository).save(captor.capture());
+        verify(chatMemoryRepository, never()).update(any(ChatMemory.class));
 
         ChatMemory saved = captor.getValue();
         assertEquals(USER_ID, saved.getUserId());
-        assertEquals("fact", saved.getCategory());
+        assertEquals(CATEGORY_FACT, saved.getCategory());
         assertEquals("name", saved.getMemoryKey());
         assertEquals("张三", saved.getMemoryValue());
         assertEquals(SESSION_ID, saved.getSourceSessionId());
@@ -54,34 +63,43 @@ class ChatMemoryServiceTest {
     }
 
     @Test
-    @DisplayName("saveMemory 更新已有记忆应调用 repository.update")
-    void testUpdateExistingMemory() {
+    @DisplayName("saveMemory - 更新已有记忆：findByUserIdAndKey 返回已有记录时应调用 update")
+    void testSaveMemory_existingMemory() {
         ChatMemory existing = new ChatMemory();
         existing.setId(1L);
         existing.setUserId(USER_ID);
+        existing.setCategory(CATEGORY_FACT);
         existing.setMemoryKey("name");
         existing.setMemoryValue("旧名字");
+        existing.setSourceSessionId("old-session");
 
         when(chatMemoryRepository.findByUserIdAndKey(USER_ID, "name")).thenReturn(existing);
 
-        chatMemoryService.saveMemory(USER_ID, "fact", "name", "新名字", SESSION_ID);
+        chatMemoryService.saveMemory(USER_ID, CATEGORY_FACT, "name", "新名字", SESSION_ID);
 
         verify(chatMemoryRepository).update(existing);
+        verify(chatMemoryRepository, never()).save(any(ChatMemory.class));
+
         assertEquals("新名字", existing.getMemoryValue());
+        assertEquals(CATEGORY_FACT, existing.getCategory());
+        assertEquals(SESSION_ID, existing.getSourceSessionId());
     }
 
+    // ===== buildMemoryContext 测试 =====
+
     @Test
-    @DisplayName("buildMemoryContext 无记忆时返回空字符串")
-    void testBuildMemoryContextEmpty() {
+    @DisplayName("buildMemoryContext - 无记忆时应返回空字符串")
+    void testBuildMemoryContext_emptyMemories() {
         when(chatMemoryRepository.findByUserId(USER_ID)).thenReturn(List.of());
 
         String context = chatMemoryService.buildMemoryContext(USER_ID);
+
         assertEquals("", context);
     }
 
     @Test
-    @DisplayName("buildMemoryContext 有记忆时应格式化输出")
-    void testBuildMemoryContextWithMemories() {
+    @DisplayName("buildMemoryContext - 有记忆时应返回格式化上下文字符串")
+    void testBuildMemoryContext_withMemories() {
         ChatMemory mem1 = new ChatMemory();
         mem1.setMemoryKey("name");
         mem1.setMemoryValue("张三");
@@ -94,31 +112,138 @@ class ChatMemoryServiceTest {
 
         String context = chatMemoryService.buildMemoryContext(USER_ID);
 
-        assertTrue(context.contains("用户记忆"));
-        assertTrue(context.contains("name: 张三"));
-        assertTrue(context.contains("tech_stack: Java, Spring Boot"));
+        assertTrue(context.contains("--- 用户记忆 ---"));
+        assertTrue(context.contains("以下是你记住的关于该用户的信息"));
+        assertTrue(context.contains("- name: 张三"));
+        assertTrue(context.contains("- tech_stack: Java, Spring Boot"));
+        assertTrue(context.contains("--- 记忆结束 ---"));
+    }
+
+    // ===== extractMemoriesFromMessage 测试 =====
+
+    @Test
+    @DisplayName("extractMemoriesFromMessage - '我叫张三' 应提取 fact/name")
+    void testExtractMemories_name() {
+        when(chatMemoryRepository.findByUserIdAndKey(USER_ID, "name")).thenReturn(null);
+
+        chatMemoryService.extractMemoriesFromMessage(USER_ID, "我叫张三", SESSION_ID);
+
+        ArgumentCaptor<ChatMemory> captor = ArgumentCaptor.forClass(ChatMemory.class);
+        verify(chatMemoryRepository).save(captor.capture());
+
+        ChatMemory saved = captor.getValue();
+        assertEquals(CATEGORY_FACT, saved.getCategory());
+        assertEquals("name", saved.getMemoryKey());
+        assertEquals("张三", saved.getMemoryValue());
     }
 
     @Test
-    @DisplayName("extractMemoriesFromMessage 应提取用户姓名")
-    void testExtractName() {
-        chatMemoryService.extractMemoriesFromMessage(USER_ID, "我叫张三，请多关照", SESSION_ID);
+    @DisplayName("extractMemoriesFromMessage - '我在阿里巴巴工作' 应提取 fact/company")
+    void testExtractMemories_company() {
+        when(chatMemoryRepository.findByUserIdAndKey(USER_ID, "company")).thenReturn(null);
 
-        verify(chatMemoryRepository).findByUserIdAndKey(USER_ID, "name");
-        verify(chatMemoryRepository).save(any(ChatMemory.class));
+        chatMemoryService.extractMemoriesFromMessage(USER_ID, "我在阿里巴巴工作", SESSION_ID);
+
+        ArgumentCaptor<ChatMemory> captor = ArgumentCaptor.forClass(ChatMemory.class);
+        verify(chatMemoryRepository).save(captor.capture());
+
+        ChatMemory saved = captor.getValue();
+        assertEquals(CATEGORY_FACT, saved.getCategory());
+        assertEquals("company", saved.getMemoryKey());
+        assertEquals("阿里巴巴", saved.getMemoryValue());
     }
 
     @Test
-    @DisplayName("extractMemoriesFromMessage 空消息不应提取")
-    void testExtractFromEmptyMessage() {
-        chatMemoryService.extractMemoriesFromMessage(USER_ID, "", SESSION_ID);
+    @DisplayName("extractMemoriesFromMessage - '我是Java开发' 应提取 fact/role")
+    void testExtractMemories_role() {
+        when(chatMemoryRepository.findByUserIdAndKey(USER_ID, "role")).thenReturn(null);
+
+        chatMemoryService.extractMemoriesFromMessage(USER_ID, "我是Java开发", SESSION_ID);
+
+        ArgumentCaptor<ChatMemory> captor = ArgumentCaptor.forClass(ChatMemory.class);
+        verify(chatMemoryRepository).save(captor.capture());
+
+        ChatMemory saved = captor.getValue();
+        assertEquals(CATEGORY_FACT, saved.getCategory());
+        assertEquals("role", saved.getMemoryKey());
+        assertEquals("Java", saved.getMemoryValue());
+    }
+
+    @Test
+    @DisplayName("extractMemoriesFromMessage - '我用Spring框架' 应提取 preference/tech_stack")
+    void testExtractMemories_techStack() {
+        when(chatMemoryRepository.findByUserIdAndKey(USER_ID, "tech_stack")).thenReturn(null);
+
+        chatMemoryService.extractMemoriesFromMessage(USER_ID, "我用Spring框架", SESSION_ID);
+
+        ArgumentCaptor<ChatMemory> captor = ArgumentCaptor.forClass(ChatMemory.class);
+        verify(chatMemoryRepository).save(captor.capture());
+
+        ChatMemory saved = captor.getValue();
+        assertEquals(CATEGORY_PREFERENCE, saved.getCategory());
+        assertEquals("tech_stack", saved.getMemoryKey());
+        assertEquals("Spring", saved.getMemoryValue());
+    }
+
+    @Test
+    @DisplayName("extractMemoriesFromMessage - null 消息不应有任何交互")
+    void testExtractMemories_nullMessage() {
         chatMemoryService.extractMemoriesFromMessage(USER_ID, null, SESSION_ID);
 
         verifyNoInteractions(chatMemoryRepository);
     }
 
     @Test
-    @DisplayName("clearMemories 应调用 repository.deleteByUserId")
+    @DisplayName("extractMemoriesFromMessage - 空白消息不应有任何交互")
+    void testExtractMemories_blankMessage() {
+        chatMemoryService.extractMemoriesFromMessage(USER_ID, "", SESSION_ID);
+        chatMemoryService.extractMemoriesFromMessage(USER_ID, "   ", SESSION_ID);
+
+        verifyNoInteractions(chatMemoryRepository);
+    }
+
+    @Test
+    @DisplayName("extractMemoriesFromMessage - 无匹配模式的消息不应保存记忆")
+    void testExtractMemories_noPatternMatch() {
+        chatMemoryService.extractMemoriesFromMessage(USER_ID, "今天天气真不错", SESSION_ID);
+
+        verify(chatMemoryRepository, never()).save(any(ChatMemory.class));
+        verify(chatMemoryRepository, never()).update(any(ChatMemory.class));
+    }
+
+    // ===== listMemories 测试 =====
+
+    @Test
+    @DisplayName("listMemories - 应调用 repository.findByUserId")
+    void testListMemories() {
+        ChatMemory mem = new ChatMemory();
+        mem.setMemoryKey("name");
+        mem.setMemoryValue("张三");
+        when(chatMemoryRepository.findByUserId(USER_ID)).thenReturn(List.of(mem));
+
+        List<ChatMemory> result = chatMemoryService.listMemories(USER_ID);
+
+        assertEquals(1, result.size());
+        assertEquals("name", result.get(0).getMemoryKey());
+        verify(chatMemoryRepository).findByUserId(USER_ID);
+    }
+
+    // ===== deleteMemory 测试 =====
+
+    @Test
+    @DisplayName("deleteMemory - 应调用 repository.deleteById")
+    void testDeleteMemory() {
+        Long memoryId = 42L;
+
+        chatMemoryService.deleteMemory(memoryId);
+
+        verify(chatMemoryRepository).deleteById(memoryId);
+    }
+
+    // ===== clearMemories 测试 =====
+
+    @Test
+    @DisplayName("clearMemories - 应调用 repository.deleteByUserId")
     void testClearMemories() {
         chatMemoryService.clearMemories(USER_ID);
 

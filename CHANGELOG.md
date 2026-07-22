@@ -39,6 +39,7 @@
 - 第一层（知识与代码）：KnowledgeSearchTool、CodeSearchTool
 - 第二层（数据与分析）：ResumeAnalysisTool、SystemStatusTool、DatabaseQueryTool、DateTimeTool、CalculatorTool
 - 第三层（集成）：MemoryManagementTool、WebFetchTool、TranslationTool、KnowledgeDocManagementTool、ReminderTool
+- ProjectCodeIndexService 启动时构建内存代码索引，为 CodeSearchTool 提供支撑（非 @Tool）
 - ToolContextProvider 接口（common 模块）实现依赖隔离
 - ResumeDataProvider 接口（common 模块）实现依赖隔离
 

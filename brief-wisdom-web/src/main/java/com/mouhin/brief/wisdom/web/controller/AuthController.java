@@ -11,19 +11,11 @@ import com.mouhin.brief.wisdom.web.req.RegisterRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 认证授权 Controller
@@ -45,7 +37,6 @@ import java.util.stream.Collectors;
 @Tag(name = "认证授权", description = "用户登录、注册、SSO相关接口")
 public class AuthController {
 
-    private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
     private final AuthService authService;
     private final RoleService roleService;
     private final RateLimitService rateLimitService;
@@ -106,7 +97,7 @@ public class AuthController {
             throw new AuthException("密码不能为空");
         }
         UserDTO user = authService.login(request.getUsername(), request.getPassword());
-        doLoginSuccess(user, httpRequest);
+        userContextHelper.loginSuccess(toChatUser(user), httpRequest);
         return user;
     }
 
@@ -132,7 +123,7 @@ public class AuthController {
         }
 
         UserDTO user = authService.loginByPhone(phone, code);
-        doLoginSuccess(user, httpRequest);
+        userContextHelper.loginSuccess(toChatUser(user), httpRequest);
         return user;
     }
 
@@ -210,28 +201,9 @@ public class AuthController {
     // ==================== 内部方法 ====================
 
     /**
-     * 登录成功后的统一处理：写入 Session + SecurityContext
+     * UserDTO 转换为 ChatUser（用于写入 Session）
      */
-    private void doLoginSuccess(UserDTO user, HttpServletRequest httpRequest) {
-        HttpSession session = httpRequest.getSession(true);
-        session.setAttribute(UserContextHelper.SESSION_USER_KEY, buildChatUserStub(user));
-
-        List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
-        List<SimpleGrantedAuthority> authorities = roleKeys.stream()
-                .map(key -> new SimpleGrantedAuthority("ROLE_" + key))
-                .collect(Collectors.toList());
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(user.getUserId(), null, authorities);
-        context.setAuthentication(authToken);
-        SecurityContextHolder.setContext(context);
-        session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
-
-        log.info("[登录] 用户登录成功: userId={}, username={}, roles={}", user.getUserId(), user.getUsername(), roleKeys);
-    }
-
-    private ChatUser buildChatUserStub(UserDTO dto) {
+    private ChatUser toChatUser(UserDTO dto) {
         ChatUser user = new ChatUser();
         user.setUserId(dto.getUserId());
         user.setUsername(dto.getUsername());

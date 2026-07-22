@@ -37,8 +37,7 @@ public class WebSocketSyncHandshakeInterceptor implements HandshakeInterceptor {
         if (request instanceof ServletServerHttpRequest servletRequest) {
             String userId = userContextHelper.getCurrentUserId(servletRequest.getServletRequest());
             attributes.put(WebSocketSyncHandler.ATTR_USER_ID, userId);
-            log.info("[WebSocket] 握手成功 - userId: {}, remoteAddr: {}",
-                    userId, request.getRemoteAddress());
+            log.info("[WebSocket] 握手成功 - userId: {}, remoteAddress: {}", userId, request.getRemoteAddress());
             return true;
         }
         log.warn("[WebSocket] 非 HTTP 请求，拒绝握手");
@@ -49,5 +48,6 @@ public class WebSocketSyncHandshakeInterceptor implements HandshakeInterceptor {
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                WebSocketHandler wsHandler, Exception exception) {
         // 握手完成后无需额外处理
+        log.info("[WebSocket] 握手完成");
     }
 }

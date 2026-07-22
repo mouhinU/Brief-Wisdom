@@ -51,6 +51,10 @@ public class DistributedLockAspect {
     @Around("@annotation(distributedLock)")
     public Object around(ProceedingJoinPoint joinPoint, DistributedLock distributedLock) throws Throwable {
         String lockKey = resolveLockKey(joinPoint, distributedLock);
+        log.info(
+                "[分布式锁] 尝试获取锁: {} -> {},{},{},{}", joinPoint.getSignature().toShortString(), lockKey,
+                distributedLock.waitTime(), distributedLock.leaseTime(), distributedLock.timeUnit()
+        );
         RLock lock = redissonClient.getLock(LOCK_KEY_PREFIX + lockKey);
 
         boolean acquired = false;

@@ -25,7 +25,8 @@ docs/
 │   ├── developer-guide.md             # 开发者快速入门
 │   ├── database-schema.md             # 数据库表结构与配置
 │   ├── LOG_CONFIGURATION.md           # 日志配置说明
-│   └── MARKDOWN_IMPORT_GUIDE.md       # Markdown 导入指南
+│   ├── MARKDOWN_IMPORT_GUIDE.md       # Markdown 导入指南
+│   └── oauth-sso-guide.md             # OAuth 协议对比 & SSO 资料整理
 │
 └── analysis/
     ├── README.md                      # 项目能力总结与未来规划
@@ -55,6 +56,7 @@ docs/
 - [日志配置](guides/LOG_CONFIGURATION.md) — Logback 配置、日志分级、故障排查
 - [数据库表结构](guides/database-schema.md) — 表结构详情、MyBatis-Plus 配置、逻辑删除
 - [Markdown 导入](guides/MARKDOWN_IMPORT_GUIDE.md) — Markdown 文件导入功能说明
+- [OAuth & SSO 指南](guides/oauth-sso-guide.md) — OAuth 协议对比、SSO 方案选型、安全最佳实践
 
 ### 项目分析
 
@@ -111,4 +113,4 @@ docs/
 
 ---
 
-**最后更新**: 2026-07-16
+**最后更新**: 2026-07-21

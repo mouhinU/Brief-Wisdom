@@ -69,16 +69,20 @@ Brief-Wisdom/
 ## 📝 日志格式
 
 ```
-2026-07-05 14:30:25.123 [http-nio-8090-exec-1] INFO  c.m.b.w.r.c.ResumeAiController - AI文本润色请求, fieldType=description, textLength=15
+2026-07-05 14:30:25.123 [http-nio-8090-exec-1] [466a44f8] [sess-abc123] INFO  c.m.b.w.r.c.ResumeAiController - AI文本润色请求, fieldType=description, textLength=15
 ```
 
 格式说明：
 
 - `2026-07-05 14:30:25.123`: 时间戳
 - `[http-nio-8090-exec-1]`: 线程名
+- `[466a44f8]`: 用户ID（MDC，来自 X-User-Id 请求头或 Session）
+- `[sess-abc123]`: 会话ID（MDC，来自 X-Session-Id 请求头或请求参数）
 - `INFO`: 日志级别
 - `c.m.b.w.r.c.ResumeAiController`: 类名（缩写）
 - 后面是具体的日志消息
+
+> MDC 字段由 `MdcLoggingFilter` 在请求入口自动注入，便于按用户和会话追踪日志。
 
 ## 🎯 特殊配置
 
@@ -127,8 +131,8 @@ tail -f logs/brief-wisdom-ai.log
 ### 清理日志
 
 ```bash
-# 手动清理所有日志（谨慎使用）
-rm -rf logs/*.log
+# 手动清理所有日志（谨慎使用，移至系统回收站）
+mv logs/*.log ~/.Trash/
 ```
 
 ## ⚙️ 调整日志级别
@@ -160,5 +164,5 @@ rm -rf logs/*.log
 
 ---
 
-**最后更新**: 2026-07-05  
+**最后更新**: 2026-07-21  
 **配置文件**: `brief-wisdom-web/src/main/resources/logback-spring.xml`

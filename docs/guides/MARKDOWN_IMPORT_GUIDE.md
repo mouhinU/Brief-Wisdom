@@ -235,7 +235,7 @@ docs/
 ## 相关文档
 
 - [知识库管理功能说明](../README.md)
-- [API 接口文档](./api-docs.md)
+- [API 接口文档](http://localhost:8090/swagger-ui.html)（SpringDoc OpenAPI，需启动应用）
 - [开发者指南](./developer-guide.md)
 
 ---

@@ -720,27 +720,39 @@ body {
     color: rgba(255, 255, 255, 0.8);
 }
 
-.delete-session-btn {
+.session-actions {
     position: absolute;
     top: 8px;
     right: 8px;
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.session-item:hover .session-actions {
+    opacity: 1;
+}
+
+.export-session-btn,
+.delete-session-btn {
     background: transparent;
     border: none;
     color: #999;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     width: 20px;
     height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    opacity: 0;
     transition: all 0.2s;
 }
 
-.session-item:hover .delete-session-btn {
-    opacity: 1;
+.export-session-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
 }
 
 .delete-session-btn:hover {

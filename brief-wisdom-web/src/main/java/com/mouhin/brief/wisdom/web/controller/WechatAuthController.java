@@ -12,11 +12,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * 微信扫码登录 + 认证状态 Controller
@@ -41,12 +36,11 @@ import java.util.stream.Collectors;
 @Tag(name = "微信认证", description = "微信扫码登录与认证状态查询")
 public class WechatAuthController {
 
-    /**
-     * Spring Security 上下文存储到 Session 的 Key
-     */
-    private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    private static final String WECHAT_STATE_KEY = "wechat_state";
+
     private final WechatAuthService wechatAuthService;
     private final RoleService roleService;
+    private final UserContextHelper userContextHelper;
 
     /**
      * 发起微信扫码登录
@@ -85,39 +79,21 @@ public class WechatAuthController {
         log.info("[微信登录] 收到回调, code={}, state={}", code, state);
 
         try {
-            // 1. 处理微信登录，获取本地用户
+            // 校验 state 防止 CSRF
+            HttpSession session = request.getSession(true);
+            if (!userContextHelper.validateOAuthState(session, WECHAT_STATE_KEY, state)) {
+                log.warn("[微信登录] state 校验失败，拒绝登录");
+                response.sendRedirect("/?login_error=1");
+                return;
+            }
+
+            // 处理微信登录，获取本地用户
             ChatUser user = wechatAuthService.handleWechatCallback(code);
 
-            // 2. 写入 HTTP Session
-            HttpSession session = request.getSession(true);
-            session.setAttribute(UserContextHelper.SESSION_USER_KEY, user);
+            // 统一写入 Session + SecurityContext
+            userContextHelper.loginSuccess(user, request);
 
-            // 3. 加载用户角色，转换为 Spring Security 权限
-            List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
-            List<SimpleGrantedAuthority> authorities = roleKeys.stream()
-                    .map(key -> new SimpleGrantedAuthority("ROLE_" + key))
-                    .collect(Collectors.toList());
-
-            // 4. 设置并持久化 Spring Security 认证上下文
-            SecurityContext context = SecurityContextHolder.createEmptyContext();
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(
-                            user.getUserId(),
-                            null,
-                            authorities
-                    );
-            Map<String, String> details = new HashMap<>(4);
-            details.put("nickname", user.getNickname());
-            details.put("avatar", user.getAvatar());
-            authToken.setDetails(details);
-            context.setAuthentication(authToken);
-            SecurityContextHolder.setContext(context);
-            // 将 SecurityContext 写入 Session，重启后仍然有效
-            session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
-
-            log.info("[微信登录] 登录成功, userId={}, nickname={}, roles={}", user.getUserId(), user.getNickname(), roleKeys);
-
-            // 4. 重定向到关于我页面
+            // 重定向到关于我页面
             response.sendRedirect("/about.html");
 
         } catch (Exception e) {

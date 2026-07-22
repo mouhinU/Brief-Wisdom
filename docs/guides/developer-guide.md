@@ -79,10 +79,10 @@ docker-compose up -d mysql redis
 执行初始化脚本:
 
 ```bash
-mysql -u root -p < brief-wisdom-web/src/main/resources/init-20260629.sql
+mysql -u root -p < brief-wisdom-web/src/main/resources/all-init.sql
 ```
 
-> 该脚本会创建数据库、所有表结构、RBAC 权限数据、AI 模型配置和示例数据。
+> 该脚本会创建数据库、全部 18 张表结构、RBAC 权限数据、AI 模型配置、简历示例数据和知识库初始数据。
 
 ### 2. 启动应用
 

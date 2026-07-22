@@ -490,7 +490,10 @@ async function addNewSessionToList(newSessionId) {
                 <div class="session-title" title="双击编辑标题">${escapeHtml(newSession.title)}</div>
             </div>
             <div class="session-time">${timeStr}</div>
-            <button class="delete-session-btn" onclick="deleteSession(event, '${newSession.sessionId}')">×</button>
+            <div class="session-actions">
+                <button class="export-session-btn" title="导出为 Markdown" onclick="exportSession(event, '${newSession.sessionId}')">⤓</button>
+                <button class="delete-session-btn" onclick="deleteSession(event, '${newSession.sessionId}')">×</button>
+            </div>
         `;
 
     // 双击标题进入编辑模式
@@ -503,6 +506,7 @@ async function addNewSessionToList(newSessionId) {
     sessionItem.onclick = (e) => {
       if (
         !e.target.classList.contains("delete-session-btn") &&
+        !e.target.classList.contains("export-session-btn") &&
         !e.target.classList.contains("session-title-input")
       ) {
         selectSession(newSession.sessionId);
@@ -672,7 +676,10 @@ function appendSessionItems(sessions) {
                 <div class="session-title" title="双击编辑标题">${escapeHtml(session.title)}</div>
             </div>
             <div class="session-time">${timeStr}</div>
-            <button class="delete-session-btn" onclick="deleteSession(event, '${session.sessionId}')">×</button>
+            <div class="session-actions">
+                <button class="export-session-btn" title="导出为 Markdown" onclick="exportSession(event, '${session.sessionId}')">⤓</button>
+                <button class="delete-session-btn" onclick="deleteSession(event, '${session.sessionId}')">×</button>
+            </div>
         `;
 
     // 双击标题进入编辑模式
@@ -685,6 +692,7 @@ function appendSessionItems(sessions) {
     sessionItem.onclick = (e) => {
       if (
         !e.target.classList.contains("delete-session-btn") &&
+        !e.target.classList.contains("export-session-btn") &&
         !e.target.classList.contains("session-title-input")
       ) {
         selectSession(session.sessionId);
@@ -796,6 +804,44 @@ async function deleteSession(event, sessionId) {
     }
   } catch (error) {
     console.error("删除会话失败:", error);
+  }
+}
+
+// 导出会话为 Markdown 文件
+async function exportSession(event, sessionId) {
+  event.stopPropagation();
+
+  try {
+    const response = await fetch(`/api/ai/session/${sessionId}/export`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      alert(errorData?.message || "导出失败，请稍后重试");
+      return;
+    }
+
+    // 从 Content-Disposition 提取文件名
+    const disposition = response.headers.get("Content-Disposition");
+    let filename = "chat-export.md";
+    if (disposition) {
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      if (match) {
+        filename = decodeURIComponent(match[1]);
+      }
+    }
+
+    // 下载文件
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("导出会话失败:", error);
+    alert("导出失败，请检查网络连接");
   }
 }
 

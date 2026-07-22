@@ -3,7 +3,6 @@ package com.mouhin.brief.wisdom.web.controller;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.system.service.AlipayAuthService;
 import com.mouhin.brief.wisdom.system.service.DingtalkAuthService;
-import com.mouhin.brief.wisdom.system.service.RoleService;
 import com.mouhin.brief.wisdom.system.service.UserContextHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,21 +12,14 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * 钉钉 & 支付宝扫码登录 Controller
@@ -44,11 +36,12 @@ import java.util.stream.Collectors;
 @Tag(name = "OAuth认证", description = "钉钉与支付宝扫码登录")
 public class OauthCallbackController {
 
-    private static final String SESSION_USER_KEY = UserContextHelper.SESSION_USER_KEY;
-    private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    private static final String DINGTALK_STATE_KEY = "dingtalk_state";
+    private static final String ALIPAY_STATE_KEY = "alipay_state";
+
     private final DingtalkAuthService dingtalkAuthService;
     private final AlipayAuthService alipayAuthService;
-    private final RoleService roleService;
+    private final UserContextHelper userContextHelper;
 
     // ==================== 钉钉登录 ====================
 
@@ -84,8 +77,17 @@ public class OauthCallbackController {
         log.info("[钉钉登录] 收到回调, authCode={}, state={}", authCode, state);
 
         try {
+            // 校验 state 防止 CSRF
+            HttpSession session = request.getSession(true);
+            if (!userContextHelper.validateOAuthState(session, DINGTALK_STATE_KEY, state)) {
+                log.warn("[钉钉登录] state 校验失败，拒绝登录");
+                response.sendRedirect("/?login_error=1");
+                return;
+            }
+
             ChatUser user = dingtalkAuthService.handleDingtalkCallback(authCode);
-            doLoginSuccess(user, request, response);
+            userContextHelper.loginSuccess(user, request);
+            response.sendRedirect("/about.html");
         } catch (Exception e) {
             log.error("[钉钉登录] 回调处理失败", e);
             response.sendRedirect("/?login_error=1");
@@ -126,46 +128,21 @@ public class OauthCallbackController {
         log.info("[支付宝登录] 收到回调, auth_code={}, state={}", authCode, state);
 
         try {
+            // 校验 state 防止 CSRF
+            HttpSession session = request.getSession(true);
+            if (!userContextHelper.validateOAuthState(session, ALIPAY_STATE_KEY, state)) {
+                log.warn("[支付宝登录] state 校验失败，拒绝登录");
+                response.sendRedirect("/?login_error=1");
+                return;
+            }
+
             ChatUser user = alipayAuthService.handleAlipayCallback(authCode);
-            doLoginSuccess(user, request, response);
+            userContextHelper.loginSuccess(user, request);
+            response.sendRedirect("/about.html");
         } catch (Exception e) {
             log.error("[支付宝登录] 回调处理失败", e);
             response.sendRedirect("/?login_error=1");
         }
-    }
-
-    // ==================== 公共方法 ====================
-
-    /**
-     * 登录成功后写入 Session + SecurityContext，重定向到 about.html
-     */
-    private void doLoginSuccess(ChatUser user, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        HttpSession session = request.getSession(true);
-        session.setAttribute(SESSION_USER_KEY, user);
-
-        // 加载用户角色，转换为 Spring Security 权限
-        List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
-        List<SimpleGrantedAuthority> authorities = roleKeys.stream()
-                .map(key -> new SimpleGrantedAuthority("ROLE_" + key))
-                .collect(Collectors.toList());
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(
-                        user.getUserId(),
-                        null,
-                        authorities
-                );
-        Map<String, String> details = new HashMap<>(4);
-        details.put("nickname", user.getNickname());
-        details.put("avatar", user.getAvatar());
-        authToken.setDetails(details);
-        context.setAuthentication(authToken);
-        SecurityContextHolder.setContext(context);
-        session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
-
-        log.info("[OAuth] 登录成功, userId={}, nickname={}, roles={}", user.getUserId(), user.getNickname(), roleKeys);
-        response.sendRedirect("/about.html");
     }
 
     /**

@@ -4,8 +4,11 @@ import com.mouhin.brief.wisdom.exception.SystemSettingsException;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -16,6 +19,10 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 用户上下文工具类
@@ -28,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class UserContextHelper {
 
     /**
@@ -41,6 +49,8 @@ public class UserContextHelper {
     private static final String GUEST_PREFIX = "guest-";
 
     private static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+
+    private final RoleService roleService;
 
     /**
      * 获取当前登录用户的 userId
@@ -148,6 +158,70 @@ public class UserContextHelper {
         ServletRequestAttributes attrs =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         return attrs != null ? attrs.getRequest() : null;
+    }
+
+    // ========== 登录成功处理 ==========
+
+    /**
+     * 登录成功后写入 Session + SecurityContext
+     * <p>
+     * 所有登录方式（本地账号、OAuth 三方登录、SSO）统一调用此方法，
+     * 避免各 Controller 重复实现。
+     *
+     * @param user    登录成功的用户
+     * @param request 当前 HTTP 请求
+     */
+    public void loginSuccess(ChatUser user, HttpServletRequest request) {
+        // 防止 Session 固定攻击：使旧 Session 失效，创建新 Session
+        HttpSession oldSession = request.getSession(false);
+        if (oldSession != null) {
+            oldSession.invalidate();
+        }
+        HttpSession session = request.getSession(true);
+
+        session.setAttribute(SESSION_USER_KEY, user);
+
+        // 加载用户角色，转换为 Spring Security 权限
+        List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
+        List<SimpleGrantedAuthority> authorities = roleKeys.stream()
+                .map(key -> new SimpleGrantedAuthority("ROLE_" + key))
+                .collect(Collectors.toList());
+
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(user.getUserId(), null, authorities);
+        Map<String, String> details = new HashMap<>(4);
+        details.put("nickname", user.getNickname());
+        details.put("avatar", user.getAvatar());
+        authToken.setDetails(details);
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authToken);
+        SecurityContextHolder.setContext(context);
+        session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
+
+        log.info("[登录] 用户登录成功: userId={}, nickname={}, roles={}", user.getUserId(), user.getNickname(), roleKeys);
+    }
+
+    /**
+     * 校验 OAuth 回调的 state 参数，防止 CSRF 攻击
+     * <p>
+     * 从 Session 中取出发起授权时存储的 state，与回调传入的 state 比对，
+     * 校验完成后立即从 Session 中移除（一次性使用）。
+     *
+     * @param session       当前 HTTP Session
+     * @param sessionKey    Session 中存储 state 的 Key（如 "wechat_state"）
+     * @param callbackState 回调参数中携带的 state
+     * @return true 表示校验通过
+     */
+    public boolean validateOAuthState(HttpSession session, String sessionKey, String callbackState) {
+        String expectedState = (String) session.getAttribute(sessionKey);
+        // 立即移除，防止重放
+        session.removeAttribute(sessionKey);
+        if (expectedState == null || callbackState == null) {
+            log.warn("[OAuth] state 校验失败: expectedState={}, callbackState={}", expectedState, callbackState);
+            return false;
+        }
+        return expectedState.equals(callbackState);
     }
 
     // ========== 访客指纹生成 ==========

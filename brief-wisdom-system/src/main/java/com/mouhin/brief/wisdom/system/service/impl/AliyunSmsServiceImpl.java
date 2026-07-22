@@ -60,6 +60,7 @@ public class AliyunSmsServiceImpl implements SmsService {
 
     @Override
     public String sendVerificationCode(String phone) {
+
         if (!canSend(phone)) {
             log.warn("短信验证码发送频率超限: phone={}", maskPhone(phone));
             return null;
@@ -134,11 +135,7 @@ public class AliyunSmsServiceImpl implements SmsService {
         // 检查每日发送次数
         String dailyKey = DAILY_KEY_PREFIX + phone;
         String countStr = stringRedisTemplate.opsForValue().get(dailyKey);
-        if (countStr != null && Integer.parseInt(countStr) >= DAILY_SEND_LIMIT) {
-            return false;
-        }
-
-        return true;
+        return countStr == null || Integer.parseInt(countStr) < DAILY_SEND_LIMIT;
     }
 
     /**
