@@ -92,7 +92,7 @@ class ChatMemoryServiceTest {
     void testBuildMemoryContext_emptyMemories() {
         when(chatMemoryRepository.findByUserId(USER_ID)).thenReturn(List.of());
 
-        String context = chatMemoryService.buildMemoryContext(USER_ID);
+        String context = chatMemoryService.buildMemoryContext(USER_ID, SESSION_ID);
 
         assertEquals("", context);
     }
@@ -103,20 +103,54 @@ class ChatMemoryServiceTest {
         ChatMemory mem1 = new ChatMemory();
         mem1.setMemoryKey("name");
         mem1.setMemoryValue("张三");
+        mem1.setSourceSessionId(SESSION_ID);
 
         ChatMemory mem2 = new ChatMemory();
         mem2.setMemoryKey("tech_stack");
         mem2.setMemoryValue("Java, Spring Boot");
+        mem2.setSourceSessionId(SESSION_ID);
 
         when(chatMemoryRepository.findByUserId(USER_ID)).thenReturn(List.of(mem1, mem2));
 
-        String context = chatMemoryService.buildMemoryContext(USER_ID);
+        String context = chatMemoryService.buildMemoryContext(USER_ID, SESSION_ID);
 
         assertTrue(context.contains("--- 用户记忆 ---"));
-        assertTrue(context.contains("以下是你记住的关于该用户的信息"));
+        assertTrue(context.contains("以下是你在本会话中记住的关于该用户的信息"));
         assertTrue(context.contains("- name: 张三"));
         assertTrue(context.contains("- tech_stack: Java, Spring Boot"));
         assertTrue(context.contains("--- 记忆结束 ---"));
+    }
+
+    @Test
+    @DisplayName("buildMemoryContext - 其他会话来源的记忆不应注入当前会话（会话隔离）")
+    void testBuildMemoryContext_sessionIsolation() {
+        ChatMemory currentSessionMemory = new ChatMemory();
+        currentSessionMemory.setMemoryKey("name");
+        currentSessionMemory.setMemoryValue("张三");
+        currentSessionMemory.setSourceSessionId(SESSION_ID);
+
+        ChatMemory otherSessionMemory = new ChatMemory();
+        otherSessionMemory.setMemoryKey("current_project");
+        otherSessionMemory.setMemoryValue("其他会话的项目");
+        otherSessionMemory.setSourceSessionId("other-session");
+
+        when(chatMemoryRepository.findByUserId(USER_ID))
+                .thenReturn(List.of(currentSessionMemory, otherSessionMemory));
+
+        String context = chatMemoryService.buildMemoryContext(USER_ID, SESSION_ID);
+
+        assertTrue(context.contains("- name: 张三"));
+        assertFalse(context.contains("其他会话的项目"));
+        assertFalse(context.contains("current_project"));
+    }
+
+    @Test
+    @DisplayName("buildMemoryContext - sessionId 为空时应返回空字符串")
+    void testBuildMemoryContext_nullSessionId() {
+        String context = chatMemoryService.buildMemoryContext(USER_ID, null);
+
+        assertEquals("", context);
+        verifyNoInteractions(chatMemoryRepository);
     }
 
     // ===== extractMemoriesFromMessage 测试 =====

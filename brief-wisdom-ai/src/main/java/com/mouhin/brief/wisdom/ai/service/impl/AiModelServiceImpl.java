@@ -131,20 +131,20 @@ public class AiModelServiceImpl implements AiModelService {
     }
 
     private AiModelDTO toDTO(AiModel m) {
-        AiModelDTO dto = new AiModelDTO();
-        dto.setId(m.getId());
-        dto.setModelName(m.getModelName());
-        dto.setDisplayName(m.getDisplayName());
-        dto.setProvider(m.getProvider());
-        dto.setDescription(m.getDescription());
-        dto.setIsActive(m.getIsActive());
-        dto.setIsEnabled(m.getIsEnabled());
-        dto.setSortOrder(m.getSortOrder());
-        dto.setInputPricePerMillion(m.getInputPricePerMillion());
-        dto.setOutputPricePerMillion(m.getOutputPricePerMillion());
-        dto.setThinkingMode(m.getThinkingMode());
-        dto.setCreateTime(m.getCreateTime());
-        dto.setUpdateTime(m.getUpdateTime());
-        return dto;
+        return new AiModelDTO(
+                m.getId(),
+                m.getModelName(),
+                m.getDisplayName(),
+                m.getProvider(),
+                m.getDescription(),
+                m.getIsActive(),
+                m.getIsEnabled(),
+                m.getSortOrder(),
+                m.getInputPricePerMillion(),
+                m.getOutputPricePerMillion(),
+                m.getThinkingMode(),
+                m.getCreateTime(),
+                m.getUpdateTime()
+        );
     }
 }

@@ -11,11 +11,12 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 
@@ -166,11 +167,16 @@ public class SecurityConfig {
     }
 
     /**
-     * RestTemplate 用于调用微信 API
+     * RestClient 用于调用第三方 OAuth API（微信、钉钉、支付宝）
      */
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public RestClient restClient() {
+        var requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(30));
+        return RestClient.builder()
+                .requestFactory(requestFactory)
+                .build();
     }
 
     /**

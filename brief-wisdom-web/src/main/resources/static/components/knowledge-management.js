@@ -1061,10 +1061,7 @@
      * 显示确认对话框
      */
     async function showConfirmDialog(message, icon = '') {
-        if (typeof window.showConfirmDialog === 'function') {
-            return await window.showConfirmDialog(message, icon);
-        }
-        return confirm(message);
+        return await window.showConfirmDialog(message, icon);
     }
 
     // 注册组件

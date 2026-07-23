@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.resume.service.impl;
 
+import com.mouhin.brief.wisdom.common.event.ResumeDataChangedEvent;
 import com.mouhin.brief.wisdom.common.resume.ProjectAchievementDTO;
 import com.mouhin.brief.wisdom.common.resume.ProjectDTO;
 import com.mouhin.brief.wisdom.common.resume.WorkExperienceDTO;
@@ -17,6 +18,7 @@ import com.mouhin.brief.wisdom.resume.service.ResumeManageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     private final ProjectRepository projectRepository;
     private final ProjectAchievementRepository projectAchievementRepository;
     private final WorkExperienceStackRepository workExperienceStackRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ========== 工作经历 ==========
 
@@ -56,6 +59,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public WorkExperienceDTO createExperience(WorkExperience experience) {
         workExperienceRepository.save(experience);
+        publishResumeChanged("创建工作经历: " + experience.getTitle());
         return toExpDTO(experience);
     }
 
@@ -64,6 +68,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public WorkExperienceDTO updateExperience(WorkExperience experience) {
         workExperienceRepository.update(experience);
+        publishResumeChanged("更新工作经历: id=" + experience.getId());
         return toExpDTO(workExperienceRepository.findById(experience.getId()));
     }
 
@@ -72,6 +77,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public void deleteExperience(Long id) {
         workExperienceRepository.deleteById(id);
+        publishResumeChanged("删除工作经历: id=" + id);
     }
 
     // ========== 项目 ==========
@@ -97,6 +103,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public ProjectDTO createProject(Project project) {
         projectRepository.save(project);
+        publishResumeChanged("创建项目: " + project.getName());
         return toProjDTO(project);
     }
 
@@ -105,6 +112,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public ProjectDTO updateProject(Project project) {
         projectRepository.update(project);
+        publishResumeChanged("更新项目: id=" + project.getId());
         return toProjDTO(projectRepository.findById(project.getId()));
     }
 
@@ -113,6 +121,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public void deleteProject(Long id) {
         projectRepository.deleteById(id);
+        publishResumeChanged("删除项目: id=" + id);
     }
 
     // ========== 项目成果 ==========
@@ -138,6 +147,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public ProjectAchievementDTO createAchievement(ProjectAchievement achievement) {
         projectAchievementRepository.save(achievement);
+        publishResumeChanged("创建项目成果: projectId=" + achievement.getProjectId());
         return toAchDTO(achievement);
     }
 
@@ -146,6 +156,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public ProjectAchievementDTO updateAchievement(ProjectAchievement achievement) {
         projectAchievementRepository.update(achievement);
+        publishResumeChanged("更新项目成果: id=" + achievement.getId());
         return toAchDTO(projectAchievementRepository.findById(achievement.getId()));
     }
 
@@ -154,6 +165,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public void deleteAchievement(Long id) {
         projectAchievementRepository.deleteById(id);
+        publishResumeChanged("删除项目成果: id=" + id);
     }
 
     // ========== 技术栈 ==========
@@ -179,6 +191,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public WorkExperienceStackDTO createStack(WorkExperienceStack stack) {
         workExperienceStackRepository.save(stack);
+        publishResumeChanged("创建技术栈: " + stack.getTechName());
         return toStackDTO(stack);
     }
 
@@ -187,6 +200,7 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public WorkExperienceStackDTO updateStack(WorkExperienceStack stack) {
         workExperienceStackRepository.update(stack);
+        publishResumeChanged("更新技术栈: id=" + stack.getId());
         return toStackDTO(workExperienceStackRepository.findById(stack.getId()));
     }
 
@@ -195,9 +209,17 @@ public class ResumeManageServiceImpl implements ResumeManageService {
     @Transactional
     public void deleteStack(Long id) {
         workExperienceStackRepository.deleteById(id);
+        publishResumeChanged("删除技术栈: id=" + id);
     }
 
     // ========== 转换方法 ==========
+
+    /**
+     * 发布简历数据变更事件（触发知识库同步）
+     */
+    private void publishResumeChanged(String description) {
+        eventPublisher.publishEvent(new ResumeDataChangedEvent(this, description));
+    }
 
     private WorkExperienceDTO toExpDTO(WorkExperience e) {
         WorkExperienceDTO dto = new WorkExperienceDTO();

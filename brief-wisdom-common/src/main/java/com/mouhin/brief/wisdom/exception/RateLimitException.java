@@ -8,7 +8,7 @@ import java.io.Serial;
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
-public class RateLimitException extends AIException {
+public final class RateLimitException extends AIException {
 
     @Serial
     private static final long serialVersionUID = 1L;

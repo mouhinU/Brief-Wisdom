@@ -1,33 +1,53 @@
 package com.mouhin.brief.wisdom.common.ai;
 
-import lombok.Data;
-
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * AI模型 DTO
- */
-
-/**
- * AiModelDTO
+ * AI模型传输对象
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-22
  */
-@Data
-public class AiModelDTO implements Serializable {
-    private Long id;
-    private String modelName;
-    private String displayName;
-    private String provider;
-    private String description;
-    private Integer isActive;
-    private Integer isEnabled;
-    private Integer sortOrder;
-    private Double inputPricePerMillion;  // 每百万输入token价格(元)
-    private Double outputPricePerMillion;  // 每百万输出token价格(元)
-    private String thinkingMode;  // 思考模式: normal-普通模式, thinking-思考模式
-    private LocalDateTime createTime;
-    private LocalDateTime updateTime;
+public record AiModelDTO(
+        Long id,
+        String modelName,
+        String displayName,
+        String provider,
+        String description,
+        Integer isActive,
+        Integer isEnabled,
+        Integer sortOrder,
+        Double inputPricePerMillion,
+        Double outputPricePerMillion,
+        String thinkingMode,
+        LocalDateTime createTime,
+        LocalDateTime updateTime
+) implements Serializable {
+
+    public Long getId() { return id; }
+
+    public String getModelName() { return modelName; }
+
+    public String getDisplayName() { return displayName; }
+
+    public String getProvider() { return provider; }
+
+    public String getDescription() { return description; }
+
+    public Integer getIsActive() { return isActive; }
+
+    public Integer getIsEnabled() { return isEnabled; }
+
+    public Integer getSortOrder() { return sortOrder; }
+
+    public Double getInputPricePerMillion() { return inputPricePerMillion; }
+
+    public Double getOutputPricePerMillion() { return outputPricePerMillion; }
+
+    public String getThinkingMode() { return thinkingMode; }
+
+    public LocalDateTime getCreateTime() { return createTime; }
+
+    public LocalDateTime getUpdateTime() { return updateTime; }
 }

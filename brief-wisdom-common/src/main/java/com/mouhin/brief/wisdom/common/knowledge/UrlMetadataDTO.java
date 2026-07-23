@@ -1,7 +1,5 @@
 package com.mouhin.brief.wisdom.common.knowledge;
 
-import lombok.Data;
-
 import java.io.Serializable;
 
 /**
@@ -10,25 +8,19 @@ import java.io.Serializable;
  * 用于返回从 URL 抓取的网页元数据（标题、描述等）
  *
  * @author Brief-Wisdom
- * @date 2026-07-09
+ * @date 2026-07-22
  */
-@Data
-public class UrlMetadataDTO implements Serializable {
+public record UrlMetadataDTO(
+        String title,
+        String description,
+        String url
+) implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * 网页标题
-     */
-    private String title;
+    public String getTitle() { return title; }
 
-    /**
-     * 网页描述（摘要）
-     */
-    private String description;
+    public String getDescription() { return description; }
 
-    /**
-     * 原始 URL
-     */
-    private String url;
+    public String getUrl() { return url; }
 }

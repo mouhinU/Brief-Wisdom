@@ -213,16 +213,16 @@ public class AiManageServiceImpl implements AiManageService {
         Map<String, LocalDateTime> lastTimeMap = batchLoadLastMessageTimes(sessionIds);
 
         return sessions.stream().map(session -> {
-            SessionDTO dto = new SessionDTO();
-            dto.setSessionId(session.getSessionId());
-            dto.setUserId(session.getUserId());
-            dto.setTitle(session.getTitle());
-            dto.setDescription(session.getDescription());
-            dto.setMessageCount(session.getMessageCount());
-            dto.setCreateTime(session.getCreateTime());
             LocalDateTime lastMsgTime = lastTimeMap.get(session.getSessionId());
-            dto.setUpdateTime(lastMsgTime != null ? lastMsgTime : session.getUpdateTime());
-            return dto;
+            return new SessionDTO(
+                    session.getSessionId(),
+                    session.getUserId(),
+                    session.getTitle(),
+                    session.getDescription(),
+                    session.getMessageCount(),
+                    session.getCreateTime(),
+                    lastMsgTime != null ? lastMsgTime : session.getUpdateTime()
+            );
         }).toList();
     }
 
@@ -263,32 +263,34 @@ public class AiManageServiceImpl implements AiManageService {
     // ===== 单条转换方法 =====
 
     private UserDTO toUserDTO(ChatUser user, Map<String, Long> sessionCountMap) {
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setUserId(user.getUserId());
-        dto.setUsername(user.getUsername());
-        dto.setNickname(user.getNickname());
-        dto.setAvatar(user.getAvatar());
-        dto.setUserLevel(user.getUserLevel());
-        dto.setCreateTime(user.getCreateTime());
         Long sessionCount = sessionCountMap.getOrDefault(user.getUserId(), 0L);
-        dto.setSessionCount(sessionCount.intValue());
-        return dto;
+        return new UserDTO(
+                user.getId(),
+                user.getUserId(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getAvatar(),
+                user.getUserLevel(),
+                user.getCreateTime(),
+                sessionCount.intValue(),
+                null,
+                null
+        );
     }
 
     private MessageDTO toMessageDTO(ChatMessage msg) {
-        MessageDTO dto = new MessageDTO();
-        dto.setId(msg.getId());
-        dto.setSessionId(msg.getSessionId());
-        dto.setUserId(msg.getUserId());
-        dto.setRole(msg.getRole());
-        dto.setContent(msg.getContent());
-        dto.setModel(msg.getModel());
-        dto.setTokens(msg.getTokens());
-        dto.setCost(msg.getCost());
-        dto.setTimestamp(msg.getTimestamp());
-        dto.setMessageType(msg.getMessageType());
-        return dto;
+        return new MessageDTO(
+                msg.getId(),
+                msg.getSessionId(),
+                msg.getUserId(),
+                msg.getRole(),
+                msg.getContent(),
+                msg.getModel(),
+                msg.getTokens(),
+                msg.getCost(),
+                msg.getTimestamp(),
+                msg.getMessageType()
+        );
     }
 
     private Double toDouble(Object value) {

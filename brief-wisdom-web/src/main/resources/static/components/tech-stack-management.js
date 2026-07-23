@@ -233,7 +233,8 @@
      * 删除技术栈
      */
     async function deleteTechStack(id) {
-        if (!confirm('确定删除该技术栈？')) return;
+        const confirmed = await showConfirmDialog('确定删除该技术栈？', '🗑️');
+        if (!confirmed) return;
         
         try {
             await apiRequest(`/api/resume/manage/stacks/${id}`, 'DELETE');

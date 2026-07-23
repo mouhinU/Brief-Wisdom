@@ -815,7 +815,7 @@ async function exportSession(event, sessionId) {
     const response = await fetch(`/api/ai/session/${sessionId}/export`);
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      alert(errorData?.message || "导出失败，请稍后重试");
+      showToast(errorData?.message || "导出失败，请稍后重试", 'error');
       return;
     }
 
@@ -841,7 +841,7 @@ async function exportSession(event, sessionId) {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("导出会话失败:", error);
-    alert("导出失败，请检查网络连接");
+    showToast("导出失败，请检查网络连接", 'error');
   }
 }
 

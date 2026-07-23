@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +34,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
     public static final String PROVIDER_WECHAT = "wechat";
 
     private final WechatProperties wechatProperties;
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ChatUserRepository chatUserRepository;
     private final UserOauthRepository userOauthRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -129,7 +129,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
                 + "&code=" + code
                 + "&grant_type=authorization_code";
         try {
-            String responseBody = restTemplate.getForObject(url, String.class);
+            String responseBody = restClient.get().uri(url).retrieve().body(String.class);
             JsonNode json = objectMapper.readTree(responseBody);
             if (json.has("errcode")) {
                 throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取 access_token 失败: " + json.get("errmsg").asText());
@@ -147,7 +147,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
                 + "&openid=" + openid
                 + "&lang=zh_CN";
         try {
-            String responseBody = restTemplate.getForObject(url, String.class);
+            String responseBody = restClient.get().uri(url).retrieve().body(String.class);
             JsonNode json = objectMapper.readTree(responseBody);
             if (json.has("errcode")) {
                 throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取用户信息失败: " + json.get("errmsg").asText());

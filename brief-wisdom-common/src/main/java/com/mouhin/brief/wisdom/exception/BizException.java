@@ -12,7 +12,9 @@ import lombok.Getter;
  */
 
 @Getter
-public class BizException extends RuntimeException {
+public sealed class BizException extends RuntimeException
+        permits AIException, AuthException, HomeException,
+        ResumeException, ResumeManageException, SystemSettingsException {
 
     private static final long serialVersionUID = 1L;
     private String code;

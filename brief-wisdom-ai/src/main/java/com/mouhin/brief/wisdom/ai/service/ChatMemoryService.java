@@ -64,20 +64,29 @@ public class ChatMemoryService {
     }
 
     /**
-     * 获取用户的所有记忆，构建为 AI 上下文
+     * 获取用户在指定会话中的记忆，构建为 AI 上下文
+     * <p>
+     * 仅返回来源会话（sourceSessionId）与当前会话一致的记忆，确保同一用户的
+     * 不同会话之间记忆相互隔离，避免某个会话提取的记忆泄漏到其他会话的上下文中。
      *
-     * @param userId 用户ID
-     * @return 格式化的记忆上下文，可注入系统提示词
+     * @param userId    用户ID
+     * @param sessionId 当前会话ID
+     * @return 格式化的记忆上下文，可注入系统提示词；无匹配记忆时返回空字符串
      */
-    public String buildMemoryContext(String userId) {
-        List<ChatMemory> memories = chatMemoryRepository.findByUserId(userId);
+    public String buildMemoryContext(String userId, String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return "";
+        }
+        List<ChatMemory> memories = chatMemoryRepository.findByUserId(userId).stream()
+                .filter(memory -> sessionId.equals(memory.getSourceSessionId()))
+                .toList();
         if (memories.isEmpty()) {
             return "";
         }
 
         StringBuilder sb = new StringBuilder();
         sb.append("\n\n--- 用户记忆 ---\n");
-        sb.append("以下是你记住的关于该用户的信息，请在回答时参考：\n");
+        sb.append("以下是你在本会话中记住的关于该用户的信息，请在回答时参考：\n");
 
         for (ChatMemory memory : memories) {
             sb.append("- ").append(memory.getMemoryKey()).append(": ").append(memory.getMemoryValue()).append("\n");

@@ -10,7 +10,7 @@ import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
-public class ResumeManageException extends BizException {
+public final class ResumeManageException extends BizException {
 
     private static final long serialVersionUID = 1L;
 

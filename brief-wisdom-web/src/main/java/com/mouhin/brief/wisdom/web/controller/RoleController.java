@@ -140,12 +140,14 @@ public class RoleController {
     }
 
     private RoleDTO toSimpleRoleDTO(SysRole role) {
-        RoleDTO dto = new RoleDTO();
-        dto.setId(role.getId());
-        dto.setRoleName(role.getRoleName());
-        dto.setRoleKey(role.getRoleKey());
-        dto.setDescription(role.getDescription());
-        dto.setStatus(role.getStatus());
-        return dto;
+        return new RoleDTO(
+                role.getId(),
+                role.getRoleName(),
+                role.getRoleKey(),
+                role.getDescription(),
+                role.getStatus(),
+                null,
+                null
+        );
     }
 }

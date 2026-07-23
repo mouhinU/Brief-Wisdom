@@ -6,7 +6,7 @@ package com.mouhin.brief.wisdom.exception;
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
-public class ContentSecurityException extends AIException {
+public final class ContentSecurityException extends AIException {
 
     private static final long serialVersionUID = 1L;
 

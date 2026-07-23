@@ -705,6 +705,71 @@ function showConfirmDialog(message, icon) {
 }
 
 /**
+ * 显示全局输入弹窗（替代浏览器原生 prompt，视口居中）
+ * @param {string} message 提示消息
+ * @param {string} placeholder 输入框占位文本（可选）
+ * @param {string} icon 图标（可选）
+ * @returns {Promise<string|null>} 用户输入的文本（取消时返回 null）
+ */
+function showPromptDialog(message, placeholder, icon) {
+  return new Promise((resolve) => {
+    // 移除已存在的弹窗
+    const existing = document.getElementById('globalPromptDialog');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'globalPromptDialog';
+    overlay.className = 'global-confirm-overlay';
+    overlay.innerHTML = `
+      <div class="global-confirm-modal">
+        ${icon ? `<div class="global-confirm-icon">${icon}</div>` : ''}
+        <div class="global-confirm-message" style="margin-bottom:16px;">${message}</div>
+        <input type="text" class="global-prompt-input" placeholder="${placeholder || ''}" />
+        <div class="global-confirm-buttons">
+          <button class="global-confirm-cancel">取消</button>
+          <button class="global-confirm-ok">确定</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('.global-prompt-input');
+    const cancelBtn = overlay.querySelector('.global-confirm-cancel');
+    const okBtn = overlay.querySelector('.global-confirm-ok');
+
+    const close = (result) => {
+      overlay.remove();
+      document.removeEventListener('keydown', keyHandler);
+      resolve(result);
+    };
+
+    const confirm = () => {
+      const value = input.value.trim();
+      close(value || null);
+    };
+
+    cancelBtn.onclick = () => close(null);
+    okBtn.onclick = confirm;
+    // 点击遮罩层取消
+    overlay.onclick = (e) => {
+      if (e.target === overlay) close(null);
+    };
+    // Enter 确认 / ESC 取消
+    const keyHandler = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        confirm();
+      } else if (e.key === 'Escape') {
+        close(null);
+      }
+    };
+    document.addEventListener('keydown', keyHandler);
+    // 默认聚焦输入框
+    input.focus();
+  });
+}
+
+/**
  * 动态初始化页面 Tab 导航
  * 从 /api/menu/tree 接口获取当前页面的子菜单，渲染为 Tab 按钮
  * @param {Object} config 页面配置

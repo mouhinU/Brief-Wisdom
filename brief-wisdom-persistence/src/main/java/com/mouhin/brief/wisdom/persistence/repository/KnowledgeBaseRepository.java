@@ -111,4 +111,18 @@ public class KnowledgeBaseRepository {
                 .orderByDesc(KnowledgeBase::getCreateTime);
         return knowledgeBaseMapper.selectPage(pageParam, qw);
     }
+
+    /**
+     * 根据名称查询知识库
+     *
+     * @param name 知识库名称
+     * @return 匹配的知识库，不存在返回 null
+     */
+    public KnowledgeBase findByName(String name) {
+        return knowledgeBaseMapper.selectOne(
+                new LambdaQueryWrapper<KnowledgeBase>()
+                        .eq(KnowledgeBase::getName, name)
+                        .last("LIMIT 1")
+        );
+    }
 }

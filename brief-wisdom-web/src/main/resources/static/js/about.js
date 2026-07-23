@@ -29,7 +29,7 @@ function updateThemeIcon(theme) {
 
 // ===== PDF 导出 =====
 function exportPDF() {
-  alert('提示：在打印设置中，建议选择"背景图形"选项以获得最佳效果。建议缩放 50%~70%。');
+  showToast('提示：在打印设置中，建议选择"背景图形"选项以获得最佳效果。建议缩放 50%~70%。', 'success');
 
   const currentTheme = document.documentElement.getAttribute('data-theme');
   document.documentElement.setAttribute('data-theme', 'light');

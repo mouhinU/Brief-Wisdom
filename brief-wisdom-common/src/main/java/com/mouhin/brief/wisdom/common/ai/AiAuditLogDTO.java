@@ -1,75 +1,49 @@
 package com.mouhin.brief.wisdom.common.ai;
 
-import lombok.Data;
-
 import java.time.LocalDateTime;
 
 /**
- * AI 审计日志 DTO
+ * AI 审计日志传输对象
  *
  * @author Brief-Wisdom
- * @date 2026-07-02
+ * @date 2026-07-22
  */
-@Data
-public class AiAuditLogDTO {
+public record AiAuditLogDTO(
+        Long id,
+        String sessionId,
+        String userId,
+        Long messageId,
+        String auditType,
+        String riskLevel,
+        String triggerKeyword,
+        String originalContent,
+        String filteredContent,
+        String actionTaken,
+        Double confidenceScore,
+        LocalDateTime createTime
+) {
 
-    /**
-     * 日志ID
-     */
-    private Long id;
+    public Long getId() { return id; }
 
-    /**
-     * 会话ID
-     */
-    private String sessionId;
+    public String getSessionId() { return sessionId; }
 
-    /**
-     * 用户ID
-     */
-    private String userId;
+    public String getUserId() { return userId; }
 
-    /**
-     * 关联消息ID
-     */
-    private Long messageId;
+    public Long getMessageId() { return messageId; }
 
-    /**
-     * 审计类型
-     */
-    private String auditType;
+    public String getAuditType() { return auditType; }
 
-    /**
-     * 风险等级
-     */
-    private String riskLevel;
+    public String getRiskLevel() { return riskLevel; }
 
-    /**
-     * 触发的关键词或模式
-     */
-    private String triggerKeyword;
+    public String getTriggerKeyword() { return triggerKeyword; }
 
-    /**
-     * 原始内容（脱敏后）
-     */
-    private String originalContent;
+    public String getOriginalContent() { return originalContent; }
 
-    /**
-     * 过滤后的内容
-     */
-    private String filteredContent;
+    public String getFilteredContent() { return filteredContent; }
 
-    /**
-     * 采取的动作
-     */
-    private String actionTaken;
+    public String getActionTaken() { return actionTaken; }
 
-    /**
-     * 置信度分数 (0-1)
-     */
-    private Double confidenceScore;
+    public Double getConfidenceScore() { return confidenceScore; }
 
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createTime;
+    public LocalDateTime getCreateTime() { return createTime; }
 }

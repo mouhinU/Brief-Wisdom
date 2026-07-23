@@ -220,7 +220,8 @@
      * 删除工作经历
      */
     async function deleteExperience(id) {
-        if (!confirm('确定删除该工作经历？删除后关联的项目、成果、技术栈也将被删除。')) return;
+        const confirmed = await showConfirmDialog('确定删除该工作经历？删除后关联的项目、成果、技术栈也将被删除。', '🗑️');
+        if (!confirmed) return;
         
         try {
             await apiRequest(`/api/resume/manage/experiences/${id}`, 'DELETE');

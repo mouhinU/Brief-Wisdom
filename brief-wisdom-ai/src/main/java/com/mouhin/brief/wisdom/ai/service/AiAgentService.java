@@ -69,8 +69,6 @@ public class AiAgentService {
     private static final String MESSAGE_TYPE_TEXT = "text";
     // 上下文相关参数
     private static final int RECENT_MESSAGES_COUNT = 10;
-    private static final int RELATED_SESSIONS_COUNT = 3;
-    private static final int RELATED_MESSAGES_COUNT = 5;
     // 标题截断长度
     private static final int TITLE_MAX_LENGTH = 30;
     // 审计日志内容截断长度
@@ -240,20 +238,18 @@ public class AiAgentService {
         Map<String, LocalDateTime> lastMessageTimeMap = buildLastMessageTimeMap(userId);
 
         return sessions.stream().map(session -> {
-            SessionMetaDTO meta = new SessionMetaDTO();
-            meta.setSessionId(session.getSessionId());
-            meta.setUserId(session.getUserId());
-            meta.setTitle(session.getTitle());
-            meta.setDescription(session.getDescription());
-            meta.setPageContext(session.getPageContext());
-            meta.setMessageCount(session.getMessageCount());
-            meta.setCreateTime(session.getCreateTime());
-
             // 使用批量查询的结果
             LocalDateTime lastTime = lastMessageTimeMap.get(session.getSessionId());
-            meta.setUpdateTime(lastTime != null ? lastTime : session.getUpdateTime());
-
-            return meta;
+            return new SessionMetaDTO(
+                    session.getSessionId(),
+                    session.getUserId(),
+                    session.getTitle(),
+                    session.getDescription(),
+                    session.getPageContext(),
+                    session.getMessageCount(),
+                    session.getCreateTime(),
+                    lastTime != null ? lastTime : session.getUpdateTime()
+            );
         }).toList();
     }
 
@@ -285,20 +281,18 @@ public class AiAgentService {
 
         // 转换为 SessionMeta
         List<SessionMetaDTO> sessionMetas = pageResult.getRecords().stream().map(session -> {
-            SessionMetaDTO meta = new SessionMetaDTO();
-            meta.setSessionId(session.getSessionId());
-            meta.setUserId(session.getUserId());
-            meta.setTitle(session.getTitle());
-            meta.setDescription(session.getDescription());
-            meta.setPageContext(session.getPageContext());
-            meta.setMessageCount(session.getMessageCount());
-            meta.setCreateTime(session.getCreateTime());
-
             // 使用批量查询的结果
             LocalDateTime lastTime = lastMessageTimeMap.get(session.getSessionId());
-            meta.setUpdateTime(lastTime != null ? lastTime : session.getUpdateTime());
-
-            return meta;
+            return new SessionMetaDTO(
+                    session.getSessionId(),
+                    session.getUserId(),
+                    session.getTitle(),
+                    session.getDescription(),
+                    session.getPageContext(),
+                    session.getMessageCount(),
+                    session.getCreateTime(),
+                    lastTime != null ? lastTime : session.getUpdateTime()
+            );
         }).toList();
 
         // 封装分页结果
@@ -330,8 +324,8 @@ public class AiAgentService {
         for (Map<String, Object> row : timeRows) {
             String sid = String.valueOf(row.get("session_id"));
             Object lastTime = row.get("last_time");
-            if (lastTime instanceof LocalDateTime) {
-                map.put(sid, (LocalDateTime) lastTime);
+            if (lastTime instanceof LocalDateTime ldt) {
+                map.put(sid, ldt);
             }
         }
         return map;
@@ -389,18 +383,18 @@ public class AiAgentService {
      * ChatMessage 实体转 ChatMessageDTO
      */
     private ChatMessageDTO toChatMessageDTO(ChatMessage msg) {
-        ChatMessageDTO dto = new ChatMessageDTO();
-        dto.setId(msg.getId());
-        dto.setSessionId(msg.getSessionId());
-        dto.setUserId(msg.getUserId());
-        dto.setRole(msg.getRole());
-        dto.setContent(msg.getContent());
-        dto.setModel(msg.getModel());
-        dto.setTokens(msg.getTokens());
-        dto.setCost(msg.getCost());
-        dto.setTimestamp(msg.getTimestamp());
-        dto.setMessageType(msg.getMessageType());
-        return dto;
+        return new ChatMessageDTO(
+                msg.getId(),
+                msg.getSessionId(),
+                msg.getUserId(),
+                msg.getRole(),
+                msg.getContent(),
+                msg.getModel(),
+                msg.getTokens(),
+                msg.getCost(),
+                msg.getTimestamp(),
+                msg.getMessageType()
+        );
     }
 
     /**
@@ -707,29 +701,9 @@ public class AiAgentService {
             context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
         }
 
-        // 根据当前页面上下文，获取同页面其他会话的最近消息作为额外上下文
+        // 计算有效页面上下文（仅用于定制系统提示词）
+        // 注意：上下文只包含当前会话自身的历史消息，不注入其他会话的记录，确保会话间相互隔离
         String effectivePageContext = (pageContext != null && !pageContext.isBlank()) ? pageContext : session.getPageContext();
-        if (effectivePageContext != null && !effectivePageContext.isBlank()) {
-            List<ChatSession> relatedSessions = sessionRepository.findRecentByUserIdAndPageContext(userId, effectivePageContext, RELATED_SESSIONS_COUNT);
-            // 过滤掉当前会话
-            relatedSessions = relatedSessions.stream()
-                    .filter(s -> !s.getSessionId().equals(sessionId))
-                    .toList();
-
-            if (!relatedSessions.isEmpty()) {
-                context.append("\n## 同页面（").append(getPageContextName(effectivePageContext)).append("）的其他最近会话\n");
-                for (ChatSession relatedSession : relatedSessions) {
-                    List<ChatMessage> relatedMessages = messageRepository.findRecentMessages(relatedSession.getSessionId(), RELATED_MESSAGES_COUNT);
-                    Collections.reverse(relatedMessages);
-                    if (!relatedMessages.isEmpty()) {
-                        context.append("\n### 会话: ").append(relatedSession.getTitle()).append("\n");
-                        for (ChatMessage msg : relatedMessages) {
-                            context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
-                        }
-                    }
-                }
-            }
-        }
 
         // 根据会话的页面上下文构建增强的系统提示词
         String systemPrompt = SystemPrompts.getSystemPromptWithContext(effectivePageContext);
@@ -745,9 +719,9 @@ public class AiAgentService {
             log.warn("知识库 RAG 检索失败，跳过上下文注入: {}", e.getMessage());
         }
 
-        // 注入用户记忆上下文（跨会话记忆）
+        // 注入用户记忆上下文（仅当前会话的记忆，确保会话间隔离）
         try {
-            String memoryContext = chatMemoryService.buildMemoryContext(userId);
+            String memoryContext = chatMemoryService.buildMemoryContext(userId, sessionId);
             if (!memoryContext.isBlank()) {
                 systemPrompt += memoryContext;
             }
@@ -883,6 +857,7 @@ public class AiAgentService {
      * @return 文本片段流
      */
     public Flux<String> chatStreamWithSession(String sessionId, String userId, String message, String modelName, String pageContext) {
+
         log.info("========== 开始流式聊天请求 ==========");
         log.info("sessionId: {}, userId: {}, model: {}, pageContext: {}", sessionId, userId, modelName, pageContext);
 
@@ -929,27 +904,9 @@ public class AiAgentService {
             context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
         }
 
+        // 计算有效页面上下文（仅用于定制系统提示词）
+        // 注意：上下文只包含当前会话自身的历史消息，不注入其他会话的记录，确保会话间相互隔离
         String effectivePageContext = (pageContext != null && !pageContext.isBlank()) ? pageContext : session.getPageContext();
-        if (effectivePageContext != null && !effectivePageContext.isBlank()) {
-            List<ChatSession> relatedSessions = sessionRepository.findRecentByUserIdAndPageContext(userId, effectivePageContext, RELATED_SESSIONS_COUNT);
-            relatedSessions = relatedSessions.stream()
-                    .filter(s -> !s.getSessionId().equals(sessionId))
-                    .toList();
-
-            if (!relatedSessions.isEmpty()) {
-                context.append("\n## 同页面（").append(getPageContextName(effectivePageContext)).append("）的其他最近会话\n");
-                for (ChatSession relatedSession : relatedSessions) {
-                    List<ChatMessage> relatedMessages = messageRepository.findRecentMessages(relatedSession.getSessionId(), RELATED_MESSAGES_COUNT);
-                    Collections.reverse(relatedMessages);
-                    if (!relatedMessages.isEmpty()) {
-                        context.append("\n### 会话: ").append(relatedSession.getTitle()).append("\n");
-                        for (ChatMessage msg : relatedMessages) {
-                            context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
-                        }
-                    }
-                }
-            }
-        }
 
         String systemPrompt = SystemPrompts.getSystemPromptWithContext(effectivePageContext);
 
@@ -964,9 +921,9 @@ public class AiAgentService {
             log.warn("知识库 RAG 检索失败，跳过上下文注入: {}", e.getMessage());
         }
 
-        // 注入用户记忆上下文（跨会话记忆）
+        // 注入用户记忆上下文（仅当前会话的记忆，确保会话间隔离）
         try {
-            String memoryContext = chatMemoryService.buildMemoryContext(userId);
+            String memoryContext = chatMemoryService.buildMemoryContext(userId, sessionId);
             if (!memoryContext.isBlank()) {
                 systemPrompt += memoryContext;
             }
@@ -978,7 +935,7 @@ public class AiAgentService {
         try {
             chatMemoryService.extractMemoriesFromMessage(userId, message, sessionId);
         } catch (Exception e) {
-            log.warn("记忆提取失败: {}", e.getMessage());
+            log.warn("记忆提取失败 {}", e.getMessage());
         }
 
         String provider = resolveProvider(model);
@@ -1062,11 +1019,8 @@ public class AiAgentService {
                             toolResult = "未找到工具: " + toolName;
                             log.warn("[AI] 未找到工具: {}", toolName);
                         }
-
-                        toolResponses.add(new ToolResponseMessage.ToolResponse(
-                                toolCall.id(), toolName, toolResult));
+                        toolResponses.add(new ToolResponseMessage.ToolResponse(toolCall.id(), toolName, toolResult));
                     }
-
                     // 将工具执行结果作为 ToolResponseMessage 加入消息列表
                     messages.add(ToolResponseMessage.builder().responses(toolResponses).build());
                 }
@@ -1188,8 +1142,8 @@ public class AiAgentService {
      */
     private boolean isNonRetryableError(Throwable error) {
         Throwable cause = error;
-        while (cause.getCause() != null && cause instanceof java.util.concurrent.CompletionException) {
-            cause = cause.getCause();
+        while (cause instanceof java.util.concurrent.CompletionException ce && ce.getCause() != null) {
+            cause = ce.getCause();
         }
         String msg = cause.getMessage();
         if (msg == null) {
@@ -1205,8 +1159,8 @@ public class AiAgentService {
      */
     private String translateApiError(Throwable error) {
         Throwable cause = error;
-        while (cause.getCause() != null && cause instanceof java.util.concurrent.CompletionException) {
-            cause = cause.getCause();
+        while (cause instanceof java.util.concurrent.CompletionException ce && ce.getCause() != null) {
+            cause = ce.getCause();
         }
         String msg = cause.getMessage();
         if (msg == null) {
@@ -1234,21 +1188,6 @@ public class AiAgentService {
             return "AI 模型返回数据异常，请稍后重试";
         }
         return "AI 服务异常，请稍后重试";
-    }
-
-    /**
-     * 获取页面上下文的中文名称
-     */
-    private String getPageContextName(String pageContext) {
-        if (pageContext == null) return "未知页面";
-        return switch (pageContext) {
-            case "/" -> "首页";
-            case "/about.html" -> "个人简历";
-            case "/resume-manage.html" -> "简历维护";
-            case "/system-settings.html" -> "系统设置";
-            case "/ai-manage.html" -> "AI管理";
-            default -> pageContext;
-        };
     }
 
     /**
@@ -1565,11 +1504,8 @@ public class AiAgentService {
      * @return 同步状态 DTO
      */
     public SyncStatusDTO getSyncStatus(String userId) {
-        SyncStatusDTO syncStatus = new SyncStatusDTO();
-
         // 1. 会话总数
         long sessionCount = sessionRepository.countByUserId(userId);
-        syncStatus.setSessionCount((int) sessionCount);
 
         // 2. 每个会话的消息数量
         Map<String, Integer> messageCounts = new HashMap<>(16);
@@ -1577,10 +1513,9 @@ public class AiAgentService {
         for (Map<String, Object> row : countRows) {
             String sid = String.valueOf(row.get("session_id"));
             Object cntObj = row.get("cnt");
-            int cnt = cntObj instanceof Number ? ((Number) cntObj).intValue() : 0;
+            int cnt = cntObj instanceof Number num ? num.intValue() : 0;
             messageCounts.put(sid, cnt);
         }
-        syncStatus.setSessionMessageCounts(messageCounts);
 
         // 3. 每个会话的最后消息时间（毫秒时间戳）
         Map<String, Long> lastMessageTimes = new HashMap<>(16);
@@ -1588,17 +1523,16 @@ public class AiAgentService {
         for (Map<String, Object> row : timeRows) {
             String sid = String.valueOf(row.get("session_id"));
             Object lastTime = row.get("last_time");
-            if (lastTime instanceof LocalDateTime) {
-                lastMessageTimes.put(sid, ((LocalDateTime) lastTime).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            if (lastTime instanceof LocalDateTime ldt) {
+                lastMessageTimes.put(sid, ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             }
         }
-        syncStatus.setSessionLastMessageTimes(lastMessageTimes);
 
         // 4. 计算指纹（基于以上数据的哈希值）
         String raw = sessionCount + ":" + messageCounts.toString() + ":" + lastMessageTimes.toString();
-        syncStatus.setFingerprint(Integer.toHexString(raw.hashCode()));
+        String fingerprint = Integer.toHexString(raw.hashCode());
 
-        return syncStatus;
+        return new SyncStatusDTO((int) sessionCount, messageCounts, lastMessageTimes, fingerprint);
     }
 
     /**

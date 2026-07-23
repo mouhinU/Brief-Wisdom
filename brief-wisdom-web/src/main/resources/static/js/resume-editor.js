@@ -193,7 +193,7 @@ async function saveExperience(id) {
     const idx = editorExperiences.findIndex(e => e.id === id);
     if (idx >= 0) editorExperiences[idx] = updated;
     renderExpList();
-    alert('保存成功！');
+    showToast('保存成功！', 'success');
   } catch (e) { /* handled */ }
 }
 
@@ -352,7 +352,7 @@ function showEmptyProjForm() {
 
 async function addNewProject() {
   if (editorExperiences.length === 0) {
-    alert('请先在"工作经历&技术栈"步骤中添加工作经历');
+    showToast('请先在"工作经历&技术栈"步骤中添加工作经历', 'error');
     return;
   }
   try {
@@ -381,7 +381,7 @@ async function saveProject(id) {
     const idx = editorProjects.findIndex(p => p.id === id);
     if (idx >= 0) editorProjects[idx] = updated;
     renderProjList();
-    alert('保存成功！');
+    showToast('保存成功！', 'success');
   } catch (e) { /* handled */ }
 }
 

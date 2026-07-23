@@ -1,30 +1,44 @@
 package com.mouhin.brief.wisdom.common.ai;
 
-import lombok.Data;
-
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 聊天消息 DTO
- */
-
-/**
- * ChatMessageDTO
+ * 聊天消息传输对象
  *
  * @author Brief-Wisdom
- * @date 2026-06-30
+ * @date 2026-07-22
  */
-@Data
-public class ChatMessageDTO implements Serializable {
-    private Long id;
-    private String sessionId;
-    private String userId;
-    private String role;
-    private String content;
-    private String model;
-    private Integer tokens;
-    private Double cost;
-    private LocalDateTime timestamp;
-    private String messageType;
+public record ChatMessageDTO(
+        Long id,
+        String sessionId,
+        String userId,
+        String role,
+        String content,
+        String model,
+        Integer tokens,
+        Double cost,
+        LocalDateTime timestamp,
+        String messageType
+) implements Serializable {
+
+    public Long getId() { return id; }
+
+    public String getSessionId() { return sessionId; }
+
+    public String getUserId() { return userId; }
+
+    public String getRole() { return role; }
+
+    public String getContent() { return content; }
+
+    public String getModel() { return model; }
+
+    public Integer getTokens() { return tokens; }
+
+    public Double getCost() { return cost; }
+
+    public LocalDateTime getTimestamp() { return timestamp; }
+
+    public String getMessageType() { return messageType; }
 }

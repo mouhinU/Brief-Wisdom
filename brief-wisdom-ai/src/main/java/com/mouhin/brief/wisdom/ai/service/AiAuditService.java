@@ -188,20 +188,20 @@ public class AiAuditService {
      * 转换为 DTO
      */
     private AiAuditLogDTO convertToDTO(AiAuditLog entity) {
-        AiAuditLogDTO dto = new AiAuditLogDTO();
-        dto.setId(entity.getId());
-        dto.setSessionId(entity.getSessionId());
-        dto.setUserId(entity.getUserId());
-        dto.setMessageId(entity.getMessageId());
-        dto.setAuditType(entity.getAuditType());
-        dto.setRiskLevel(entity.getRiskLevel());
-        dto.setTriggerKeyword(entity.getTriggerKeyword());
-        dto.setOriginalContent(entity.getOriginalContent());
-        dto.setFilteredContent(entity.getFilteredContent());
-        dto.setActionTaken(entity.getActionTaken());
-        dto.setConfidenceScore(entity.getConfidenceScore());
-        dto.setCreateTime(entity.getCreateTime());
-        return dto;
+        return new AiAuditLogDTO(
+                entity.getId(),
+                entity.getSessionId(),
+                entity.getUserId(),
+                entity.getMessageId(),
+                entity.getAuditType(),
+                entity.getRiskLevel(),
+                entity.getTriggerKeyword(),
+                entity.getOriginalContent(),
+                entity.getFilteredContent(),
+                entity.getActionTaken(),
+                entity.getConfidenceScore(),
+                entity.getCreateTime()
+        );
     }
 
     /**

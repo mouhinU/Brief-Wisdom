@@ -7,6 +7,9 @@ server:
 spring:
   application:
     name: brief-wisdom
+  threads:
+    virtual:
+      enabled: true    # JDK 21 虚拟线程：@Async、@Scheduled、ApplicationTaskExecutor 全部使用虚拟线程
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   messages:
@@ -100,7 +103,7 @@ app:
       dashscope:
         type: openai               # DashScope 走 OpenAI 兼容协议
         api-key: ${DASHSCOPE_API_KEY:${AI_API_KEY:}}
-        base-url: https://ws-9kyl51kfnjmu4lp0.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+        base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
         model: qwen-max
       #      openai:
       #        type: openai

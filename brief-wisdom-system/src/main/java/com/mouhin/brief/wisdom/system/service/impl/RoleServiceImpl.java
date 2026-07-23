@@ -295,14 +295,14 @@ public class RoleServiceImpl implements RoleService {
     }
 
     private RoleDTO toRoleDTO(SysRole role) {
-        RoleDTO dto = new RoleDTO();
-        dto.setId(role.getId());
-        dto.setRoleName(role.getRoleName());
-        dto.setRoleKey(role.getRoleKey());
-        dto.setDescription(role.getDescription());
-        dto.setStatus(role.getStatus());
-        dto.setCreateTime(role.getCreateTime());
-        dto.setMenuIds(roleMenuRepository.findMenuIdsByRoleId(role.getId()));
-        return dto;
+        return new RoleDTO(
+                role.getId(),
+                role.getRoleName(),
+                role.getRoleKey(),
+                role.getDescription(),
+                role.getStatus(),
+                role.getCreateTime(),
+                roleMenuRepository.findMenuIdsByRoleId(role.getId())
+        );
     }
 }

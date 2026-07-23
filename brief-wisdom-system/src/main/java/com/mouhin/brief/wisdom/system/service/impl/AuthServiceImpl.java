@@ -168,15 +168,18 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private UserDTO toDTO(ChatUser user) {
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setUserId(user.getUserId());
-        dto.setUsername(user.getUsername());
-        dto.setNickname(user.getNickname());
-        dto.setAvatar(user.getAvatar());
-        dto.setUserLevel(user.getUserLevel());
-        dto.setCreateTime(user.getCreateTime());
-        return dto;
+        return new UserDTO(
+                user.getId(),
+                user.getUserId(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getAvatar(),
+                user.getUserLevel(),
+                user.getCreateTime(),
+                null,
+                null,
+                null
+        );
     }
 
     /**

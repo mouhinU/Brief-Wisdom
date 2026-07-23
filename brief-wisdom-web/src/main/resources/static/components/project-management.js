@@ -219,7 +219,8 @@
      * 删除项目
      */
     async function deleteProject(id) {
-        if (!confirm('确定删除该项目？删除后关联的成果也将被删除。')) return;
+        const confirmed = await showConfirmDialog('确定删除该项目？删除后关联的成果也将被删除。', '🗑️');
+        if (!confirmed) return;
         
         try {
             await apiRequest(`/api/resume/manage/projects/${id}`, 'DELETE');

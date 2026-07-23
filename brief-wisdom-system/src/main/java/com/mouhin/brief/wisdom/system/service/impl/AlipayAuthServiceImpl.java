@@ -13,14 +13,12 @@ import com.mouhin.brief.wisdom.system.service.AlipayAuthService;
 import com.mouhin.brief.wisdom.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -48,7 +46,7 @@ public class AlipayAuthServiceImpl implements AlipayAuthService {
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final AlipayProperties alipayProperties;
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ChatUserRepository chatUserRepository;
     private final UserOauthRepository userOauthRepository;
     private final RoleService roleService;
@@ -237,10 +235,11 @@ public class AlipayAuthServiceImpl implements AlipayAuthService {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         params.forEach(formData::add);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(formData, headers);
-
-        return restTemplate.postForObject(alipayProperties.getGatewayUrl(), request, String.class);
+        return restClient.post()
+                .uri(alipayProperties.getGatewayUrl())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(formData)
+                .retrieve()
+                .body(String.class);
     }
 }

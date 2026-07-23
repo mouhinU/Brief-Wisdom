@@ -47,7 +47,7 @@ async function apiRequest(url, method = 'GET', body = null) {
     return await window.apiRequest(API_BASE + url, method, body);
   } catch (err) {
     console.error('API请求失败:', err);
-    alert('操作失败: ' + err.message);
+    showToast('操作失败: ' + err.message, 'error');
     throw err;
   }
 }

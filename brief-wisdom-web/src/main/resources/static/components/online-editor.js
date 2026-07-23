@@ -489,7 +489,7 @@
         // 检查是否有数据
         if (dataCache.experiences.length === 0) {
             console.warn('[OnlineEditor] 没有数据可预览');
-            alert('暂无简历数据，请先添加工作经历');
+            showToast('暂无简历数据，请先添加工作经历', 'error');
             return;
         }
         
@@ -592,17 +592,17 @@
      * 新增工作经历
      */
     async function addExperience() {
-        const title = prompt('请输入公司名称：');
-        if (!title || !title.trim()) return;
+        const title = await showPromptDialog('请输入公司名称：', '例如：阿里巴巴', '🏢');
+        if (!title) return;
 
-        const job = prompt('请输入职位：') || '';
-        const description = prompt('请输入描述（可留空）：') || '';
+        const job = await showPromptDialog('请输入职位：', '例如：Java 开发工程师', '💼') || '';
+        const description = await showPromptDialog('请输入描述（可留空）：', '工作职责概述', '📝') || '';
 
         try {
             const payload = {
-                title: title.trim(),
-                job: job.trim(),
-                description: description.trim(),
+                title: title,
+                job: job,
+                description: description,
                 sortOrder: dataCache.experiences.length,
                 isVisible: 1
             };
@@ -624,7 +624,7 @@
             console.log('[OnlineEditor] 工作经历创建成功');
         } catch (error) {
             console.error('[OnlineEditor] 创建工作经历失败:', error);
-            alert('创建失败: ' + error.message);
+            showToast('创建失败: ' + error.message, 'error');
         }
     }
 
@@ -633,7 +633,7 @@
      */
     async function addProject() {
         if (dataCache.experiences.length === 0) {
-            alert('请先添加工作经历');
+            showToast('请先添加工作经历', 'error');
             return;
         }
 
@@ -644,20 +644,20 @@
         }
         const parentExp = dataCache.experiences[expIndex];
 
-        const name = prompt('请输入项目名称：');
-        if (!name || !name.trim()) return;
+        const name = await showPromptDialog('请输入项目名称：', '例如：智能简历平台', '📁');
+        if (!name) return;
 
-        const lifecycle = prompt('请输入项目周期（如：2024.01 - 2024.06）：') || '';
-        const background = prompt('请输入项目背景（可留空）：') || '';
-        const duty = prompt('请输入个人职责（可留空）：') || '';
+        const lifecycle = await showPromptDialog('请输入项目周期（如：2024.01 - 2024.06）：', '2024.01 - 2024.06', '📅') || '';
+        const background = await showPromptDialog('请输入项目背景（可留空）：', '项目简介', '📝') || '';
+        const duty = await showPromptDialog('请输入个人职责（可留空）：', '你负责的工作', '🎯') || '';
 
         try {
             const payload = {
                 experienceId: parentExp.id,
-                name: name.trim(),
-                lifecycle: lifecycle.trim(),
-                background: background.trim(),
-                duty: duty.trim(),
+                name: name,
+                lifecycle: lifecycle,
+                background: background,
+                duty: duty,
                 sortOrder: (parentExp.projects || []).length
             };
 
@@ -682,7 +682,7 @@
             console.log('[OnlineEditor] 项目创建成功');
         } catch (error) {
             console.error('[OnlineEditor] 创建项目失败:', error);
-            alert('创建失败: ' + error.message);
+            showToast('创建失败: ' + error.message, 'error');
         }
     }
 
@@ -691,18 +691,18 @@
      */
     async function addTechStack() {
         if (selectedExperienceIndex < 0 || selectedExperienceIndex >= dataCache.experiences.length) {
-            alert('请先选择一个工作经历');
+            showToast('请先选择一个工作经历', 'error');
             return;
         }
         const exp = dataCache.experiences[selectedExperienceIndex];
 
-        const techName = prompt('请输入技术栈名称：');
-        if (!techName || !techName.trim()) return;
+        const techName = await showPromptDialog('请输入技术栈名称：', '例如：Spring Boot', '🛠️');
+        if (!techName) return;
 
         try {
             const payload = {
                 experienceId: exp.id,
-                techName: techName.trim(),
+                techName: techName,
                 sortOrder: (exp.stacks || []).length
             };
 
@@ -726,7 +726,7 @@
             console.log('[OnlineEditor] 技术栈添加成功');
         } catch (error) {
             console.error('[OnlineEditor] 添加技术栈失败:', error);
-            alert('添加失败: ' + error.message);
+            showToast('添加失败: ' + error.message, 'error');
         }
     }
 
@@ -737,7 +737,8 @@
         if (index < 0 || index >= dataCache.experiences.length) return;
         const exp = dataCache.experiences[index];
 
-        if (!confirm('确定删除工作经历"' + (exp.title || '未命名') + '"吗？关联的项目和技术栈也会被删除。')) return;
+        const confirmed = await showConfirmDialog('确定删除工作经历"' + (exp.title || '未命名') + '"吗？关联的项目和技术栈也会被删除。', '🗑️');
+        if (!confirmed) return;
 
         try {
             const res = await fetch('/api/resume/manage/experiences/' + exp.id, { method: 'DELETE' });
@@ -757,7 +758,7 @@
             console.log('[OnlineEditor] 工作经历删除成功');
         } catch (error) {
             console.error('[OnlineEditor] 删除工作经历失败:', error);
-            alert('删除失败: ' + error.message);
+            showToast('删除失败: ' + error.message, 'error');
         }
     }
 
@@ -768,7 +769,8 @@
         if (index < 0 || index >= dataCache.projects.length) return;
         const proj = dataCache.projects[index];
 
-        if (!confirm('确定删除项目"' + (proj.name || '未命名') + '"吗？')) return;
+        const confirmed = await showConfirmDialog('确定删除项目"' + (proj.name || '未命名') + '"吗？', '🗑️');
+        if (!confirmed) return;
 
         try {
             const res = await fetch('/api/resume/manage/projects/' + proj.id, { method: 'DELETE' });
@@ -791,7 +793,7 @@
             console.log('[OnlineEditor] 项目删除成功');
         } catch (error) {
             console.error('[OnlineEditor] 删除项目失败:', error);
-            alert('删除失败: ' + error.message);
+            showToast('删除失败: ' + error.message, 'error');
         }
     }
 
@@ -813,7 +815,7 @@
         const newDesc = descEl.value.trim();
 
         if (!newTitle) {
-            alert('公司名称不能为空');
+            showToast('公司名称不能为空', 'error');
             return;
         }
 
@@ -843,7 +845,7 @@
             console.log('[OnlineEditor] 工作经历更新成功');
         } catch (error) {
             console.error('[OnlineEditor] 更新工作经历失败:', error);
-            alert('保存失败: ' + error.message);
+            showToast('保存失败: ' + error.message, 'error');
             // 保存失败也重新渲染，确保缓存和视图一致
             renderExperiencePanel();
             selectExperience(selectedExperienceIndex);
@@ -870,7 +872,7 @@
         const newDuty = dutyEl ? dutyEl.value.trim() : '';
 
         if (!newName) {
-            alert('项目名称不能为空');
+            showToast('项目名称不能为空', 'error');
             return;
         }
 
@@ -901,7 +903,7 @@
             console.log('[OnlineEditor] 项目更新成功');
         } catch (error) {
             console.error('[OnlineEditor] 更新项目失败:', error);
-            alert('保存失败: ' + error.message);
+            showToast('保存失败: ' + error.message, 'error');
             renderProjectPanel();
             selectProject(selectedProjectIndex);
         }
@@ -917,7 +919,7 @@
         // 检查 AI 开关是否开启
         const aiToggle = document.getElementById('editor-ai-enabled');
         if (aiToggle && !aiToggle.checked) {
-            alert('AI 辅助功能已关闭，请在顶部开关中开启');
+            showToast('AI 辅助功能已关闭，请在顶部开关中开启', 'error');
             return;
         }
 
@@ -926,7 +928,7 @@
 
         const originalText = textarea.value.trim();
         if (!originalText) {
-            alert('请先输入需要润色的文本');
+            showToast('请先输入需要润色的文本', 'error');
             return;
         }
 
@@ -973,16 +975,16 @@
             }
             
             if (errorMsg) {
-                alert(errorMsg);
+                showToast(errorMsg, 'error');
             } else if (polishedText) {
                 // 显示对比弹窗
                 showPolishComparison(originalText, polishedText, textarea);
             } else {
-                alert('AI 润色结果为空');
+                showToast('AI 润色结果为空', 'error');
             }
         } catch (error) {
             console.error('[OnlineEditor] AI润色失败:', error);
-            alert('AI 润色失败: ' + error.message);
+            showToast('AI 润色失败: ' + error.message, 'error');
         } finally {
             // 恢复按钮状态
             if (btn) {

@@ -13,12 +13,10 @@ import com.mouhin.brief.wisdom.system.service.DingtalkAuthService;
 import com.mouhin.brief.wisdom.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -40,7 +38,7 @@ public class DingtalkAuthServiceImpl implements DingtalkAuthService {
     public static final String PROVIDER_DINGTALK = "dingtalk";
 
     private final DingtalkProperties dingtalkProperties;
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ChatUserRepository chatUserRepository;
     private final UserOauthRepository userOauthRepository;
     private final RoleService roleService;
@@ -141,11 +139,12 @@ public class DingtalkAuthServiceImpl implements DingtalkAuthService {
             body.put("code", authCode);
             body.put("grantType", "authorization_code");
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
-
-            String responseBody = restTemplate.postForObject(url, request, String.class);
+            String responseBody = restClient.post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(String.class);
             JsonNode json = objectMapper.readTree(responseBody);
             if (!json.has("accessToken")) {
                 throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取 access_token 失败");
@@ -160,11 +159,11 @@ public class DingtalkAuthServiceImpl implements DingtalkAuthService {
     private JsonNode fetchUserInfo(String accessToken) {
         String url = dingtalkProperties.getUserinfoUrl();
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("x-acs-dingtalk-access-token", accessToken);
-            HttpEntity<Void> request = new HttpEntity<>(headers);
-
-            String responseBody = restTemplate.postForObject(url, request, String.class);
+            String responseBody = restClient.post()
+                    .uri(url)
+                    .header("x-acs-dingtalk-access-token", accessToken)
+                    .retrieve()
+                    .body(String.class);
             JsonNode json = objectMapper.readTree(responseBody);
             if (json.has("code") && !"0".equals(json.get("code").asText())) {
                 throw new AuthException(BizExceptionEnums.UNAUTHORIZED, "获取用户信息失败: " + (json.has("message") ? json.get("message").asText() : "未知错误"));

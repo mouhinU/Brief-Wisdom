@@ -220,7 +220,8 @@
      * 删除项目成果
      */
     async function deleteAchievement(id) {
-        if (!confirm('确定删除该项目成果？')) return;
+        const confirmed = await showConfirmDialog('确定删除该项目成果？', '🗑️');
+        if (!confirmed) return;
         
         try {
             await apiRequest(`/api/resume/manage/achievements/${id}`, 'DELETE');
@@ -306,6 +307,11 @@
         }
         textarea.style.borderColor = '#6366f1';
 
+        // 显示全局加载遮罩，明确提示用户请求正在进行（由 ai-polish.js 提供）
+        if (typeof window.showAiPolishLoading === 'function') {
+            window.showAiPolishLoading();
+        }
+
         try {
             const response = await fetch('/api/resume/ai/polish', {
                 method: 'POST',
@@ -347,10 +353,10 @@
                     // 降级：使用在线编辑器的对比弹窗
                     window.OnlineEditor.showPolishComparison(originalText, polishedText, textarea);
                 } else {
-                    // 最终降级：使用简单的 confirm
-                    const confirmed = confirm(
+                    // 最终降级：使用自定义确认弹窗
+                    const confirmed = await showConfirmDialog(
                         'AI 润色结果：\n\n' + polishedText + '\n\n' +
-                        '点击"确定"替换原文本，点击"取消"保留原文。'
+                        '点击"确定"替换原文本，点击"取消"保留原文。', '⚠️'
                     );
                     if (confirmed) {
                         textarea.value = polishedText;
@@ -370,6 +376,10 @@
                 btn.style.opacity = '1';
             }
             textarea.style.borderColor = '';
+            // 移除全局加载遮罩
+            if (typeof window.hideAiPolishLoading === 'function') {
+                window.hideAiPolishLoading();
+            }
         }
     }
 

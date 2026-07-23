@@ -290,13 +290,7 @@
      * 显示确认对话框
      */
     async function showConfirmDialog(message, icon = '⚠️') {
-        return new Promise(resolve => {
-            if (typeof window.showConfirmDialog === 'function') {
-                window.showConfirmDialog(message, icon).then(resolve);
-            } else {
-                resolve(confirm(message));
-            }
-        });
+        return await window.showConfirmDialog(message, icon);
     }
 
     /**

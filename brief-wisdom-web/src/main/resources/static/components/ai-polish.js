@@ -39,6 +39,9 @@
         }
         textarea.style.borderColor = '#6366f1';
 
+        // 显示全局加载遮罩，明确提示用户请求正在进行
+        showPolishLoading();
+
         try {
             const response = await fetch('/api/resume/ai/polish', {
                 method: 'POST',
@@ -89,6 +92,8 @@
                 btn.style.opacity = '1';
             }
             textarea.style.borderColor = '';
+            // 移除全局加载遮罩
+            hidePolishLoading();
         }
     }
 
@@ -266,6 +271,66 @@
     }
 
     /**
+     * 显示 AI 润色全局加载遮罩
+     * <p>
+     * 点击润色按钮后立即展示一个全屏居中的加载提示，
+     * 让用户明确感知点击已生效、AI 服务请求正在进行中。
+     */
+    function showPolishLoading() {
+        hidePolishLoading();
+        ensureSpinStyle();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'ai-polish-loading-overlay';
+        overlay.style.cssText = [
+            'position: fixed',
+            'top: 0',
+            'left: 0',
+            'right: 0',
+            'bottom: 0',
+            'background: rgba(15, 23, 42, 0.4)',
+            'display: flex',
+            'align-items: center',
+            'justify-content: center',
+            'z-index: 10000',
+            'backdrop-filter: blur(2px)'
+        ].join(';');
+
+        overlay.innerHTML = `
+            <div style="background:#ffffff;border-radius:16px;padding:32px 44px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 12px 40px rgba(0,0,0,0.25);">
+                <div style="width:44px;height:44px;border:4px solid #e5e7eb;border-top-color:#6366f1;border-radius:50%;animation:aiPolishSpin 0.8s linear infinite;"></div>
+                <div style="font-size:15px;font-weight:600;color:#1f2937;">AI 正在润色中…</div>
+                <div style="font-size:13px;color:#6b7280;">正在请求 AI 服务，请稍候</div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+    }
+
+    /**
+     * 隐藏 AI 润色全局加载遮罩
+     */
+    function hidePolishLoading() {
+        const existing = document.getElementById('ai-polish-loading-overlay');
+        if (existing) {
+            existing.remove();
+        }
+    }
+
+    /**
+     * 按需注入旋转动画的 keyframes 样式（避免重复注入）
+     */
+    function ensureSpinStyle() {
+        if (document.getElementById('ai-polish-spin-style')) {
+            return;
+        }
+        const style = document.createElement('style');
+        style.id = 'ai-polish-spin-style';
+        style.textContent = '@keyframes aiPolishSpin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+    }
+
+    /**
      * HTML 转义
      */
     function escapeHtml(str) {
@@ -318,8 +383,14 @@
         showComparisonModal,
         showToast,
         initPage,
-        escapeHtml
+        escapeHtml,
+        showPolishLoading,
+        hidePolishLoading
     };
+
+    // 同时挂载到全局，方便其他独立组件（如成果管理）直接调用加载遮罩
+    window.showAiPolishLoading = showPolishLoading;
+    window.hideAiPolishLoading = hidePolishLoading;
 
     // 页面加载完成后自动初始化
     if (document.readyState === 'loading') {

@@ -12,7 +12,7 @@ import java.io.Serial;
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
-public class SystemSettingsException extends BizException {
+public final class SystemSettingsException extends BizException {
 
     @Serial
     private static final long serialVersionUID = 1L;

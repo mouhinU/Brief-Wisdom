@@ -10,7 +10,7 @@ import com.mouhin.brief.wisdom.enums.BizExceptionEnums;
  * @author Brief-Wisdom
  * @date 2026-06-30
  */
-public class AIException extends BizException {
+public sealed class AIException extends BizException permits ContentSecurityException, RateLimitException {
 
     private static final long serialVersionUID = 1L;
 

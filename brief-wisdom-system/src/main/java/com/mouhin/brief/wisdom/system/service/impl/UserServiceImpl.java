@@ -120,20 +120,22 @@ public class UserServiceImpl implements UserService {
      * ChatUser 实体转 UserDTO（自动清除密码字段，包含角色信息）
      */
     private UserDTO toUserDTO(ChatUser user) {
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setUserId(user.getUserId());
-        dto.setUsername(user.getUsername());
-        dto.setNickname(user.getNickname());
-        dto.setAvatar(user.getAvatar());
-        dto.setUserLevel(user.getUserLevel());
-        dto.setCreateTime(user.getCreateTime());
-
         // 加载用户角色信息
         List<SysRole> roles = roleService.getUserRoles(user.getUserId());
-        dto.setRoleKeys(roles.stream().map(SysRole::getRoleKey).toList());
-        dto.setRoleNames(roles.stream().map(SysRole::getRoleName).toList());
+        List<String> roleKeys = roles.stream().map(SysRole::getRoleKey).toList();
+        List<String> roleNames = roles.stream().map(SysRole::getRoleName).toList();
 
-        return dto;
+        return new UserDTO(
+                user.getId(),
+                user.getUserId(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getAvatar(),
+                user.getUserLevel(),
+                user.getCreateTime(),
+                null,
+                roleKeys,
+                roleNames
+        );
     }
 }

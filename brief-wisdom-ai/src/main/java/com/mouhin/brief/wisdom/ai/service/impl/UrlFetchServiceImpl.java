@@ -52,8 +52,8 @@ public class UrlFetchServiceImpl implements UrlFetchService {
             throw new AIException("URL 格式不正确: " + e.getMessage());
         }
 
-        UrlMetadataDTO metadata = new UrlMetadataDTO();
-        metadata.setUrl(url);
+        String title;
+        String description;
 
         try {
             log.info("开始抓取 URL 元数据: {}", url);
@@ -65,12 +65,10 @@ public class UrlFetchServiceImpl implements UrlFetchService {
                     .get();
 
             // 提取标题
-            String title = extractTitle(doc);
-            metadata.setTitle(title);
+            title = extractTitle(doc);
 
             // 提取描述
-            String description = extractDescription(doc);
-            metadata.setDescription(description);
+            description = extractDescription(doc);
 
             log.info("URL 元数据抓取成功 - title: {}, desc length: {}",
                     title, description != null ? description.length() : 0);
@@ -83,7 +81,7 @@ public class UrlFetchServiceImpl implements UrlFetchService {
             throw new AIException("抓取网页信息时发生异常: " + e.getMessage());
         }
 
-        return metadata;
+        return new UrlMetadataDTO(title, description, url);
     }
 
     /**
