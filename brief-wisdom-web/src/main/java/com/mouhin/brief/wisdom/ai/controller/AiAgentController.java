@@ -11,7 +11,7 @@ import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
 import com.mouhin.brief.wisdom.common.ai.SyncStatusDTO;
 import com.mouhin.brief.wisdom.config.PaginationProperties;
 import com.mouhin.brief.wisdom.exception.AIException;
-import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,7 +55,7 @@ public class AiAgentController {
 
     private final AiAgentService aiAgentService;
     private final PaginationProperties paginationProperties;
-    private final UserContextHelper userContextHelper;
+    private final UserContextHolder userContextHolder;
     private final AiModelService aiModelService;
     private final Executor briefWisdomExecutor;
     private final ObjectMapper objectMapper;
@@ -90,7 +90,7 @@ public class AiAgentController {
     public String chatWithSession(
             @Parameter(description = "会话ID", required = true) @PathVariable String sessionId,
             @RequestBody ChatRequest request) {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         log.info("收到聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}, pageContext: {}", sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext());
         return aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext());
     }
@@ -111,7 +111,7 @@ public class AiAgentController {
     public SseEmitter chatStreamWithSession(
             @Parameter(description = "会话ID", required = true) @PathVariable String sessionId, ChatRequest request) {
 
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
 
         log.info("收到流式聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}", sessionId, userId, request.getMessage(), request.getModel());
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
@@ -217,7 +217,7 @@ public class AiAgentController {
     @Operation(summary = "终止流式会话", description = "主动终止当前用户正在进行的流式 AI 回复")
     @DeleteMapping("/chat/stream/stop")
     public Boolean stopStream() {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         Disposable subscription = activeStreamSubscriptions.remove(userId);
         if (subscription != null && !subscription.isDisposed()) {
             subscription.dispose();
@@ -248,7 +248,7 @@ public class AiAgentController {
     @Operation(summary = "创建新会话", description = "创建新的 AI 对话会话，支持传入页面上下文")
     @PostMapping("/session")
     public String createSession(@RequestBody(required = false) SessionCreateRequest request) {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         String pageContext = (request != null) ? request.getPageContext() : null;
         return aiAgentService.createSession(userId, pageContext);
     }
@@ -284,7 +284,7 @@ public class AiAgentController {
     @Operation(summary = "获取会话列表", description = "获取当前登录用户的会话列表，支持分页")
     @PostMapping("/sessions")
     public PageResult<SessionMetaDTO> listSessions(@RequestBody SessionListQueryRequest request) {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         PaginationProperties.PageConfig config = paginationProperties.getSessionList();
         int resolvedSize = config.resolveSize(request.getSize());
         return aiAgentService.listSessionsPaged(userId, request.getPage(), resolvedSize);
@@ -320,7 +320,7 @@ public class AiAgentController {
     @GetMapping("/session/{sessionId}/export")
     public ResponseEntity<byte[]> exportSession(
             @Parameter(description = "会话ID", required = true) @PathVariable String sessionId) {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         log.info("导出会话 - sessionId: {}, userId: {}", sessionId, userId);
 
         String markdown = aiAgentService.exportSessionAsMarkdown(sessionId, userId);
@@ -412,7 +412,7 @@ public class AiAgentController {
     @Operation(summary = "保存流式消息", description = "前端接收完整流式响应后调用此接口持久化消息")
     @PostMapping("/message/save")
     public Boolean saveStreamedMessage(@RequestBody SaveStreamedMessageRequest request) {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         log.info("收到保存流式消息请求 - sessionId: {}, userId: {}, model: {}",
                 request.getSessionId(), userId, request.getModel());
 
@@ -472,7 +472,7 @@ public class AiAgentController {
     @Operation(summary = "获取同步状态", description = "获取当前用户的多端同步状态指纹")
     @GetMapping("/sync/status")
     public SyncStatusDTO getSyncStatus() {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         return aiAgentService.getSyncStatus(userId);
     }
 
@@ -541,7 +541,7 @@ public class AiAgentController {
     @Operation(summary = "提交消息反馈", description = "用户对 AI 回复进行 1-5 分评分，可选附带文字反馈")
     @PostMapping("/feedback")
     public Boolean submitFeedback(@RequestBody Map<String, Object> request) {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
 
         Object messageIdObj = request.get("messageId");
         Object scoreObj = request.get("score");

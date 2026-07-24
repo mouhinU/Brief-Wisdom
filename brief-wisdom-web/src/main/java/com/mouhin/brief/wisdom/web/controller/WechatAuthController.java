@@ -2,7 +2,7 @@ package com.mouhin.brief.wisdom.web.controller;
 
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.system.service.RoleService;
-import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHolder;
 import com.mouhin.brief.wisdom.system.service.WechatAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,7 +40,7 @@ public class WechatAuthController {
 
     private final WechatAuthService wechatAuthService;
     private final RoleService roleService;
-    private final UserContextHelper userContextHelper;
+    private final UserContextHolder userContextHolder;
 
     /**
      * 发起微信扫码登录
@@ -81,7 +81,7 @@ public class WechatAuthController {
         try {
             // 校验 state 防止 CSRF
             HttpSession session = request.getSession(true);
-            if (!userContextHelper.validateOAuthState(session, WECHAT_STATE_KEY, state)) {
+            if (!userContextHolder.validateOAuthState(session, WECHAT_STATE_KEY, state)) {
                 log.warn("[微信登录] state 校验失败，拒绝登录");
                 response.sendRedirect("/?login_error=1");
                 return;
@@ -91,7 +91,7 @@ public class WechatAuthController {
             ChatUser user = wechatAuthService.handleWechatCallback(code);
 
             // 统一写入 Session + SecurityContext
-            userContextHelper.loginSuccess(user, request);
+            userContextHolder.loginSuccess(user, request);
 
             // 重定向到关于我页面
             response.sendRedirect("/about.html");
@@ -114,7 +114,7 @@ public class WechatAuthController {
         Map<String, Object> result = new HashMap<>(4);
         HttpSession session = request.getSession(false);
         if (session != null) {
-            ChatUser user = (ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY);
+            ChatUser user = (ChatUser) session.getAttribute(UserContextHolder.SESSION_USER_KEY);
             if (user != null) {
                 result.put("loggedIn", true);
                 Map<String, String> userInfo = new HashMap<>(4);
@@ -145,7 +145,7 @@ public class WechatAuthController {
     @Operation(summary = "获取当前登录用户", description = "需已登录，返回用户详细信息")
     public ResponseEntity<Map<String, Object>> currentUser(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
-        ChatUser user = session != null ? (ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY) : null;
+        ChatUser user = session != null ? (ChatUser) session.getAttribute(UserContextHolder.SESSION_USER_KEY) : null;
         if (user == null) {
             return ResponseEntity.status(401).body(Map.of("success", false, "error", "未登录"));
         }

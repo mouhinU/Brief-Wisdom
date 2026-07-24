@@ -2,7 +2,7 @@ package com.mouhin.brief.wisdom.config;
 
 import com.mouhin.brief.wisdom.common.tool.ToolContextProvider;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
-import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,16 +19,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ToolContextProviderImpl implements ToolContextProvider {
 
-    private final UserContextHelper userContextHelper;
+    private final UserContextHolder userContextHolder;
 
     @Override
     public String getCurrentUserId() {
-        return userContextHelper.getCurrentUserId();
+        return userContextHolder.getCurrentUserId();
     }
 
     @Override
     public boolean isAdmin() {
-        ChatUser user = userContextHelper.getCurrentUser();
+        ChatUser user = userContextHolder.getCurrentUser();
         if (user == null) {
             return false;
         }
@@ -38,7 +38,7 @@ public class ToolContextProviderImpl implements ToolContextProvider {
 
     @Override
     public boolean isSuperAdmin() {
-        ChatUser user = userContextHelper.getCurrentUser();
+        ChatUser user = userContextHolder.getCurrentUser();
         if (user == null) {
             return false;
         }

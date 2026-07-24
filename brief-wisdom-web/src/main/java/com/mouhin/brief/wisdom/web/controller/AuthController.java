@@ -40,7 +40,7 @@ public class AuthController {
     private final AuthService authService;
     private final RoleService roleService;
     private final RateLimitService rateLimitService;
-    private final UserContextHelper userContextHelper;
+    private final UserContextHolder userContextHolder;
     private final SmsService smsService;
     private final SsoTokenService ssoTokenService;
 
@@ -50,7 +50,7 @@ public class AuthController {
     @Operation(summary = "用户注册", description = "使用用户名和密码注册新账号，可选绑定手机号")
     @PostMapping("/register")
     public UserDTO register(@RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
-        String userId = userContextHelper.getCurrentUserId(httpRequest);
+        String userId = userContextHolder.getCurrentUserId(httpRequest);
         if (rateLimitService.isRateLimited("register:" + userId)) {
             throw new RateLimitException("注册请求过于频繁，请稍后再试");
         }
@@ -97,7 +97,7 @@ public class AuthController {
             throw new AuthException("密码不能为空");
         }
         UserDTO user = authService.login(request.getUsername(), request.getPassword());
-        userContextHelper.loginSuccess(toChatUser(user), httpRequest);
+        userContextHolder.loginSuccess(toChatUser(user), httpRequest);
         return user;
     }
 
@@ -123,7 +123,7 @@ public class AuthController {
         }
 
         UserDTO user = authService.loginByPhone(phone, code);
-        userContextHelper.loginSuccess(toChatUser(user), httpRequest);
+        userContextHolder.loginSuccess(toChatUser(user), httpRequest);
         return user;
     }
 
@@ -180,7 +180,7 @@ public class AuthController {
     @Operation(summary = "获取SSO令牌", description = "已登录用户获取SSO令牌，用于跳转其他应用")
     @GetMapping("/sso/token")
     public Map<String, Object> ssoGetToken(HttpServletRequest httpRequest) {
-        ChatUser user = (ChatUser) httpRequest.getSession().getAttribute(UserContextHelper.SESSION_USER_KEY);
+        ChatUser user = (ChatUser) httpRequest.getSession().getAttribute(UserContextHolder.SESSION_USER_KEY);
         if (user == null) {
             return Map.of("success", false, "message", "未登录");
         }

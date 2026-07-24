@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class UserContextHelper {
+public class UserContextHolder {
 
     /**
      * Session 中存储用户信息的 Key

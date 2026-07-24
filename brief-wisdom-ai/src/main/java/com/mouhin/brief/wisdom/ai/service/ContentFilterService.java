@@ -89,8 +89,8 @@ public class ContentFilterService {
     /**
      * 安全提示消息（当输出被过滤时返回给用户）
      */
-    private static final String FILTERED_RESPONSE =
-            "抱歉，回复中包含敏感信息，已被安全过滤。请调整您的问题后重试。";
+    private static final String FILTERED_RESPONSE = "抱歉，回复中包含敏感信息，已被安全过滤。请调整您的问题后重试。";
+
     private final AiAuditService auditService;
 
     public ContentFilterService(AiAuditService auditService) {
@@ -257,8 +257,7 @@ public class ContentFilterService {
         if (matchCount > 0) {
             log.info("[内容安全] 输出过滤命中 {} 处敏感信息，已替换", matchCount);
             // 记录审计日志
-            auditService.logOutputFiltered(sessionId, userId, messageId, matchedPattern,
-                    maskSensitiveInfo(content), filtered);
+            auditService.logOutputFiltered(sessionId, userId, messageId, matchedPattern, maskSensitiveInfo(content), filtered);
         }
 
         return filtered;

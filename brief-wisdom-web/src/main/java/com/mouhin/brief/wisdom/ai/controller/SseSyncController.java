@@ -1,7 +1,7 @@
 package com.mouhin.brief.wisdom.ai.controller;
 
 import com.mouhin.brief.wisdom.ai.service.SseChatSyncService;
-import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class SseSyncController {
 
     private final SseChatSyncService sseChatSyncService;
-    private final UserContextHelper userContextHelper;
+    private final UserContextHolder userContextHolder;
 
     /**
      * SSE 实时同步事件流
@@ -48,7 +48,7 @@ public class SseSyncController {
     @GetMapping(value = "/events")
     @Operation(summary = "建立 SSE 同步事件流", description = "前端通过 EventSource 连接，接收会话与消息变更通知")
     public SseEmitter syncEvents() {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         log.info("[SSE] 用户 {} 请求建立 SSE 连接", userId);
         return sseChatSyncService.createConnection(userId);
     }
@@ -61,7 +61,7 @@ public class SseSyncController {
     @DeleteMapping("/events")
     @Operation(summary = "断开 SSE 同步连接", description = "前端关闭聊天窗口时主动清理服务端连接资源")
     public Boolean disconnectSync() {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         sseChatSyncService.disconnectUser(userId);
         log.info("[SSE] 用户 {} 主动断开 SSE 连接", userId);
         return true;

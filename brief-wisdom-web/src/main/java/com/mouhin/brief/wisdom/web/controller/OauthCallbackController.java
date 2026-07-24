@@ -3,7 +3,7 @@ package com.mouhin.brief.wisdom.web.controller;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.system.service.AlipayAuthService;
 import com.mouhin.brief.wisdom.system.service.DingtalkAuthService;
-import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,7 +41,7 @@ public class OauthCallbackController {
 
     private final DingtalkAuthService dingtalkAuthService;
     private final AlipayAuthService alipayAuthService;
-    private final UserContextHelper userContextHelper;
+    private final UserContextHolder userContextHolder;
 
     // ==================== 钉钉登录 ====================
 
@@ -79,14 +79,14 @@ public class OauthCallbackController {
         try {
             // 校验 state 防止 CSRF
             HttpSession session = request.getSession(true);
-            if (!userContextHelper.validateOAuthState(session, DINGTALK_STATE_KEY, state)) {
+            if (!userContextHolder.validateOAuthState(session, DINGTALK_STATE_KEY, state)) {
                 log.warn("[钉钉登录] state 校验失败，拒绝登录");
                 response.sendRedirect("/?login_error=1");
                 return;
             }
 
             ChatUser user = dingtalkAuthService.handleDingtalkCallback(authCode);
-            userContextHelper.loginSuccess(user, request);
+            userContextHolder.loginSuccess(user, request);
             response.sendRedirect("/about.html");
         } catch (Exception e) {
             log.error("[钉钉登录] 回调处理失败", e);
@@ -130,14 +130,14 @@ public class OauthCallbackController {
         try {
             // 校验 state 防止 CSRF
             HttpSession session = request.getSession(true);
-            if (!userContextHelper.validateOAuthState(session, ALIPAY_STATE_KEY, state)) {
+            if (!userContextHolder.validateOAuthState(session, ALIPAY_STATE_KEY, state)) {
                 log.warn("[支付宝登录] state 校验失败，拒绝登录");
                 response.sendRedirect("/?login_error=1");
                 return;
             }
 
             ChatUser user = alipayAuthService.handleAlipayCallback(authCode);
-            userContextHelper.loginSuccess(user, request);
+            userContextHolder.loginSuccess(user, request);
             response.sendRedirect("/about.html");
         } catch (Exception e) {
             log.error("[支付宝登录] 回调处理失败", e);

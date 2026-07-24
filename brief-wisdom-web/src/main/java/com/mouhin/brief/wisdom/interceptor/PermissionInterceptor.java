@@ -5,7 +5,7 @@ import com.mouhin.brief.wisdom.common.Result;
 import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.system.service.RoleService;
-import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -78,7 +78,7 @@ public class PermissionInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        ChatUser user = (ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY);
+        ChatUser user = (ChatUser) session.getAttribute(UserContextHolder.SESSION_USER_KEY);
         if (user == null) {
             writeForbiddenResponse(response, requiredPermission);
             return false;

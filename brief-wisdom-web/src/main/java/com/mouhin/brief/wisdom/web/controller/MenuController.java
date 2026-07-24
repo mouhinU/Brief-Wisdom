@@ -6,7 +6,7 @@ import com.mouhin.brief.wisdom.common.security.RequiresPermission;
 import com.mouhin.brief.wisdom.persistence.model.SysMenu;
 import com.mouhin.brief.wisdom.system.service.MenuService;
 import com.mouhin.brief.wisdom.system.service.RoleService;
-import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +33,7 @@ public class MenuController {
 
     private final MenuService menuService;
     private final RoleService roleService;
-    private final UserContextHelper userContextHelper;
+    private final UserContextHolder userContextHolder;
 
     /**
      * 获取可见菜单列表（扁平结构）
@@ -57,7 +57,7 @@ public class MenuController {
         jakarta.servlet.http.HttpSession session = request.getSession(false);
         if (session != null) {
             com.mouhin.brief.wisdom.persistence.model.ChatUser user =
-                    (com.mouhin.brief.wisdom.persistence.model.ChatUser) session.getAttribute(UserContextHelper.SESSION_USER_KEY);
+                    (com.mouhin.brief.wisdom.persistence.model.ChatUser) session.getAttribute(UserContextHolder.SESSION_USER_KEY);
             if (user != null) {
                 // 已登录：基于角色过滤菜单
                 java.util.List<String> roleKeys = roleService.getUserRoleKeys(user.getUserId());
@@ -74,7 +74,7 @@ public class MenuController {
     @Operation(summary = "获取当前用户菜单", description = "获取当前登录用户可见的菜单树，基于角色权限")
     @GetMapping("/my-menus")
     public java.util.List<MenuTreeDTO> getMyMenus() {
-        String userId = userContextHelper.getCurrentUserId();
+        String userId = userContextHolder.getCurrentUserId();
         if (userId == null) {
             // 未登录返回空
             return java.util.List.of();

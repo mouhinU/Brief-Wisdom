@@ -12,7 +12,7 @@ import com.mouhin.brief.wisdom.knowledge.req.DocumentBatchDeleteRequest;
 import com.mouhin.brief.wisdom.knowledge.req.DocumentListQueryRequest;
 import com.mouhin.brief.wisdom.knowledge.req.DocumentSearchQueryRequest;
 import com.mouhin.brief.wisdom.knowledge.req.KnowledgeBasePagedQueryRequest;
-import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,7 +43,7 @@ public class KnowledgeController {
     private final KnowledgeVectorService knowledgeVectorService;
     private final MarkdownImportService markdownImportService;
     private final UrlFetchService urlFetchService;
-    private final UserContextHelper userContextHelper;
+    private final UserContextHolder userContextHolder;
 
     // ==================== 知识库 ====================
 
@@ -255,7 +255,7 @@ public class KnowledgeController {
      * 检查用户是否已登录，未登录则抛出异常
      */
     private void checkLoginRequired(HttpServletRequest request) {
-        if (!userContextHelper.isLoggedIn()) {
+        if (!userContextHolder.isLoggedIn()) {
             log.warn("[知识库检索] 访客尝试访问受限接口 - ip: {}", getClientIp(request));
             throw new BizException(BizExceptionEnums.UNAUTHORIZED, "需要登录后才能检索知识库内容");
         }

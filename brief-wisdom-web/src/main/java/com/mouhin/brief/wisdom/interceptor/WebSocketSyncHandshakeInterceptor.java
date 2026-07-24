@@ -1,6 +1,6 @@
 package com.mouhin.brief.wisdom.interceptor;
 
-import com.mouhin.brief.wisdom.system.service.UserContextHelper;
+import com.mouhin.brief.wisdom.system.service.UserContextHolder;
 import com.mouhin.brief.wisdom.websocket.WebSocketSyncHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,13 +29,13 @@ import java.util.Map;
 @ConditionalOnProperty(name = "app.sync.transport", havingValue = "websocket")
 public class WebSocketSyncHandshakeInterceptor implements HandshakeInterceptor {
 
-    private final UserContextHelper userContextHelper;
+    private final UserContextHolder userContextHolder;
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
         if (request instanceof ServletServerHttpRequest servletRequest) {
-            String userId = userContextHelper.getCurrentUserId(servletRequest.getServletRequest());
+            String userId = userContextHolder.getCurrentUserId(servletRequest.getServletRequest());
             attributes.put(WebSocketSyncHandler.ATTR_USER_ID, userId);
             log.info("[WebSocket] 握手成功 - userId: {}, remoteAddress: {}", userId, request.getRemoteAddress());
             return true;
