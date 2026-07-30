@@ -53,7 +53,8 @@ public class KnowledgeController {
     @Operation(summary = "获取知识库树")
     @GetMapping("/bases/tree")
     public List<KnowledgeBaseDTO> listBasesTree() {
-        return knowledgeService.listBasesTree();
+        String userId = userContextHolder.getCurrentUserId();
+        return knowledgeService.listBasesTree(userId);
     }
 
     /**
@@ -62,7 +63,8 @@ public class KnowledgeController {
     @Operation(summary = "获取知识库列表", description = "平铺列表")
     @GetMapping("/bases")
     public List<KnowledgeBaseDTO> listBases() {
-        return knowledgeService.listBases();
+        String userId = userContextHolder.getCurrentUserId();
+        return knowledgeService.listBases(userId);
     }
 
     /**
@@ -86,7 +88,11 @@ public class KnowledgeController {
      */
     @PostMapping("/bases")
     public KnowledgeBaseDTO createBase(@RequestBody KnowledgeBaseRequest request) {
+        String userId = userContextHolder.getCurrentUserId();
         KnowledgeBaseBO bo = convertToBaseBO(request);
+        // 归属类型由 Service 根据 teamIds 决定（有团队=团队KB，无团队=个人KB）
+        bo.setOwnerId(userId);
+        bo.setCreatorId(userId);
         return knowledgeService.createBase(bo);
     }
 
@@ -287,6 +293,7 @@ public class KnowledgeController {
         bo.setParentId(request.getParentId());
         bo.setSortOrder(request.getSortOrder());
         bo.setIsPublic(request.getIsPublic());
+        bo.setTeamIds(request.getTeamIds());
         return bo;
     }
 

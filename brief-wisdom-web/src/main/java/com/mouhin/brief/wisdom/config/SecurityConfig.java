@@ -60,6 +60,8 @@ public class SecurityConfig {
                         // 静态资源全部公开
                         .requestMatchers("/", "/index.html", "/about.html", "/login.html").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/data/**", "/images/**").permitAll()
+                        // 多模态上传文件的本地存储访问路径
+                        .requestMatchers("/uploads/**").permitAll()
                         // AI 助手管理需要 admin 或 super_admin 角色（必须在 /api/ai/** 之前）
                         .requestMatchers("/api/ai/manage/**").hasAnyRole("admin", "super_admin")
                         .requestMatchers("/ai-manage.html").hasAnyRole("admin", "super_admin")

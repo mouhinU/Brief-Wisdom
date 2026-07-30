@@ -57,15 +57,20 @@
                             <button class="quick-action-btn" onclick="quickAsk('生成文档')">📝 文档</button>
                         </div>
                         
+                        <!-- 附件预览区 -->
+                        <div class="attachment-preview-area" id="attachmentPreviewArea" style="display:none;"></div>
+                        
                         <div class="chat-input-wrapper">
                             <select id="modelSelector" class="model-selector-select" onchange="onModelChange()">
                                 <option value="">加载中...</option>
                             </select>
+                            <button class="attach-button" id="attachButton" onclick="triggerFileUpload()" title="添加图片附件">📎</button>
+                            <input type="file" id="fileUploadInput" accept="image/*" multiple style="display:none;" onchange="handleFileSelect(event)">
                             <input type="text" class="chat-input" id="chatInput"
                                    placeholder="输入您的问题... (Enter 发送, Ctrl+Enter 换行)" autocomplete="off">
                             <button class="send-button" id="sendButton" onclick="sendMessage()">发送</button>
                         </div>
-                        <div class="input-hint">按 Enter 发送消息 | Ctrl+Enter 换行</div>
+                        <div class="input-hint">按 Enter 发送消息 | Ctrl+Enter 换行 | 📎 添加图片</div>
                     </div>
                 </div>
             </div>

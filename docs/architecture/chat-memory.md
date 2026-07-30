@@ -25,13 +25,13 @@ AI 能够提供更个性化的回答。
     │
     ├──→ AiAgentService.chatWithSession()
     │         │
-    │         ├── chatMemoryService.buildMemoryContext(userId)
+    │         ├── chatMemoryService.buildMemoryContext(userId, sessionId)
     │         │       │
-    │         │       └── 加载所有记忆 → 格式化 → 注入系统提示词
+    │         │       └── 按 sessionId 过滤记忆 → 格式化 → 注入系统提示词
     │         │
     │         ├── chatMemoryService.extractMemoriesFromMessage(userId, message, sessionId)
     │         │       │
-    │         │       └── 正则匹配 → 自动保存记忆（异步）
+    │         │       └── 正则匹配 → 自动保存记忆（同步，try-catch 包裹）
     │         │
     │         └── 正常对话流程（携带记忆上下文）
     │
@@ -92,11 +92,11 @@ AI 能够提供更个性化的回答。
 
 **saveMemory(userId, category, key, value, sessionId)**：按 `userId + memoryKey` 进行 upsert 操作。若已存在则更新值和类别，若不存在则创建新记录。
 
-**buildMemoryContext(userId)**：加载用户所有记忆，格式化为注入系统提示词的上下文：
+**buildMemoryContext(userId, sessionId)**：加载用户在指定会话中的记忆（按 `sourceSessionId` 过滤，确保会话间记忆隔离），格式化为注入系统提示词的上下文：
 
 ```
 --- 用户记忆 ---
-以下是你记住的关于该用户的信息，请在回答时参考：
+以下是你在本会话中记住的关于该用户的信息，请在回答时参考：
 - name: 张三
 - tech_stack: Java/Spring
 --- 记忆结束 ---
@@ -134,17 +134,17 @@ AI 能够提供更个性化的回答。
 在 `AiAgentService.chatWithSession()` 和 `chatStreamWithSession()` 中：
 
 ```java
-// 1. 注入记忆上下文到系统提示词
-String memoryContext = chatMemoryService.buildMemoryContext(userId);
+// 1. 注入记忆上下文到系统提示词（仅当前会话的记忆）
+String memoryContext = chatMemoryService.buildMemoryContext(userId, sessionId);
 if (!memoryContext.isBlank()) {
     systemPrompt += memoryContext;
 }
 
-// 2. 自动从用户消息中提取记忆（非阻塞）
+// 2. 自动从用户消息中提取记忆（同步，try-catch 包裹，不阻塞主流程）
 chatMemoryService.extractMemoriesFromMessage(userId, message, sessionId);
 ```
 
-记忆上下文在每次聊天时注入系统提示词，自动提取在每条用户消息后异步执行。
+记忆上下文在每次聊天时注入系统提示词（按会话隔离），自动提取在每条用户消息后同步执行（失败仅记录日志，不影响主流程）。
 
 ---
 

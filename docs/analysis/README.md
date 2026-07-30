@@ -34,7 +34,7 @@ Brief-Wisdom 是一个**功能较完整的企业级 AI 对话平台**，架构�
 | N+1 查询修复              | ✅  | AiManageServiceImpl 批量聚合查询                         |
 | SpringDoc OpenAPI     | ✅  | 已集成，访问 /swagger-ui.html                            |
 | BizException 体系       | ✅  | 模块化异常 + BizExceptionEnums 错误码                      |
-| Flyway 数据库迁移          | ✅  | V1__baseline.sql + V2__add_performance_indexes.sql |
+| Flyway 数据库迁移          | ✅  | V1__baseline ~ V8__init_resume_knowledge_base（共 8 个迁移脚本） |
 | SQL 性能索引              | ✅  | chat_session.user_id、chat_message.session_id 等     |
 | CI/CD                 | ✅  | .github/workflows/ci.yml 自动 compile + test         |
 | Actuator + Prometheus | ✅  | 健康检查与 metrics 端点已接入                                |

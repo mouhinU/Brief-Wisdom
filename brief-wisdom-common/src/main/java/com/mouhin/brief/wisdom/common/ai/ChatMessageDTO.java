@@ -2,6 +2,7 @@ package com.mouhin.brief.wisdom.common.ai;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 聊天消息传输对象
@@ -19,7 +20,8 @@ public record ChatMessageDTO(
         Integer tokens,
         Double cost,
         LocalDateTime timestamp,
-        String messageType
+        String messageType,
+        List<AttachmentDTO> attachments
 ) implements Serializable {
 
     public Long getId() { return id; }
@@ -41,4 +43,6 @@ public record ChatMessageDTO(
     public LocalDateTime getTimestamp() { return timestamp; }
 
     public String getMessageType() { return messageType; }
+
+    public List<AttachmentDTO> getAttachments() { return attachments; }
 }

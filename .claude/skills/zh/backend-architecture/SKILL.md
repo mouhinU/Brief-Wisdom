@@ -15,7 +15,7 @@ description: 用于 Brief-Wisdom 的核心后端变更，如接口、服务、�
 
 ## 核心规则
 
-- 遵循模块依赖方向：web -> service/api -> persistence -> common
+- 遵循模块依赖方向：web -> ai/system/resume/api -> service -> persistence -> common
 - 控制器保持轻量，业务流转交给服务层
 - 使用服务接口，并在对应 impl 包中实现
 - 优先使用 DTO，避免直接暴露持久化实体

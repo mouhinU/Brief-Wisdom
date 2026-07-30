@@ -2,6 +2,8 @@ package com.mouhin.brief.wisdom.common.knowledge;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 知识库创建/更新请求
  */
@@ -21,4 +23,9 @@ public class KnowledgeBaseRequest {
     private Long parentId;
     private Integer sortOrder;
     private Integer isPublic;
+
+    /**
+     * 关联的团队ID列表（支持多团队归属，为空表示个人知识库）
+     */
+    private List<Long> teamIds;
 }

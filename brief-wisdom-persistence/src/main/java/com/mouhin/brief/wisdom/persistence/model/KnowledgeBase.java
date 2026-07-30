@@ -33,4 +33,22 @@ public class KnowledgeBase extends BaseEntity {
 
     @TableField(value = "is_public")
     private Integer isPublic;
+
+    /**
+     * 归属类型: personal-个人, team-团队
+     */
+    @TableField(value = "owner_type")
+    private String ownerType;
+
+    /**
+     * 归属ID（用户ID或团队ID）
+     */
+    @TableField(value = "owner_id")
+    private String ownerId;
+
+    /**
+     * 创建者用户ID
+     */
+    @TableField(value = "creator_id")
+    private String creatorId;
 }

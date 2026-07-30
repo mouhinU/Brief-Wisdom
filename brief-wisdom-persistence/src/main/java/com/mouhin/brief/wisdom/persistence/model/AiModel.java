@@ -45,4 +45,7 @@ public class AiModel extends BaseEntity {
 
     @TableField(value = "thinking_mode")
     private String thinkingMode;  // 思考模式: normal-普通模式, thinking-思考模式
+
+    @TableField(value = "supports_vision")
+    private Integer supportsVision;  // 是否支持视觉(图片)输入: 0-不支持, 1-支持
 }

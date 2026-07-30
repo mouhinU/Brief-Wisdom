@@ -1,13 +1,16 @@
 package com.mouhin.brief.wisdom.persistence.repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.persistence.mapper.KnowledgeDocumentMapper;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeDocument;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 知识文档数据访问层
@@ -196,6 +199,31 @@ public class KnowledgeDocumentRepository {
      */
     public List<KnowledgeDocument> findAll() {
         return knowledgeDocumentMapper.selectList(new LambdaQueryWrapper<>());
+    }
+
+    /**
+     * 批量统计多个知识库下的文档数量（单次查询，避免 N+1）
+     *
+     * @param baseIds 知识库 ID 列表
+     * @return baseId -> 文档数量 的映射
+     */
+    public Map<Long, Long> countByBaseIdGrouped(List<Long> baseIds) {
+        if (baseIds == null || baseIds.isEmpty()) {
+            return Map.of();
+        }
+        QueryWrapper<KnowledgeDocument> qw = new QueryWrapper<>();
+        qw.select("base_id, COUNT(*) AS cnt");
+        qw.in("base_id", baseIds);
+        qw.groupBy("base_id");
+        List<Map<String, Object>> maps = knowledgeDocumentMapper.selectMaps(qw);
+        int initialCapacity = (int) (maps.size() / 0.75) + 1;
+        Map<Long, Long> result = new HashMap<>(initialCapacity);
+        for (Map<String, Object> map : maps) {
+            Long baseId = ((Number) map.get("base_id")).longValue();
+            Long cnt = ((Number) map.get("cnt")).longValue();
+            result.put(baseId, cnt);
+        }
+        return result;
     }
 
     /**

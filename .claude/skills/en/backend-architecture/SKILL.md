@@ -15,7 +15,7 @@ Use it for new API endpoints, shared service changes, repository logic updates, 
 
 ## Core Rules
 
-- Follow the module direction: web -> service/api -> persistence -> common
+- Follow the module direction: web -> ai/system/resume/api -> service -> persistence -> common
 - Keep controllers thin and delegate business flow to services
 - Use service interfaces and implementation classes in the matching impl package
 - Prefer DTOs over exposing persistence entities directly

@@ -143,6 +143,7 @@ public class AiModelServiceImpl implements AiModelService {
                 m.getInputPricePerMillion(),
                 m.getOutputPricePerMillion(),
                 m.getThinkingMode(),
+                m.getSupportsVision(),
                 m.getCreateTime(),
                 m.getUpdateTime()
         );

@@ -26,11 +26,27 @@ public interface KnowledgeService {
     List<KnowledgeBaseDTO> listBasesTree();
 
     /**
+     * 获取用户可见的知识库（树形结构，按权限过滤）
+     *
+     * @param userId 当前用户ID
+     * @return 用户可见的知识库树形 DTO 列表
+     */
+    List<KnowledgeBaseDTO> listBasesTree(String userId);
+
+    /**
      * 获取所有知识库（平铺列表，含文档数量）
      *
      * @return 知识库 DTO 列表
      */
     List<KnowledgeBaseDTO> listBases();
+
+    /**
+     * 获取用户可见的知识库（平铺列表，按权限过滤，含文档数量）
+     *
+     * @param userId 当前用户ID
+     * @return 用户可见的知识库 DTO 列表
+     */
+    List<KnowledgeBaseDTO> listBases(String userId);
 
     /**
      * 分页查询顶级知识库

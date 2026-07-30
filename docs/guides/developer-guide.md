@@ -148,7 +148,7 @@ brief-wisdom-web (Web 入口)
 | MyBatis-Plus    | 3.5.16 | ORM 框架                                     |
 | Redis           | 6.0+   | 缓存 + Session 存储 + 向量检索（RediSearch）         |
 | Redisson        | 3.40.2 | 分布式锁（独立客户端，避免冲突）                           |
-| Spring Security | 7      | 认证授权（RBAC）                                 |
+| Spring Security | 6      | 认证授权（RBAC）                                 |
 | SpringDoc       | 2.8.6  | API 文档（OpenAPI 3）                          |
 
 详细技术栈请参考 [README.md](../README.md#技术栈)。

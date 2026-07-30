@@ -21,7 +21,7 @@
 | docs/architecture/chat-memory.md | 162 | 跨会话记忆功能设计 |
 | docs/features/ai-polish/README.md | 262 | AI 润色组件完整文档 |
 | docs/guides/developer-guide.md | 317 | 开发者快速入门 |
-| docs/guides/database-schema.md | 483 | 数据库表结构（含全部 17 张表） |
+| docs/guides/database-schema.md | 483 | 数据库表结构（含全部 18 张表） |
 | docs/guides/LOG_CONFIGURATION.md | 148 | 日志配置说明 |
 | docs/guides/MARKDOWN_IMPORT_GUIDE.md | 235 | Markdown 导入指南 |
 | docs/analysis/README.md | 126 | 项目能力总结与未来规划 |

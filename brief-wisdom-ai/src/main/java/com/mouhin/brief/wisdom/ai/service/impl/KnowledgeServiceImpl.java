@@ -3,15 +3,20 @@ package com.mouhin.brief.wisdom.ai.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeService;
 import com.mouhin.brief.wisdom.ai.service.KnowledgeVectorService;
+import com.mouhin.brief.wisdom.ai.service.TeamService;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeBaseDTO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentDTO;
 import com.mouhin.brief.wisdom.exception.AIException;
+import com.mouhin.brief.wisdom.persistence.model.KbTeam;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeBase;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeDocument;
+import com.mouhin.brief.wisdom.persistence.model.Team;
+import com.mouhin.brief.wisdom.persistence.repository.KbTeamRepository;
 import com.mouhin.brief.wisdom.persistence.repository.KnowledgeBaseRepository;
 import com.mouhin.brief.wisdom.persistence.repository.KnowledgeDocumentRepository;
+import com.mouhin.brief.wisdom.persistence.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -22,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 /**
@@ -38,6 +44,9 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
     private final KnowledgeVectorService knowledgeVectorService;
+    private final TeamService teamService;
+    private final KbTeamRepository kbTeamRepository;
+    private final TeamRepository teamRepository;
     @Qualifier("briefWisdomExecutor")
     private final Executor briefWisdomExecutor;
 
@@ -49,7 +58,20 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     public List<KnowledgeBaseDTO> listBasesTree() {
         List<KnowledgeBase> allBases = knowledgeBaseRepository.findAll();
-        return buildTree(allBases, 0L);
+        return buildTree(allBases, 0L, buildKbTeamInfo(allBases));
+    }
+
+    /**
+     * 获取用户可见的知识库（树形结构，按权限过滤）
+     */
+    @Override
+    public List<KnowledgeBaseDTO> listBasesTree(String userId) {
+        List<KnowledgeBase> allBases = knowledgeBaseRepository.findAll();
+        Set<Long> visibleIds = teamService.getVisibleKbIds(userId);
+        List<KnowledgeBase> visibleBases = allBases.stream()
+                .filter(base -> visibleIds.contains(base.getId()))
+                .toList();
+        return buildTree(visibleBases, 0L, buildKbTeamInfo(visibleBases));
     }
 
     /**
@@ -58,10 +80,27 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     public List<KnowledgeBaseDTO> listBases() {
         List<KnowledgeBase> allBases = knowledgeBaseRepository.findAll();
-        // 批量查询文档数量和子知识库状态，避免 N+1
+        // 批量查询文档数量、子知识库状态和团队归属，避免 N+1
         Map<Long, Long> docCountMap = buildDocCountMap(allBases);
         Map<Long, Boolean> hasChildrenMap = buildHasChildrenMap(allBases);
-        return allBases.stream().map(base -> toBaseDTO(base, docCountMap, hasChildrenMap)).toList();
+        KbTeamInfo teamInfo = buildKbTeamInfo(allBases);
+        return allBases.stream().map(base -> toBaseDTO(base, docCountMap, hasChildrenMap, teamInfo)).toList();
+    }
+
+    /**
+     * 获取用户可见的知识库（平铺列表，按权限过滤，含文档数量）
+     */
+    @Override
+    public List<KnowledgeBaseDTO> listBases(String userId) {
+        List<KnowledgeBase> allBases = knowledgeBaseRepository.findAll();
+        Set<Long> visibleIds = teamService.getVisibleKbIds(userId);
+        List<KnowledgeBase> visibleBases = allBases.stream()
+                .filter(base -> visibleIds.contains(base.getId()))
+                .toList();
+        Map<Long, Long> docCountMap = buildDocCountMap(visibleBases);
+        Map<Long, Boolean> hasChildrenMap = buildHasChildrenMap(visibleBases);
+        KbTeamInfo teamInfo = buildKbTeamInfo(visibleBases);
+        return visibleBases.stream().map(base -> toBaseDTO(base, docCountMap, hasChildrenMap, teamInfo)).toList();
     }
 
     /**
@@ -71,7 +110,9 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     public Page<KnowledgeBaseDTO> listTopBasesPaged(int page, int size) {
         Page<KnowledgeBase> basePage = knowledgeBaseRepository.findTopLevelPaged(page, size);
         Page<KnowledgeBaseDTO> dtoPage = new Page<>(basePage.getCurrent(), basePage.getSize(), basePage.getTotal());
-        dtoPage.setRecords(basePage.getRecords().stream().map(this::toBaseDTO).toList());
+        KbTeamInfo teamInfo = buildKbTeamInfo(basePage.getRecords());
+        dtoPage.setRecords(basePage.getRecords().stream()
+                .map(base -> toBaseDTO(base, null, null, teamInfo)).toList());
         return dtoPage;
     }
 
@@ -81,13 +122,15 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     public List<KnowledgeBaseDTO> listChildBases(Long parentId) {
         List<KnowledgeBase> bases = knowledgeBaseRepository.findByParentId(parentId);
-        return bases.stream().map(this::toBaseDTO).toList();
+        KbTeamInfo teamInfo = buildKbTeamInfo(bases);
+        return bases.stream().map(base -> toBaseDTO(base, null, null, teamInfo)).toList();
     }
 
     /**
-     * 创建知识库
+     * 创建知识库（支持多团队归属）
      */
     @Override
+    @Transactional
     public KnowledgeBaseDTO createBase(KnowledgeBaseBO bo) {
         KnowledgeBase base = new KnowledgeBase();
         base.setName(bo.getName());
@@ -96,14 +139,32 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         base.setParentId(bo.getParentId() != null ? bo.getParentId() : 0L);
         base.setSortOrder(bo.getSortOrder() != null ? bo.getSortOrder() : 0);
         base.setIsPublic(bo.getIsPublic() != null ? bo.getIsPublic() : 0);
+        base.setCreatorId(bo.getCreatorId());
+
+        List<Long> teamIds = bo.getTeamIds();
+        if (teamIds != null && !teamIds.isEmpty()) {
+            // 团队知识库：关联一个或多个团队
+            base.setOwnerType("team");
+            base.setOwnerId(String.valueOf(teamIds.get(0)));
+        } else {
+            // 个人知识库（无团队属性）
+            base.setOwnerType("personal");
+            base.setOwnerId(bo.getOwnerId() != null ? bo.getOwnerId() : bo.getCreatorId());
+        }
         knowledgeBaseRepository.save(base);
+
+        // 写入知识库-团队关联表
+        if (teamIds != null && !teamIds.isEmpty()) {
+            saveKbTeamLinks(base.getId(), teamIds);
+        }
         return toBaseDTO(base);
     }
 
     /**
-     * 更新知识库
+     * 更新知识库（teamIds 非 null 时重置团队归属）
      */
     @Override
+    @Transactional
     public KnowledgeBaseDTO updateBase(Long id, KnowledgeBaseBO bo) {
         KnowledgeBase base = knowledgeBaseRepository.findById(id);
         if (base == null) {
@@ -126,6 +187,19 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         }
         if (bo.getIsPublic() != null) {
             base.setIsPublic(bo.getIsPublic());
+        }
+        // teamIds 为 null 表示不修改团队归属；非 null 表示重置
+        if (bo.getTeamIds() != null) {
+            kbTeamRepository.deleteByKbId(id);
+            if (bo.getTeamIds().isEmpty()) {
+                // 移除所有团队归属，转为个人知识库
+                base.setOwnerType("personal");
+                base.setOwnerId(base.getCreatorId());
+            } else {
+                base.setOwnerType("team");
+                base.setOwnerId(String.valueOf(bo.getTeamIds().get(0)));
+                saveKbTeamLinks(id, bo.getTeamIds());
+            }
         }
         knowledgeBaseRepository.update(base);
         return toBaseDTO(base);
@@ -151,6 +225,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         if (docCount > 0) {
             throw new AIException("该知识库下还有 " + docCount + " 个文档，请先删除知识库下的所有文档");
         }
+        // 清理团队关联记录
+        kbTeamRepository.deleteByKbId(id);
         knowledgeBaseRepository.deleteById(id);
     }
 
@@ -167,9 +243,11 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         } else {
             docPage = knowledgeDocumentRepository.findByBaseIdPaged(baseId, page, size);
         }
+        // 同一知识库下的文档共享 baseName，只查询一次
+        Map<Long, String> baseNameMap = buildBaseNameMap(List.of(baseId));
         // 转换为 DTO 分页
         Page<KnowledgeDocumentDTO> dtoPage = new Page<>(docPage.getCurrent(), docPage.getSize(), docPage.getTotal());
-        dtoPage.setRecords(docPage.getRecords().stream().map(this::toDocDTO).toList());
+        dtoPage.setRecords(docPage.getRecords().stream().map(doc -> toDocDTO(doc, baseNameMap)).toList());
         return dtoPage;
     }
 
@@ -260,8 +338,14 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     public Page<KnowledgeDocumentDTO> searchDocuments(String keyword, int page, int size) {
         Page<KnowledgeDocument> docPage = knowledgeDocumentRepository.searchByTitle(keyword, page, size);
+        // 批量获取涉及的知识库名称
+        List<Long> baseIds = docPage.getRecords().stream()
+                .map(KnowledgeDocument::getBaseId)
+                .distinct()
+                .toList();
+        Map<Long, String> baseNameMap = buildBaseNameMap(baseIds);
         Page<KnowledgeDocumentDTO> dtoPage = new Page<>(docPage.getCurrent(), docPage.getSize(), docPage.getTotal());
-        dtoPage.setRecords(docPage.getRecords().stream().map(this::toDocDTO).toList());
+        dtoPage.setRecords(docPage.getRecords().stream().map(doc -> toDocDTO(doc, baseNameMap)).toList());
         return dtoPage;
     }
 
@@ -313,12 +397,12 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     /**
      * 构建知识库树形结构
      */
-    private List<KnowledgeBaseDTO> buildTree(List<KnowledgeBase> allBases, Long parentId) {
+    private List<KnowledgeBaseDTO> buildTree(List<KnowledgeBase> allBases, Long parentId, KbTeamInfo teamInfo) {
         List<KnowledgeBaseDTO> tree = new ArrayList<>();
         for (KnowledgeBase base : allBases) {
             if (parentId.equals(base.getParentId())) {
-                KnowledgeBaseDTO dto = toBaseDTO(base);
-                dto.setChildren(buildTree(allBases, base.getId()));
+                KnowledgeBaseDTO dto = toBaseDTO(base, null, null, teamInfo);
+                dto.setChildren(buildTree(allBases, base.getId(), teamInfo));
                 tree.add(dto);
             }
         }
@@ -326,10 +410,11 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     }
 
     private KnowledgeBaseDTO toBaseDTO(KnowledgeBase base) {
-        return toBaseDTO(base, null, null);
+        return toBaseDTO(base, null, null, buildKbTeamInfo(List.of(base)));
     }
 
-    private KnowledgeBaseDTO toBaseDTO(KnowledgeBase base, Map<Long, Long> docCountMap, Map<Long, Boolean> hasChildrenMap) {
+    private KnowledgeBaseDTO toBaseDTO(KnowledgeBase base, Map<Long, Long> docCountMap,
+                                       Map<Long, Boolean> hasChildrenMap, KbTeamInfo teamInfo) {
         KnowledgeBaseDTO dto = new KnowledgeBaseDTO();
         dto.setId(base.getId());
         dto.setName(base.getName());
@@ -338,6 +423,9 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         dto.setParentId(base.getParentId());
         dto.setSortOrder(base.getSortOrder());
         dto.setIsPublic(base.getIsPublic());
+        dto.setOwnerType(base.getOwnerType());
+        dto.setOwnerId(base.getOwnerId());
+        dto.setCreatorId(base.getCreatorId());
         dto.setCreateTime(base.getCreateTime());
         dto.setUpdateTime(base.getUpdateTime());
         // 使用批量查询结果或单独查询
@@ -351,31 +439,102 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         } else {
             dto.setHasChildren(knowledgeBaseRepository.countByParentId(base.getId()) > 0);
         }
+        // 填充团队归属信息
+        List<Long> teamIds = teamInfo.kbTeamIds().getOrDefault(base.getId(), List.of());
+        dto.setTeamIds(teamIds);
+        dto.setTeamNames(teamIds.stream()
+                .map(teamId -> teamInfo.teamNames().getOrDefault(teamId, ""))
+                .toList());
         return dto;
     }
 
     /**
-     * 批量构建知识库文档数量映射（指定初始容量避免扩容）
+     * 知识库团队归属批量信息（kbId -> 团队ID列表，teamId -> 团队名称）
      */
-    private Map<Long, Long> buildDocCountMap(List<KnowledgeBase> bases) {
-        // 初始容量 = (元素个数 / 0.75) + 1，遵循 AGENTS.md 规范
-        int initialCapacity = (int) (bases.size() / 0.75) + 1;
-        Map<Long, Long> map = new HashMap<>(initialCapacity);
-        for (KnowledgeBase base : bases) {
-            map.put(base.getId(), knowledgeDocumentRepository.countByBaseId(base.getId()));
-        }
-        return map;
+    private record KbTeamInfo(Map<Long, List<Long>> kbTeamIds, Map<Long, String> teamNames) {
     }
 
     /**
-     * 批量构建知识库是否有子节点映射（指定初始容量避免扩容）
+     * 批量构建知识库团队归属信息（单次查询关联表 + 单次查询团队表，避免 N+1）
+     */
+    private KbTeamInfo buildKbTeamInfo(List<KnowledgeBase> bases) {
+        if (bases.isEmpty()) {
+            return new KbTeamInfo(Map.of(), Map.of());
+        }
+        List<Long> kbIds = bases.stream().map(KnowledgeBase::getId).toList();
+        List<KbTeam> links = kbTeamRepository.findByKbIds(kbIds);
+        int linkCapacity = (int) (links.size() / 0.75) + 1;
+        Map<Long, List<Long>> kbTeamIds = new HashMap<>(linkCapacity);
+        for (KbTeam link : links) {
+            kbTeamIds.computeIfAbsent(link.getKbId(), k -> new ArrayList<>()).add(link.getTeamId());
+        }
+        List<Long> teamIds = links.stream().map(KbTeam::getTeamId).distinct().toList();
+        Map<Long, String> teamNames;
+        if (teamIds.isEmpty()) {
+            teamNames = Map.of();
+        } else {
+            List<Team> teams = teamRepository.findByIds(teamIds);
+            int nameCapacity = (int) (teams.size() / 0.75) + 1;
+            teamNames = new HashMap<>(nameCapacity);
+            for (Team team : teams) {
+                teamNames.put(team.getId(), team.getName());
+            }
+        }
+        return new KbTeamInfo(kbTeamIds, teamNames);
+    }
+
+    /**
+     * 保存知识库与团队的关联记录
+     */
+    private void saveKbTeamLinks(Long kbId, List<Long> teamIds) {
+        for (Long teamId : teamIds) {
+            KbTeam link = new KbTeam();
+            link.setKbId(kbId);
+            link.setTeamId(teamId);
+            kbTeamRepository.save(link);
+        }
+    }
+
+    /**
+     * 批量构建知识库文档数量映射（单次 GROUP BY 查询，避免 N+1）
+     */
+    private Map<Long, Long> buildDocCountMap(List<KnowledgeBase> bases) {
+        if (bases.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> baseIds = bases.stream().map(KnowledgeBase::getId).toList();
+        return knowledgeDocumentRepository.countByBaseIdGrouped(baseIds);
+    }
+
+    /**
+     * 批量构建知识库是否有子节点映射（单次 GROUP BY 查询，避免 N+1）
      */
     private Map<Long, Boolean> buildHasChildrenMap(List<KnowledgeBase> bases) {
-        // 初始容量 = (元素个数 / 0.75) + 1，遵循 AGENTS.md 规范
+        if (bases.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> baseIds = bases.stream().map(KnowledgeBase::getId).toList();
+        Map<Long, Long> countMap = knowledgeBaseRepository.countByParentIdGrouped(baseIds);
         int initialCapacity = (int) (bases.size() / 0.75) + 1;
-        Map<Long, Boolean> map = new HashMap<>(initialCapacity);
+        Map<Long, Boolean> result = new HashMap<>(initialCapacity);
         for (KnowledgeBase base : bases) {
-            map.put(base.getId(), knowledgeBaseRepository.countByParentId(base.getId()) > 0);
+            result.put(base.getId(), countMap.getOrDefault(base.getId(), 0L) > 0);
+        }
+        return result;
+    }
+
+    /**
+     * 批量构建知识库 ID -> 名称映射（避免 toDocDTO 中逐条查询）
+     */
+    private Map<Long, String> buildBaseNameMap(List<Long> baseIds) {
+        if (baseIds == null || baseIds.isEmpty()) {
+            return Map.of();
+        }
+        List<KnowledgeBase> bases = knowledgeBaseRepository.findByIds(baseIds);
+        int initialCapacity = (int) (bases.size() / 0.75) + 1;
+        Map<Long, String> map = new HashMap<>(initialCapacity);
+        for (KnowledgeBase base : bases) {
+            map.put(base.getId(), base.getName());
         }
         return map;
     }

@@ -15,6 +15,7 @@ docs/
 ├── architecture/                      # 架构设计文档
 │   ├── sync-architecture.md           # 实时同步架构(SSE/WebSocket)
 │   ├── rag-architecture.md            # RAG 向量检索架构(Redis Vector Store)
+│   ├── resume-knowledge-integration.md # 简历数据接入知识库方案
 │   └── chat-memory.md                 # 跨会话记忆功能设计
 │
 ├── features/                          # 功能特性文档
@@ -48,6 +49,7 @@ docs/
 
 - [实时同步架构](architecture/sync-architecture.md) — SSE/WebSocket 方案选型、事件推送机制
 - [RAG 向量检索架构](architecture/rag-architecture.md) — Redis Vector Store RAG 设计、LazyVectorStore 降级
+- [简历数据接入知识库](architecture/resume-knowledge-integration.md) — 简历模块数据写入知识库方案
 - [跨会话记忆](architecture/chat-memory.md) — ChatMemory 功能设计、自动提取、AI 工具调用
 
 ### 功能开发

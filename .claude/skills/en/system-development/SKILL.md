@@ -20,7 +20,7 @@ Use this skill for cross-module features, shared service changes, access-control
 - Prefer small, focused changes over broad rewrites
 - Keep controllers thin and delegate to the service layer
 - Use DTOs for API contracts and avoid exposing persistence entities directly
-- Follow the module boundaries: web -> service/api -> persistence -> common
+- Follow the module boundaries: web -> ai/system/resume/api -> service -> persistence -> common
 - Avoid magic values and hardcoded environment-specific settings
 
 ## Recommended Workflow

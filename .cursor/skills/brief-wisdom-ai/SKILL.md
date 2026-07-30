@@ -16,7 +16,7 @@ description: >-
 | `AiAgentService`                                                      | Core chat, session CRUD, context memory, RAG injection          |
 | `ChatModelRegistry`                                                   | Multi-provider routing (DashScope, DeepSeek, OpenAI-compatible) |
 | `KnowledgeRagService`                                                 | Retrieve docs for RAG; vector search with keyword fallback      |
-| `VectorStoreService`                                                  | Milvus embedding CRUD                                           |
+| `KnowledgeVectorService`                                              | Redis vector store embedding CRUD                                 |
 | `ContentFilterService`                                                | Input keyword block + output PII regex filter                   |
 | `RateLimitService`                                                    | Redis sliding window (`bw:ratelimit:*`)                         |
 | `ChatSyncService` / `SseChatSyncService` / `WebSocketChatSyncService` | Multi-device sync                                               |
@@ -46,9 +46,10 @@ app:
     default-provider: dashscope
     providers:
       dashscope:
-        type: openai-compatible
-        base-url: https://dashscope.aliyuncs.com/compatible-mode
-        api-key: ${DASHSCOPE_API_KEY}
+        type: openai
+        base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        api-key: ${DASHSCOPE_API_KEY:${AI_API_KEY:}}
+        model: qwen-max
   chat:
     streaming: true          # SSE vs blocking
   sync:
@@ -74,7 +75,7 @@ app:
 
 - `KnowledgeServiceImpl`: CRUD for bases/documents; triggers async embedding on create/update
 - `KnowledgeRagService.retrieveRelevantDocuments()`: vector first, keyword fallback
-- Milvus config: `app.vector.*` in yml; optional — degrades gracefully
+- Redis vector store config: `spring.ai.vectorstore.redis.*` in yml; optional — degrades gracefully
 - Document import: validate `sourceDir` with `Path.normalize()` + allowed base directory (security)
 
 ## Context Memory

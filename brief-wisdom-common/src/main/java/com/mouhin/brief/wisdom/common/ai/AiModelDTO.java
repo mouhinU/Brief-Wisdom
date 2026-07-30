@@ -21,6 +21,7 @@ public record AiModelDTO(
         Double inputPricePerMillion,
         Double outputPricePerMillion,
         String thinkingMode,
+        Integer supportsVision,
         LocalDateTime createTime,
         LocalDateTime updateTime
 ) implements Serializable {
@@ -46,6 +47,8 @@ public record AiModelDTO(
     public Double getOutputPricePerMillion() { return outputPricePerMillion; }
 
     public String getThinkingMode() { return thinkingMode; }
+
+    public Integer getSupportsVision() { return supportsVision; }
 
     public LocalDateTime getCreateTime() { return createTime; }
 

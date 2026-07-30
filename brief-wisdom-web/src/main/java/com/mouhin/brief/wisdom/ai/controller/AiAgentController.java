@@ -92,7 +92,7 @@ public class AiAgentController {
             @RequestBody ChatRequest request) {
         String userId = userContextHolder.getCurrentUserId();
         log.info("收到聊天请求 - sessionId: {}, userId: {}, message: {}, model: {}, pageContext: {}", sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext());
-        return aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext());
+        return aiAgentService.chatWithSession(sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext(), request.getAttachmentIds());
     }
 
     /**
@@ -138,7 +138,7 @@ public class AiAgentController {
                 final String resolvedModel = request.getModel() != null ? request.getModel() : aiAgentService.getActiveModelName();
 
                 Disposable subscription = aiAgentService.chatStreamWithSession(
-                        sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext()
+                        sessionId, userId, request.getMessage(), request.getModel(), request.getPageContext(), request.getAttachmentIds()
                 ).subscribe(
                         chunk -> {
                             try {

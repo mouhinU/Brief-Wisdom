@@ -19,7 +19,7 @@ description: 用于 Brief-Wisdom 的系统级开发工作，包括后端模块�
 - 优先做小而聚焦的修改，避免大范围重写
 - 控制器保持轻量，业务流转交给服务层
 - API 使用 DTO，并避免直接暴露持久化实体
-- 遵循模块边界：web -> service/api -> persistence -> common
+- 遵循模块边界：web -> ai/system/resume/api -> service -> persistence -> common
 - 避免魔法值和硬编码的环境相关配置
 
 ## 推荐流程

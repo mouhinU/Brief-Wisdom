@@ -25,6 +25,32 @@ public class KnowledgeBaseDTO {
     private Long parentId;
     private Integer sortOrder;
     private Integer isPublic;
+
+    /**
+     * 归属类型: personal-个人, team-团队
+     */
+    private String ownerType;
+
+    /**
+     * 归属ID（用户ID或团队ID）
+     */
+    private String ownerId;
+
+    /**
+     * 创建者用户ID
+     */
+    private String creatorId;
+
+    /**
+     * 关联的团队ID列表（多团队归属，为空表示个人知识库）
+     */
+    private List<Long> teamIds;
+
+    /**
+     * 关联的团队名称列表（与 teamIds 对应，用于展示）
+     */
+    private List<String> teamNames;
+
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 

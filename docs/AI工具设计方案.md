@@ -2,7 +2,7 @@
 
 **设计时间**: 2026-07-15
 **技术基础**: Spring AI 2.0.0 `@Tool` 注解 + Function Calling
-**当前状态**: 项目已集成 Spring AI 2.0.0，但尚未使用任何工具调用能力，所有上下文（RAG、记忆、代码）均通过手动拼接 System Prompt 注入
+**当前状态**: ✅ 本设计方案中提出的全部 12 个工具已实现并集成到项目中，对应实现在 `brief-wisdom-ai` 模块的 `ai.tools` 包下（CalculatorTool、CodeSearchTool、DatabaseQueryTool、DateTimeTool、KnowledgeDocManagementTool、KnowledgeSearchTool、MemoryManagementTool、ReminderTool、ResumeAnalysisTool、SystemStatusTool、TranslationTool、WebFetchTool），通过 ToolConfig 统一注册。
 
 ---
 

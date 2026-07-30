@@ -7,7 +7,7 @@
 ## 一、架构概览
 
 系统通过 `ChatSyncService` 接口抽象传输层，`AiAgentService` 仅依赖接口进行事件推送，与具体传输方式完全解耦。配置项
-`app.sync.transport` 控制激活哪种实现，默认 `sse`。
+`app.sync.transport` 控制激活哪种实现，当前激活 `websocket`（代码默认值为 `sse`，即 `matchIfMissing=true`）。
 
 ```
 AiAgentService
@@ -15,9 +15,9 @@ AiAgentService
       ▼
 ChatSyncService (接口)
       │
-      ├── SseChatSyncService      ← app.sync.transport=sse (默认)
+      ├── SseChatSyncService      ← app.sync.transport=sse (代码默认)
       │
-      └── WebSocketChatSyncService ← app.sync.transport=websocket
+      └── WebSocketChatSyncService ← app.sync.transport=websocket (当前激活)
 ```
 
 前端打开聊天窗口时，先调用 `GET /api/ai/sync/transport` 获取传输方式，再自动建立对应连接。
@@ -80,7 +80,7 @@ ChatSyncService (接口)
 | `ChatSyncService.java`                   | ai         | 同步服务接口，定义 `notifyUser` / `broadcastToAll` |
 | `SseChatSyncService.java`                | ai         | SSE 实现，管理 SseEmitter 连接池                  |
 | `WebSocketChatSyncService.java`          | ai         | WebSocket 实现，管理 WebSocketSession 连接池      |
-| `WebSocketSyncHandler.java`              | ai         | WebSocket 消息处理器，连接/关闭/异常/心跳               |
+| `WebSocketSyncHandler.java`              | web        | WebSocket 消息处理器，连接/关闭/异常/心跳               |
 | `WebSocketSyncHandshakeInterceptor.java` | web        | 握手拦截器，提取 userId 注入会话属性                    |
 | `WebSocketConfig.java`                   | web        | 注册 WebSocket 处理器到 `/ws/sync` 端点           |
 | `SseSyncController.java`                 | web        | SSE 专用控制器（仅 SSE 模式激活）                     |
@@ -95,7 +95,7 @@ ChatSyncService (接口)
 # application.yml
 app:
   sync:
-    transport: sse        # sse（默认）或 websocket
+    transport: websocket    # sse 或 websocket（当前激活 websocket）
 ```
 
 切换后重启服务，前端刷新页面自动适配。
@@ -202,7 +202,7 @@ app:
 | 功能模块        | 传输方式                 | 选择理由                        |
 |-------------|----------------------|-----------------------------|
 | **AI 流式聊天** | SSE                  | 单向数据流（AI → 用户），实现简单，浏览器原生支持 |
-| **多端会话同步**  | SSE / WebSocket（可配置） | 根据部署环境灵活选择，默认 SSE           |
+| **多端会话同步**  | SSE / WebSocket（可配置） | 根据部署环境灵活选择，当前激活 WebSocket       |
 
 #### 为什么流式聊天固定使用 SSE？
 
@@ -219,8 +219,8 @@ app:
     - WebSocket：适合需要双向通信的未来扩展（如客户端主动订阅）
 
 2. **技术演进**：
-    - 当前阶段：SSE 已满足需求
-    - 未来扩展：如需客户端主动推送事件，可切换到 WebSocket
+    - SSE：适合单向推送场景，配置简单
+    - WebSocket：当前激活方案，支持双向通信，为未来扩展（如客户端主动订阅）预留能力
 
 3. **学习成本**：
     - 团队可同时掌握两种技术，根据实际需求灵活切换
@@ -265,7 +265,7 @@ app:
 | **最大并发连接数**   | 10,000+ | 5,000+     |
 | **CPU 占用率**   | 低       | 中          |
 
-**结论**：对于本项目的场景（AI 流式输出 + 会话同步），SSE 在性能和实现复杂度上均优于 WebSocket。
+**结论**：对于本项目的场景（AI 流式输出 + 会话同步），两种方案各有优势。当前项目选择 WebSocket 作为多端同步的传输方式，以获得双向通信能力。
 
 ---
 
@@ -275,7 +275,7 @@ app:
 # application.yml
 app:
   sync:
-    transport: sse  # 多端同步传输方式：sse（推荐）或 websocket
+    transport: websocket  # 多端同步传输方式：sse 或 websocket（当前激活 websocket）
 
 # 注意：AI 流式聊天始终使用 SSE，不受此配置影响
 ```

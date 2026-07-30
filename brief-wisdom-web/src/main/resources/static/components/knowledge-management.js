@@ -286,6 +286,44 @@
     }
 
     /**
+     * 加载团队选项（多选）
+     * @param {Array<number>} selectedTeamIds 需要预选的团队 ID 列表
+     */
+    async function loadTeamOptions(selectedTeamIds = []) {
+        const container = document.getElementById('knowledge-base-team-select');
+        if (!container) return;
+
+        container.innerHTML = '<div class="knowledge-team-loading">加载中...</div>';
+        try {
+            const teams = await apiRequest('/api/team/my');
+            if (!teams || teams.length === 0) {
+                container.innerHTML = '<div class="knowledge-team-empty">暂无可用团队，不选则为个人知识库</div>';
+                return;
+            }
+            const selectedSet = new Set((selectedTeamIds || []).map(id => Number(id)));
+            container.innerHTML = teams.map(team => `
+                <label class="knowledge-team-option">
+                    <input type="checkbox" class="knowledge-team-checkbox" value="${team.id}"
+                        ${selectedSet.has(Number(team.id)) ? 'checked' : ''}>
+                    <span class="knowledge-team-avatar">${team.avatar || '👥'}</span>
+                    <span class="knowledge-team-name">${escapeHtml(team.name)}</span>
+                </label>
+            `).join('');
+        } catch (err) {
+            container.innerHTML = '<div class="knowledge-team-empty">团队加载失败</div>';
+        }
+    }
+
+    /**
+     * 收集弹窗中已勾选的团队 ID
+     * @returns {Array<number>} 团队 ID 数组
+     */
+    function collectSelectedTeamIds() {
+        const checkboxes = document.querySelectorAll('#knowledge-base-team-select .knowledge-team-checkbox:checked');
+        return Array.from(checkboxes).map(cb => parseInt(cb.value));
+    }
+
+    /**
      * 显示知识库表单
      */
     function showBaseForm(parentId) {

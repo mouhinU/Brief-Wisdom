@@ -98,6 +98,12 @@
                                 <option value="0">无（顶级知识库）</option>
                             </select>
                         </div>
+                        <div class="knowledge-form-group">
+                            <label>团队归属（可多选，不选则为个人知识库）</label>
+                            <div class="knowledge-team-select" id="knowledge-base-team-select">
+                                <div class="knowledge-team-loading">加载中...</div>
+                            </div>
+                        </div>
                         <div class="knowledge-form-actions">
                             <button type="button" class="btn btn-secondary" onclick="KnowledgeManagement.closeBaseModal()">取消</button>
                             <button type="submit" class="btn btn-primary">保存</button>

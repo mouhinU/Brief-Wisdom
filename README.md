@@ -35,12 +35,12 @@ Brief-Wisdom/
 ├── brief-wisdom-system/        # 系统模块（用户/角色/菜单/认证/OAuth）
 ├── brief-wisdom-resume/        # 简历模块（CRUD + AI 润色）
 ├── brief-wisdom-persistence/   # 数据持久化（Entity + Mapper + Repository）
-├── brief-wisdom-api/           # API 接口定义
-├── brief-wisdom-service/       # 通用服务层（逐步迁移至领域模块）
+├── brief-wisdom-api/           # API 接口定义（当前为占位模块）
+├── brief-wisdom-service/       # 通用服务层（当前为占位模块，逐步迁移至领域模块）
 └── brief-wisdom-common/        # 公共模块（DTO + 常量 + 注解 + SPI 接口）
 ```
 
-**依赖关系**：`web` → `ai` / `system` / `resume` / `api` → `service` → `persistence` → `common`
+**依赖关系**：`web` → `ai` / `system` / `resume` / `api` → `service` → `persistence` → `common`（其中 `api`、`service` 当前为占位模块）
 
 AI 模块通过 `ToolContextProvider` / `ResumeDataProvider` 接口（定义在 common 模块）实现依赖隔离，避免对业务模块的直接耦合。
 
@@ -333,6 +333,7 @@ cp .env.example .env
 
 - [实时同步架构](docs/architecture/sync-architecture.md) — SSE / WebSocket 方案选型与实现
 - [RAG 向量检索架构](docs/architecture/rag-architecture.md) — Redis Vector Store RAG 设计
+- [简历数据接入知识库](docs/architecture/resume-knowledge-integration.md) — 简历模块数据写入知识库方案
 - [跨会话记忆](docs/architecture/chat-memory.md) — ChatMemory 功能设计
 
 ### 功能特性

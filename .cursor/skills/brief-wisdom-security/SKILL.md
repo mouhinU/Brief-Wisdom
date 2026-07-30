@@ -11,7 +11,7 @@ description: >-
 
 ## Authentication & Session
 
-- **Session key**: always `UserContextHelper.SESSION_USER_KEY` — never hardcode `"AUTH_USER"` or `"SESSION_USER"`
+- **Session key**: always `UserContextHolder.SESSION_USER_KEY` — never hardcode `"AUTH_USER"` or `"SESSION_USER"`
 - **Storage**: Spring Session + Redis (`bw:session` namespace)
 - **Concurrency**: max 1 session per user (new login kicks old)
 - **Password**: BCrypt via `PasswordEncoder` bean

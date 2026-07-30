@@ -1,7 +1,7 @@
 # AGENTS.md — Brief-Wisdom 编码规范
 
-> 本规范基于《Java开发手册》v1.5.0（华山版），结合 Brief-Wisdom 项目技术栈（Spring Boot 3.5.7 / Java 17 / MyBatis-Plus /
-> Redis / Spring AI）进行定制化裁剪。**所有 AI 生成的代码必须严格遵循以下规则。**
+> 本规范基于《Java开发手册》v1.5.0（华山版），结合 Brief-Wisdom 项目技术栈（Spring Boot 4.0.7 / Java 21 / MyBatis-Plus /
+> Redis / Spring AI 2.0.0）进行定制化裁剪。**所有 AI 生成的代码必须严格遵循以下规则。**
 
 ---
 
@@ -350,14 +350,14 @@ private static final Logger logger = LoggerFactory.getLogger(XxxService.class);
 ### 14.1 本项目分层架构
 
 ```
-brief-wisdom-web        → Web 层（Controller、全局配置、拦截器、静态资源）
-brief-wisdom-ai         → AI 领域模块（对话、知识库、模型管理、会话历史、内容过滤、限流）
-brief-wisdom-system     → 系统领域模块（用户管理、菜单管理、角色管理、登录认证、OAuth 三方登录）
+brief-wisdom-web        → Web 层（Controller、全局配置、拦截器、静态资源、WebSocket）
+brief-wisdom-ai         → AI 领域模块（对话、知识库、模型管理、会话历史、内容过滤、限流、AI工具、同步）
+brief-wisdom-system     → 系统领域模块（用户管理、菜单管理、角色管理、登录认证、OAuth 三方登录、SSO）
 brief-wisdom-resume     → 简历领域模块（简历展示 + CRUD 管理）
-brief-wisdom-api        → API 层（对外接口 Controller + DTO）
-brief-wisdom-service    → Service 层（通用业务逻辑，已逐步迁移至领域模块）
-brief-wisdom-persistence→ DAO 层（MyBatis-Plus Mapper + JPA Repository + Entity）
-brief-wisdom-common     → 公共模块（DTO、Result、常量、注解）
+brief-wisdom-api        → API 层（目前为占位模块，仅含 package-info.java）
+brief-wisdom-service    → Service 层（目前为占位模块，仅含 package-info.java）
+brief-wisdom-persistence→ DAO 层（MyBatis-Plus Mapper + Entity + Repository）
+brief-wisdom-common     → 公共模块（DTO、Result、常量、注解、枚举、异常、工具类）
 ```
 
 各业务模块统一采用 **接口 + impl** 分层模式：

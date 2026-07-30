@@ -970,6 +970,7 @@ async function loadSessionHistory(sessionId) {
           msg.role === "user" ? "user" : "ai",
           false,
           msg.model,
+          msg.attachments,
         );
       });
 
@@ -1070,13 +1071,38 @@ function prependMessages(records) {
     const messageContent = document.createElement("div");
     messageContent.className = "message-content";
 
+    // 渲染附件缩略图
+    if (msg.attachments && msg.attachments.length > 0) {
+      const attachContainer = document.createElement("div");
+      attachContainer.className = "message-attachments";
+      for (const att of msg.attachments) {
+        if (att.category === "image" || (att.mediaType && att.mediaType.startsWith("image/"))) {
+          const img = document.createElement("img");
+          img.src = att.fileUrl;
+          img.alt = att.fileName || "图片";
+          img.className = "message-attachment-img";
+          img.onclick = () => window.open(att.fileUrl, "_blank");
+          attachContainer.appendChild(img);
+        }
+      }
+      if (attachContainer.children.length > 0) {
+        messageContent.appendChild(attachContainer);
+      }
+    }
+
     if (msg.role === "user") {
-      messageContent.textContent = msg.content;
+      const textDiv = document.createElement("div");
+      textDiv.textContent = msg.content;
+      messageContent.appendChild(textDiv);
     } else {
       try {
-        messageContent.innerHTML = renderMarkdown(msg.content);
+        const textDiv = document.createElement("div");
+        textDiv.innerHTML = renderMarkdown(msg.content);
+        messageContent.appendChild(textDiv);
       } catch (e) {
-        messageContent.textContent = msg.content;
+        const textDiv = document.createElement("div");
+        textDiv.textContent = msg.content;
+        messageContent.appendChild(textDiv);
       }
       if (msg.model) {
         const modelLabel = document.createElement("div");
@@ -1205,13 +1231,130 @@ function clearChatMessages() {
 let isSending = false; // 防重复提交标志
 let activeEventSource = null; // 当前活跃的 SSE EventSource（用于终止流式响应）
 let isUserStopped = false; // 标记当前流式响应是否被用户主动终止
+
+// ========== 多模态附件 ==========
+let pendingAttachments = []; // 待发送的附件列表 [{id, fileName, fileUrl, mediaType, fileSize, category}]
+
+/**
+ * 触发文件选择对话框
+ */
+function triggerFileUpload() {
+  const fileInput = getEl("fileUploadInput");
+  if (fileInput) fileInput.click();
+}
+
+/**
+ * 处理文件选择事件（上传选中的图片）
+ */
+async function handleFileSelect(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) {
+      alert("目前仅支持图片文件");
+      continue;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      alert("文件大小不能超过 20MB");
+      continue;
+    }
+    await uploadFile(file);
+  }
+  // 清空 input 以允许重复选择同一文件
+  event.target.value = "";
+}
+
+/**
+ * 上传单个文件到后端，成功后加入待发送列表
+ */
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await fetch("/api/ai/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const result = await response.json();
+    if (result.success && result.data) {
+      pendingAttachments.push(result.data);
+      renderAttachmentPreview();
+      console.log("[附件] 上传成功:", result.data.fileName, "id:", result.data.id);
+    } else {
+      alert("上传失败: " + (result.error || "未知错误"));
+    }
+  } catch (err) {
+    console.error("[附件] 上传异常:", err);
+    alert("上传失败: " + err.message);
+  }
+}
+
+/**
+ * 渲染待发送附件预览区
+ */
+function renderAttachmentPreview() {
+  const area = getEl("attachmentPreviewArea");
+  if (!area) return;
+
+  if (pendingAttachments.length === 0) {
+    area.style.display = "none";
+    area.innerHTML = "";
+    return;
+  }
+
+  area.style.display = "flex";
+  area.innerHTML = pendingAttachments
+    .map(
+      (att, idx) => `
+    <div class="attachment-thumb" title="${att.fileName}">
+      <img src="${att.fileUrl}" alt="${att.fileName}">
+      <span class="attachment-remove" onclick="removeAttachment(${idx})">×</span>
+    </div>
+  `,
+    )
+    .join("");
+}
+
+/**
+ * 移除指定索引的待发送附件
+ */
+function removeAttachment(index) {
+  pendingAttachments.splice(index, 1);
+  renderAttachmentPreview();
+}
+
+/**
+ * 获取待发送附件的 ID 列表
+ */
+function getPendingAttachmentIds() {
+  return pendingAttachments.map((att) => String(att.id));
+}
+
+/**
+ * 处理粘贴图片（Ctrl+V 粘贴截图）
+ */
+function handlePasteImage(event) {
+  const items = event.clipboardData && event.clipboardData.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith("image/")) {
+      event.preventDefault();
+      const file = item.getAsFile();
+      if (file) uploadFile(file);
+      break;
+    }
+  }
+}
 async function sendMessage() {
   const chatInput = getEl("chatInput");
   const sendButton = getEl("sendButton");
   if (!chatInput) return;
   const message = chatInput.value.trim();
 
-  if (!message) {
+  // 允许纯附件发送（无文字但有图片）
+  if (!message && pendingAttachments.length === 0) {
     return;
   }
 
@@ -1220,6 +1363,12 @@ async function sendMessage() {
     return;
   }
   isSending = true;
+
+  // 收集附件ID并清空待发送列表
+  const attachmentIds = getPendingAttachmentIds();
+  const sentAttachments = [...pendingAttachments];
+  pendingAttachments = [];
+  renderAttachmentPreview();
 
   // 确保有当前会话
   if (!currentSessionId) {
@@ -1230,11 +1379,14 @@ async function sendMessage() {
       // createNewSession() 已经显示了错误信息
       if (sendButton) sendButton.disabled = false;
       isSending = false;
+      // 恢复附件
+      pendingAttachments = sentAttachments;
+      renderAttachmentPreview();
       return;
     }
   }
 
-  console.log("准备发送消息，sessionId:", currentSessionId, "消息:", message);
+  console.log("准备发送消息，sessionId:", currentSessionId, "消息:", message, "附件数:", attachmentIds.length);
 
   // 清空欢迎消息
   const messages = getEl("chatMessages");
@@ -1246,10 +1398,10 @@ async function sendMessage() {
   }
 
   // 记录到发送历史
-  pushSendHistory(message);
+  if (message) pushSendHistory(message);
 
-  // 添加用户消息
-  addMessage(message, "user");
+  // 添加用户消息（含附件缩略图）
+  addMessage(message || "(图片)", "user", true, null, sentAttachments);
 
   // 清空输入框并禁用（防止重复提交）
   chatInput.value = "";
@@ -1285,6 +1437,7 @@ async function sendMessage() {
         message,
         currentModel,
         getCurrentPageContext(),
+        attachmentIds,
       );
     } else {
       // 普通模式
@@ -1293,6 +1446,7 @@ async function sendMessage() {
         message,
         currentModel,
         getCurrentPageContext(),
+        attachmentIds,
       );
     }
   } catch (error) {
@@ -1318,7 +1472,7 @@ async function sendMessage() {
 /**
  * 普通模式发送消息（阻塞式）
  */
-async function sendMessageNormal(sessionId, message, model, pageContext) {
+async function sendMessageNormal(sessionId, message, model, pageContext, attachmentIds) {
   const url = `/api/ai/chat/session/${sessionId}`;
   console.log("========== 发送请求（普通模式） ==========");
   console.log("currentSessionId:", sessionId);
@@ -1326,16 +1480,21 @@ async function sendMessageNormal(sessionId, message, model, pageContext) {
   console.log("请求 URL:", url);
   console.log("请求消息:", message);
 
+  const body = {
+    message: message,
+    model: model,
+    pageContext: pageContext,
+  };
+  if (attachmentIds && attachmentIds.length > 0) {
+    body.attachmentIds = attachmentIds;
+  }
+
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      message: message,
-      model: model,
-      pageContext: pageContext,
-    }),
+    body: JSON.stringify(body),
   });
 
   const data = await response.json();
@@ -1356,8 +1515,14 @@ async function sendMessageNormal(sessionId, message, model, pageContext) {
 /**
  * 流式模式发送消息（SSE）
  */
-async function sendMessageStream(sessionId, message, model, pageContext) {
-  const url = `/api/ai/chat/session/${sessionId}/stream?message=${encodeURIComponent(message)}&model=${encodeURIComponent(model || "")}&pageContext=${encodeURIComponent(pageContext || "")}`;
+async function sendMessageStream(sessionId, message, model, pageContext, attachmentIds) {
+  let url = `/api/ai/chat/session/${sessionId}/stream?message=${encodeURIComponent(message)}&model=${encodeURIComponent(model || "")}&pageContext=${encodeURIComponent(pageContext || "")}`;
+  // 附加附件ID参数
+  if (attachmentIds && attachmentIds.length > 0) {
+    for (const id of attachmentIds) {
+      url += `&attachmentIds=${encodeURIComponent(id)}`;
+    }
+  }
   console.log("========== 发送请求（流式模式） ==========");
   console.log("currentSessionId:", sessionId);
   console.log("model:", model);
@@ -1628,20 +1793,43 @@ async function saveStreamedMessage(sessionId, content, model) {
 }
 
 // 添加消息到聊天窗口
-function addMessage(text, sender, scroll = true, modelName = null) {
+function addMessage(text, sender, scroll = true, modelName = null, attachments = null) {
   const messageDiv = document.createElement("div");
   messageDiv.className = `message ${sender}`;
 
   const messageContent = document.createElement("div");
   messageContent.className = "message-content";
 
+  // 渲染附件缩略图（图片）
+  if (attachments && attachments.length > 0) {
+    const attachContainer = document.createElement("div");
+    attachContainer.className = "message-attachments";
+    for (const att of attachments) {
+      if (att.category === "image" || (att.mediaType && att.mediaType.startsWith("image/"))) {
+        const img = document.createElement("img");
+        img.src = att.fileUrl;
+        img.alt = att.fileName || "图片";
+        img.className = "message-attachment-img";
+        img.onclick = () => window.open(att.fileUrl, "_blank");
+        attachContainer.appendChild(img);
+      }
+    }
+    if (attachContainer.children.length > 0) {
+      messageContent.appendChild(attachContainer);
+    }
+  }
+
   // 对 AI 消息进行 Markdown 渲染，用户消息保持纯文本
   if (sender === "ai") {
     try {
-      messageContent.innerHTML = renderMarkdown(text);
+      const textDiv = document.createElement("div");
+      textDiv.innerHTML = renderMarkdown(text);
+      messageContent.appendChild(textDiv);
     } catch (error) {
       console.error("Markdown 解析错误:", error);
-      messageContent.textContent = text;
+      const textDiv = document.createElement("div");
+      textDiv.textContent = text;
+      messageContent.appendChild(textDiv);
     }
     // 显示模型名称
     if (modelName) {
@@ -1661,7 +1849,9 @@ function addMessage(text, sender, scroll = true, modelName = null) {
       messageDiv.appendChild(modelLabel);
     }
   } else {
-    messageContent.textContent = text;
+    const textDiv = document.createElement("div");
+    textDiv.textContent = text;
+    messageContent.appendChild(textDiv);
   }
 
   messageDiv.appendChild(messageContent);
@@ -2106,6 +2296,13 @@ document.addEventListener("keydown", function (e) {
       pendingInput = "";
     }
   }
+});
+
+// 粘贴图片支持（Ctrl+V 粘贴截图自动上传）
+document.addEventListener("paste", function (e) {
+  const input = e.target;
+  if (!input || input.id !== "chatInput") return;
+  handlePasteImage(e);
 });
 
 // ========== 消息缓存系统 ==========

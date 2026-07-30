@@ -2,7 +2,9 @@ package com.mouhin.brief.wisdom.ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.ai.prompt.SystemPrompts;
+import com.mouhin.brief.wisdom.ai.storage.StorageService;
 import com.mouhin.brief.wisdom.common.PageResult;
+import com.mouhin.brief.wisdom.common.ai.AttachmentDTO;
 import com.mouhin.brief.wisdom.common.ai.ChatMessageDTO;
 import com.mouhin.brief.wisdom.common.ai.SessionMetaDTO;
 import com.mouhin.brief.wisdom.common.ai.SyncStatusDTO;
@@ -10,10 +12,12 @@ import com.mouhin.brief.wisdom.exception.AIException;
 import com.mouhin.brief.wisdom.exception.ContentSecurityException;
 import com.mouhin.brief.wisdom.exception.RateLimitException;
 import com.mouhin.brief.wisdom.persistence.model.AiModel;
+import com.mouhin.brief.wisdom.persistence.model.ChatAttachment;
 import com.mouhin.brief.wisdom.persistence.model.ChatMessage;
 import com.mouhin.brief.wisdom.persistence.model.ChatSession;
 import com.mouhin.brief.wisdom.persistence.model.ChatUser;
 import com.mouhin.brief.wisdom.persistence.repository.AiModelRepository;
+import com.mouhin.brief.wisdom.persistence.repository.ChatAttachmentRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatMessageRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatSessionRepository;
 import com.mouhin.brief.wisdom.persistence.repository.ChatUserRepository;
@@ -29,16 +33,19 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.content.Media;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.MimeType;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * AiAgentService
@@ -67,6 +74,10 @@ public class AiAgentService {
     private static final String ROLE_ASSISTANT = "assistant";
     // 消息类型常量
     private static final String MESSAGE_TYPE_TEXT = "text";
+    // 附件分类：图片（参与视觉理解）
+    private static final String CATEGORY_IMAGE = "image";
+    // 图片默认 MIME 类型（附件 MIME 缺失或非法时回退）
+    private static final String DEFAULT_IMAGE_MIME = "image/png";
     // 上下文相关参数
     private static final int RECENT_MESSAGES_COUNT = 10;
     // 标题截断长度
@@ -91,6 +102,8 @@ public class AiAgentService {
     private final ChatMemoryService chatMemoryService;
     private final AiAuditService auditService;
     private final ToolCallbackProvider toolCallbackProvider;
+    private final ChatAttachmentRepository chatAttachmentRepository;
+    private final StorageService storageService;
 
     /**
      * 创建新会话（无参版本，使用默认用户ID）
@@ -340,7 +353,26 @@ public class AiAgentService {
     public List<ChatMessageDTO> getSessionHistory(String sessionId) {
         log.info("[会话] 查询会话历史(全量), sessionId: {}", sessionId);
         List<ChatMessage> messages = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
-        List<ChatMessageDTO> dtos = messages.stream().map(this::toChatMessageDTO).toList();
+
+        // 批量加载附件
+        List<Long> messageIds = messages.stream()
+                .map(ChatMessage::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        Map<Long, List<AttachmentDTO>> attachmentsByMessageId = Collections.emptyMap();
+        if (!messageIds.isEmpty()) {
+            List<ChatAttachment> allAttachments = chatAttachmentRepository.findByMessageIds(messageIds);
+            attachmentsByMessageId = allAttachments.stream()
+                    .collect(Collectors.groupingBy(
+                            ChatAttachment::getMessageId,
+                            Collectors.mapping(this::toAttachmentDTO, Collectors.toList())
+                    ));
+        }
+
+        Map<Long, List<AttachmentDTO>> finalMap = attachmentsByMessageId;
+        List<ChatMessageDTO> dtos = messages.stream()
+                .map(msg -> toChatMessageDTO(msg, finalMap.getOrDefault(msg.getId(), Collections.emptyList())))
+                .toList();
         log.info("[会话] 查询会话历史完成, sessionId: {}, 消息数: {}", sessionId, dtos.size());
         return dtos;
     }
@@ -360,9 +392,25 @@ public class AiAgentService {
         // 使用数据库级别分页，避免全量加载到内存
         Page<ChatMessage> pageResult = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId, page, size);
 
-        // 转换为 DTO（保持正序）
+        // 批量加载当前页所有消息的附件（按 message_id 分组）
+        List<Long> messageIds = pageResult.getRecords().stream()
+                .map(ChatMessage::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        Map<Long, List<AttachmentDTO>> attachmentsByMessageId = Collections.emptyMap();
+        if (!messageIds.isEmpty()) {
+            List<ChatAttachment> allAttachments = chatAttachmentRepository.findByMessageIds(messageIds);
+            attachmentsByMessageId = allAttachments.stream()
+                    .collect(Collectors.groupingBy(
+                            ChatAttachment::getMessageId,
+                            Collectors.mapping(this::toAttachmentDTO, Collectors.toList())
+                    ));
+        }
+
+        // 转换为 DTO（保持正序），附带附件信息
+        Map<Long, List<AttachmentDTO>> finalAttachmentsMap = attachmentsByMessageId;
         List<ChatMessageDTO> dtos = pageResult.getRecords().stream()
-                .map(this::toChatMessageDTO)
+                .map(msg -> toChatMessageDTO(msg, finalAttachmentsMap.getOrDefault(msg.getId(), Collections.emptyList())))
                 .toList();
 
         // 封装分页结果
@@ -380,9 +428,9 @@ public class AiAgentService {
     }
 
     /**
-     * ChatMessage 实体转 ChatMessageDTO
+     * ChatMessage 实体转 ChatMessageDTO（含附件）
      */
-    private ChatMessageDTO toChatMessageDTO(ChatMessage msg) {
+    private ChatMessageDTO toChatMessageDTO(ChatMessage msg, List<AttachmentDTO> attachments) {
         return new ChatMessageDTO(
                 msg.getId(),
                 msg.getSessionId(),
@@ -393,7 +441,8 @@ public class AiAgentService {
                 msg.getTokens(),
                 msg.getCost(),
                 msg.getTimestamp(),
-                msg.getMessageType()
+                msg.getMessageType(),
+                attachments.isEmpty() ? null : attachments
         );
     }
 
@@ -634,10 +683,7 @@ public class AiAgentService {
     }
 
     /**
-     * 带上下文的聊天对话（指定用户、模型和当前页面上下文）
-     * <p>
-     * 会根据当前页面上下文查找同页面的其他会话，获取最近消息作为额外上下文，
-     * 使 AI 能够更好地理解用户在该页面的历史交互。
+     * 带上下文的聊天对话（指定用户、模型和当前页面上下文，无附件）
      *
      * @param sessionId   会话ID
      * @param userId      用户ID
@@ -648,8 +694,30 @@ public class AiAgentService {
      */
     @Transactional
     public String chatWithSession(String sessionId, String userId, String message, String modelName, String pageContext) {
+        return chatWithSession(sessionId, userId, message, modelName, pageContext, null);
+    }
+
+    /**
+     * 带上下文的聊天对话（指定用户、模型、页面上下文和附件）
+     * <p>
+     * 会根据当前页面上下文查找同页面的其他会话，获取最近消息作为额外上下文，
+     * 使 AI 能够更好地理解用户在该页面的历史交互。
+     * 支持多模态附件（图片），通过 attachmentIds 关联已上传的附件。
+     *
+     * @param sessionId     会话ID
+     * @param userId        用户ID
+     * @param message       用户消息
+     * @param modelName     模型名称（可选）
+     * @param pageContext   当前页面上下文（可选，如 /about.html）
+     * @param attachmentIds 附件ID列表（可选，已上传的附件ID）
+     * @return AI 回复
+     */
+    @Transactional
+    public String chatWithSession(String sessionId, String userId, String message, String modelName,
+                                  String pageContext, List<String> attachmentIds) {
         log.info("========== 开始处理聊天请求 ==========");
-        log.info("sessionId: {}, userId: {}, model: {}, pageContext: {}", sessionId, userId, modelName, pageContext);
+        log.info("sessionId: {}, userId: {}, model: {}, pageContext: {}, attachments: {}",
+                sessionId, userId, modelName, pageContext, attachmentIds != null ? attachmentIds.size() : 0);
 
         // 输入校验
         validateInput(message);
@@ -657,6 +725,11 @@ public class AiAgentService {
         checkInputSafety(message, sessionId, userId);
 
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
+
+        // 解析附件ID
+        List<Long> parsedAttachmentIds = parseAttachmentIds(attachmentIds);
+        // 校验视觉模型支持（有图片附件时）
+        validateVisionSupport(model, parsedAttachmentIds);
 
         // 验证会话是否存在且属于该用户
         ChatSession session = sessionRepository.findBySessionId(sessionId);
@@ -680,6 +753,9 @@ public class AiAgentService {
         userMsg.setContent(message);
         userMsg.setMessageType(MESSAGE_TYPE_TEXT);
         messageRepository.save(userMsg);
+
+        // 绑定附件到当前消息（回填 session_id 和 message_id）
+        bindAttachmentsToMessage(parsedAttachmentIds, sessionId, userMsg.getId());
 
         // 如果是第一条消息，立即用用户消息作为标题
         long currentCount = messageRepository.countBySessionId(sessionId);
@@ -747,7 +823,7 @@ public class AiAgentService {
 
         // 调用 AI，获取完整响应（包含 token 用量）
         Prompt prompt = new Prompt(
-                List.of(new SystemMessage(systemPrompt), new UserMessage(context.toString())),
+                List.of(new SystemMessage(systemPrompt), buildUserMessage(context.toString(), parsedAttachmentIds)),
                 buildChatOptions(provider, model)
         );
         long startTime = System.currentTimeMillis();
@@ -845,9 +921,7 @@ public class AiAgentService {
     }
 
     /**
-     * 流式聊天（返回 Flux<String>，每个元素是一段文本片段）
-     * <p>
-     * 注意：流式模式下不保存 token 和费用信息，仅在最终完成后由调用方统一保存
+     * 流式聊天（返回 Flux<String>，每个元素是一段文本片段，无附件）
      *
      * @param sessionId   会话ID
      * @param userId      用户ID
@@ -857,15 +931,40 @@ public class AiAgentService {
      * @return 文本片段流
      */
     public Flux<String> chatStreamWithSession(String sessionId, String userId, String message, String modelName, String pageContext) {
+        return chatStreamWithSession(sessionId, userId, message, modelName, pageContext, null);
+    }
+
+    /**
+     * 流式聊天（返回 Flux<String>，每个元素是一段文本片段）
+     * <p>
+     * 注意：流式模式下不保存 token 和费用信息，仅在最终完成后由调用方统一保存
+     * 支持多模态附件（图片），通过 attachmentIds 关联已上传的附件。
+     *
+     * @param sessionId     会话ID
+     * @param userId        用户ID
+     * @param message       用户消息
+     * @param modelName     模型名称（可选）
+     * @param pageContext   当前页面上下文（可选）
+     * @param attachmentIds 附件ID列表（可选，已上传的附件ID）
+     * @return 文本片段流
+     */
+    public Flux<String> chatStreamWithSession(String sessionId, String userId, String message, String modelName,
+                                              String pageContext, List<String> attachmentIds) {
 
         log.info("========== 开始流式聊天请求 ==========");
-        log.info("sessionId: {}, userId: {}, model: {}, pageContext: {}", sessionId, userId, modelName, pageContext);
+        log.info("sessionId: {}, userId: {}, model: {}, pageContext: {}, attachments: {}",
+                sessionId, userId, modelName, pageContext, attachmentIds != null ? attachmentIds.size() : 0);
 
         // 输入校验
         validateInput(message);
         checkInputSafety(message, sessionId, userId);
 
         String model = (modelName != null && !modelName.isEmpty()) ? modelName : getActiveModelName();
+
+        // 解析附件ID
+        List<Long> parsedAttachmentIds = parseAttachmentIds(attachmentIds);
+        // 校验视觉模型支持（有图片附件时）
+        validateVisionSupport(model, parsedAttachmentIds);
 
         // 验证会话
         ChatSession session = sessionRepository.findBySessionId(sessionId);
@@ -884,6 +983,9 @@ public class AiAgentService {
         userMsg.setContent(message);
         userMsg.setMessageType(MESSAGE_TYPE_TEXT);
         messageRepository.save(userMsg);
+
+        // 绑定附件到当前消息（回填 session_id 和 message_id）
+        bindAttachmentsToMessage(parsedAttachmentIds, sessionId, userMsg.getId());
 
         // 如果是第一条消息，立即用用户消息作为标题
         long currentCount = messageRepository.countBySessionId(sessionId);
@@ -958,7 +1060,7 @@ public class AiAgentService {
             // 构建可变的消息列表（用于多轮工具调用）
             List<org.springframework.ai.chat.messages.Message> messages = new ArrayList<>();
             messages.add(new SystemMessage(systemPrompt));
-            messages.add(new UserMessage(context.toString()));
+            messages.add(buildUserMessage(context.toString(), parsedAttachmentIds));
 
             long startTime = System.currentTimeMillis();
             String response = "";
@@ -1046,7 +1148,7 @@ public class AiAgentService {
 
         // === 无工具路径：使用 stream() 流式输出 ===
         Prompt prompt = new Prompt(
-                List.of(new SystemMessage(systemPrompt), new UserMessage(context.toString())),
+                List.of(new SystemMessage(systemPrompt), buildUserMessage(context.toString(), parsedAttachmentIds)),
                 buildChatOptions(provider, model, false)
         );
 
@@ -1726,5 +1828,178 @@ public class AiAgentService {
         messageRepository.update(message);
 
         log.info("用户反馈已记录: messageId={}, userId={}, score={}", messageId, userId, score);
+    }
+
+    // ==================== 多模态附件辅助方法 ====================
+
+    /**
+     * 构建 UserMessage（支持多模态附件）
+     * <p>
+     * 当有图片附件时，使用 UserMessage.builder() 拼装 text + media；
+     * 无附件时退化为纯文本 UserMessage。
+     *
+     * @param text          文本内容
+     * @param attachmentIds 附件ID列表（已解析为 Long）
+     * @return UserMessage 实例
+     */
+    private UserMessage buildUserMessage(String text, List<Long> attachmentIds) {
+        List<Media> mediaList = buildMediaList(attachmentIds);
+        if (mediaList.isEmpty()) {
+            return new UserMessage(text);
+        }
+        log.info("[多模态] 构建含 {} 个媒体附件的 UserMessage", mediaList.size());
+        return UserMessage.builder()
+                .text(text)
+                .media(mediaList)
+                .build();
+    }
+
+    /**
+     * 根据附件ID列表从存储中读取图片字节，构建 Media 列表
+     * <p>
+     * 仅处理 category=image 的附件；读取失败时记录警告并跳过该附件。
+     *
+     * @param attachmentIds 附件ID列表
+     * @return Media 列表（可能为空）
+     */
+    private List<Media> buildMediaList(List<Long> attachmentIds) {
+        if (attachmentIds == null || attachmentIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ChatAttachment> attachments = chatAttachmentRepository.findByIds(attachmentIds);
+        List<Media> mediaList = new ArrayList<>(attachments.size());
+
+        for (ChatAttachment attachment : attachments) {
+            if (!CATEGORY_IMAGE.equals(attachment.getCategory())) {
+                continue;
+            }
+            try {
+                byte[] data = storageService.readBytes(attachment.getFileKey());
+                MimeType mimeType = parseMimeType(attachment.getMediaType());
+                Media media = Media.builder()
+                        .mimeType(mimeType)
+                        .data(data)
+                        .build();
+                mediaList.add(media);
+                log.debug("[多模态] 加载附件: id={}, file={}, mime={}", attachment.getId(), attachment.getFileName(), mimeType);
+            } catch (Exception e) {
+                log.warn("[多模态] 读取附件失败，跳过: id={}, key={}, error={}", attachment.getId(), attachment.getFileKey(), e.getMessage());
+            }
+        }
+        return mediaList;
+    }
+
+    /**
+     * 解析 MIME 类型字符串为 MimeType 对象
+     * <p>
+     * 解析失败时回退为默认的 image/png。
+     *
+     * @param mediaType MIME 类型字符串（如 image/png）
+     * @return MimeType 对象
+     */
+    private MimeType parseMimeType(String mediaType) {
+        if (mediaType == null || mediaType.isBlank()) {
+            return MimeType.valueOf(DEFAULT_IMAGE_MIME);
+        }
+        try {
+            return MimeType.valueOf(mediaType);
+        } catch (Exception e) {
+            log.warn("[多模态] 无法解析 MIME 类型: {}，回退为 {}", mediaType, DEFAULT_IMAGE_MIME);
+            return MimeType.valueOf(DEFAULT_IMAGE_MIME);
+        }
+    }
+
+    /**
+     * 将前端传入的附件ID字符串列表解析为 Long 列表
+     * <p>
+     * 忽略 null、空列表和无法解析的条目。
+     *
+     * @param attachmentIds 前端传入的字符串ID列表
+     * @return 解析后的 Long 列表（可能为空）
+     */
+    private List<Long> parseAttachmentIds(List<String> attachmentIds) {
+        if (attachmentIds == null || attachmentIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return attachmentIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .map(id -> {
+                    try {
+                        return Long.parseLong(id.trim());
+                    } catch (NumberFormatException e) {
+                        log.warn("[多模态] 无法解析附件ID: {}", id);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 校验视觉模型支持
+     * <p>
+     * 当附件中包含图片时，检查当前模型是否支持视觉能力（supports_vision=1）。
+     * 不支持时抛出 AIException 提示用户切换模型。
+     *
+     * @param modelName     模型名称
+     * @param attachmentIds 附件ID列表
+     */
+    private void validateVisionSupport(String modelName, List<Long> attachmentIds) {
+        if (attachmentIds == null || attachmentIds.isEmpty()) {
+            return;
+        }
+        // 检查是否有图片类附件
+        List<ChatAttachment> attachments = chatAttachmentRepository.findByIds(attachmentIds);
+        boolean hasImage = attachments.stream()
+                .anyMatch(a -> CATEGORY_IMAGE.equals(a.getCategory()));
+        if (!hasImage) {
+            return;
+        }
+        // 查询模型是否支持视觉
+        AiModel model = aiModelRepository.findByModelName(modelName);
+        if (model == null || model.getSupportsVision() == null || model.getSupportsVision() != 1) {
+            log.warn("[多模态] 模型 {} 不支持视觉理解，但用户发送了图片附件", modelName);
+            throw new AIException("当前模型（" + modelName + "）不支持图片理解，请切换到支持视觉的模型（如 qwen-vl-max、gpt-4o）");
+        }
+    }
+
+    /**
+     * 绑定附件到消息（回填 session_id 和 message_id）
+     * <p>
+     * 上传时附件仅关联 userId，发送消息时回填 sessionId 和 messageId，
+     * 使附件与会话和消息建立完整关联。
+     *
+     * @param attachmentIds 附件ID列表
+     * @param sessionId     会话ID
+     * @param messageId     消息ID
+     */
+    private void bindAttachmentsToMessage(List<Long> attachmentIds, String sessionId, Long messageId) {
+        if (attachmentIds == null || attachmentIds.isEmpty()) {
+            return;
+        }
+        List<ChatAttachment> attachments = chatAttachmentRepository.findByIds(attachmentIds);
+        for (ChatAttachment attachment : attachments) {
+            attachment.setSessionId(sessionId);
+            attachment.setMessageId(messageId);
+            chatAttachmentRepository.update(attachment);
+        }
+        log.info("[多模态] 已绑定 {} 个附件到消息: sessionId={}, messageId={}", attachments.size(), sessionId, messageId);
+    }
+
+    /**
+     * ChatAttachment 实体转 AttachmentDTO
+     *
+     * @param attachment 附件实体
+     * @return 附件 DTO
+     */
+    private AttachmentDTO toAttachmentDTO(ChatAttachment attachment) {
+        return new AttachmentDTO(
+                attachment.getId(),
+                attachment.getFileName(),
+                attachment.getFileUrl(),
+                attachment.getMediaType(),
+                attachment.getFileSize(),
+                attachment.getCategory()
+        );
     }
 }
