@@ -170,6 +170,10 @@
             ? `<span class="knowledge-base-expand" onclick="event.stopPropagation();KnowledgeManagement.toggleBaseChildren(${base.id}, this)" title="展开子知识库">▶</span>`
             : `<span class="knowledge-base-expand placeholder"></span>`;
 
+        const teamBadges = (base.teamNames && base.teamNames.length > 0)
+            ? `<div class="knowledge-base-teams">${base.teamNames.map(name => `<span class="knowledge-team-badge">${escapeHtml(name)}</span>`).join('')}</div>`
+            : '';
+
         return `<div class="knowledge-base-item ${isActive}" data-base-id="${base.id}">
             <div class="knowledge-base-item-header" onclick="KnowledgeManagement.selectBase(${base.id}, '${escapeAttr(base.name)}', this.parentElement)">
                 ${expandIcon}
@@ -178,6 +182,7 @@
                 <span class="knowledge-base-doc-count">${base.documentCount || 0}</span>
             </div>
             ${base.description ? `<div class="knowledge-base-desc" onclick="KnowledgeManagement.selectBase(${base.id}, '${escapeAttr(base.name)}', this.parentElement)">${escapeHtml(base.description)}</div>` : ''}
+            ${teamBadges}
             <div class="knowledge-base-actions">
                 <button class="knowledge-base-action-btn" onclick="event.stopPropagation();KnowledgeManagement.editBase(${base.id})">✏️ 编辑</button>
                 <button class="knowledge-base-action-btn delete" onclick="event.stopPropagation();KnowledgeManagement.deleteBase(${base.id})">🗑️ 删除</button>
@@ -336,6 +341,7 @@
         document.getElementById('knowledge-base-is-public').value = '0';
         document.getElementById('knowledge-base-parent-id').value = parentId || '0';
         document.getElementById('knowledge-base-modal').style.display = 'flex';
+        loadTeamOptions();
     }
 
     /**
@@ -357,6 +363,7 @@
         document.getElementById('knowledge-base-is-public').value = base.isPublic || 0;
         document.getElementById('knowledge-base-parent-id').value = base.parentId || 0;
         document.getElementById('knowledge-base-modal').style.display = 'flex';
+        loadTeamOptions(base.teamIds || []);
     }
 
     /**
@@ -371,7 +378,8 @@
             icon: document.getElementById('knowledge-base-icon').value.trim(),
             parentId: parseInt(document.getElementById('knowledge-base-parent-id').value) || 0,
             sortOrder: parseInt(document.getElementById('knowledge-base-sort-order').value) || 0,
-            isPublic: parseInt(document.getElementById('knowledge-base-is-public').value)
+            isPublic: parseInt(document.getElementById('knowledge-base-is-public').value),
+            teamIds: collectSelectedTeamIds()
         };
 
         try {

@@ -1,5 +1,5 @@
 server:
-  port: 8090
+  port: 8092
   # 启用虚拟线程（Java 21），Tomcat 请求处理使用虚拟线程而非平台线程
   threads:
     virtual:
@@ -22,7 +22,7 @@ spring:
       max-file-size: 20MB
       max-request-size: 25MB
   datasource:
-    url: jdbc:mysql://localhost:3306/brief_wisdom?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3307/brief_wisdom?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:changeme}
@@ -30,7 +30,7 @@ spring:
   data:
     redis:
       host: localhost
-      port: 6379
+      port: 6380
       password: ${REDIS_PASSWORD:123456}
       database: 0
       timeout: 5000ms
@@ -157,7 +157,7 @@ app:
 
   # CORS 允许的域名（逗号分隔），生产环境必须配置为实际域名
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8090,http://localhost:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8092,http://localhost:3000}
 
   # 知识库 Markdown 导入路径白名单
   knowledge:
@@ -170,7 +170,7 @@ wechat:
   open:
     app-id: ${WECHAT_APP_ID:your-app-id}
     app-secret: ${WECHAT_APP_SECRET:your-app-secret}
-    redirect-uri: ${WECHAT_REDIRECT_URI:http://localhost:8090/auth/wechat/callback}
+    redirect-uri: ${WECHAT_REDIRECT_URI:http://localhost:8092/auth/wechat/callback}
     authorize-url: https://open.weixin.qq.com/connect/qrconnect
     token-url: https://api.weixin.qq.com/sns/oauth2/access_token
     userinfo-url: https://api.weixin.qq.com/sns/userinfo
@@ -179,7 +179,7 @@ wechat:
 dingtalk:
   app-key: ${DINGTALK_APP_KEY:your-app-key}
   app-secret: ${DINGTALK_APP_SECRET:your-app-secret}
-  redirect-uri: ${DINGTALK_REDIRECT_URI:http://localhost:8090/auth/dingtalk/callback}
+  redirect-uri: ${DINGTALK_REDIRECT_URI:http://localhost:8092/auth/dingtalk/callback}
   authorize-url: https://login.dingtalk.com/oauth2/auth
   token-url: https://api.dingtalk.com/v1.0/oauth2/userAccessToken
   userinfo-url: https://api.dingtalk.com/v1.0/contact/users/me
@@ -189,5 +189,5 @@ alipay:
   app-id: ${ALIPAY_APP_ID:your-app-id}
   private-key: ${ALIPAY_PRIVATE_KEY:your-private-key}
   alipay-public-key: ${ALIPAY_PUBLIC_KEY:your-alipay-public-key}
-  redirect-uri: ${ALIPAY_REDIRECT_URI:http://localhost:8090/auth/alipay/callback}
+  redirect-uri: ${ALIPAY_REDIRECT_URI:http://localhost:8092/auth/alipay/callback}
   gateway-url: https://openapi.alipay.com/gateway.do

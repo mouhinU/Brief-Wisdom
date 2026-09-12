@@ -7,8 +7,6 @@
 #   查看日志: docker-compose logs -f app
 # ============================================
 
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
@@ -29,6 +27,8 @@ services:
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
+      --character-set-client-handshake=FALSE
+      --init-connect='SET NAMES utf8mb4'
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s
@@ -42,38 +42,16 @@ services:
     networks:
       - bw-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: bw-redis
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
-    command: redis-server --requirepass ${REDIS_PASSWORD:-123456} --appendonly yes
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-123456}", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-    networks:
-      - bw-network
+  # Redis: 使用已有的 redis:8.8.0 容器（容器名 redis），无需在此定义
+  # 确保 redis 容器已启动并连接到 bw-network 网络
+  # docker network connect brief-wisdom_bw-network redis
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: brief-wisdom:latest
     container_name: bw-app
     restart: unless-stopped
     depends_on:
       mysql:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/brief_wisdom?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
@@ -81,13 +59,13 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-123456}
+      SPRING_DATA_REDIS_PASSWORD: ""
       AI_API_KEY: ${AI_API_KEY:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
     ports:
-      - "${APP_PORT:-8090}:8090"
+      - "${APP_PORT:-8092}:8092"
     volumes:
       - app_logs:/app/logs
     deploy:
@@ -100,8 +78,6 @@ services:
 
 volumes:
   mysql_data:
-    driver: local
-  redis_data:
     driver: local
   app_logs:
     driver: local
