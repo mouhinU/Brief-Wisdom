@@ -18,7 +18,7 @@ description: >-
 | `KnowledgeRagService`                                                 | Retrieve docs for RAG; vector search with keyword fallback      |
 | `KnowledgeVectorService`                                              | Redis vector store embedding CRUD                                 |
 | `ContentFilterService`                                                | Input keyword block + output PII regex filter                   |
-| `RateLimitService`                                                    | Redis sliding window (`bw:ratelimit:*`)                         |
+| `RateLimitService`                                                    | Redis fixed-window counter (`bw:ratelimit:*`)                   |
 | `ChatSyncService` / `SseChatSyncService` / `WebSocketChatSyncService` | Multi-device sync                                               |
 | `AiAuditService`                                                      | Token/cost audit logging                                        |
 | `SystemPrompts`                                                       | Base system prompt (compliance + safety)                        |
@@ -70,6 +70,10 @@ app:
   "{\"error\":\"" + e.getMessage() + "\"}"
   ```
 - `GlobalExceptionHandler.clearProducibleMediaTypes()` required for SSE error fallback
+- Current behaviour: tools are always registered, so a request runs the manual tool loop and the reply is pushed
+  **as a whole** (`return Flux.just(response)`, `AiAgentService` ~L1146); the per-token `chatModel.stream()` branch
+  (~L1160) is unreachable with the current configuration. The SSE channel itself works — do not document the output
+  as token-by-token streaming until the real-streaming refactor lands.
 
 ## RAG / Knowledge Base
 
@@ -82,11 +86,13 @@ app:
 
 - Each session keeps **last 10 messages** as AI context
 - Page context (`pageContext` on session): AI role switches per page (home, resume, settings)
+- `ChatMemory` is filtered by `sourceSessionId` — memory is **isolated per session**, never describe it as cross-session memory
 
 ## Rate Limiting
 
 - Redis-based, distributed-safe
-- Limits: ~20 req/sec window, daily cap via multiplier
+- **Fixed window** counter (not sliding): Lua `INCR` + `EXPIRE` on a per-second key and a per-day key
+- Limits: 20 req/sec, daily cap = per-second limit × `DAILY_MULTIPLIER` (1,440,000/day)
 - Throw `RateLimitException` → HTTP 429 from `GlobalExceptionHandler`
 
 ## Content Security
@@ -99,7 +105,12 @@ Do not bypass filters for convenience.
 
 ## Model Management
 
-- DB table `ai_model`: enable/disable, activate (only one active), pricing per million tokens
+- DB table `ai_model`: enable/disable, activate (only one active), pricing per million tokens, `supports_vision` (Flyway V9; `qwen-vl-max` shipped)
+- Multimodal input is upload-first: `POST /api/ai/upload` (`FileUploadController`) stores the file into `chat_attachment`
+  and returns its id; the message carries `attachmentIds`, the backend reads bytes back through `StorageService`
+  (`app.storage.type` = `local` | `minio`) and builds a Spring AI `Media` `UserMessage`
+- Only **image understanding** is delivered: PDF/Word parsing, speech input and image generation are not implemented
+  (`chat_attachment.category` values `document` / `audio` are reserved placeholders with no parser behind them)
 - Admin API: `/api/ai/models/**` requires admin role + `@RequiresPermission("ai:manage")`
 - Public chat uses `/api/ai/models/enabled` (permitAll)
 

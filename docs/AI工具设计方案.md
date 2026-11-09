@@ -323,8 +323,17 @@ OpenAiChatOptions options = OpenAiChatOptions.builder()
 | **Phase 3** | analyzeResume + getSystemStatus | 3-4 天 | 简历诊断、系统运维助手 |
 | **Phase 4** | translateText + manageKnowledgeDoc + createReminder + queryDatabase | 5-7 天 | 完整工具生态 |
 
-### 需要你确认的事项
+### 实施结果（2026-11-06 复核）
+
+上述四个 Phase 已全部落地，12 个工具均在 `ToolConfig` 中通过 `MethodToolCallbackProvider` 注册并可用，原「需要你确认的事项」已失效，保留在下方备查。
+
+其中风险最高的 SQL 查询助手（`DatabaseQueryTool`）已按最小权限实现：仅超级管理员可调用、只允许单条 `SELECT`、危险关键字正则拦截、强制 `LIMIT`。`SystemStatusTool` 限管理员，权限判定统一走 `ToolContextProviderImpl` 读取 `UserContextHolder` 的用户等级。
+
+<details>
+<summary>原确认事项（历史）</summary>
 
 1. 以上 12 个工具中，你觉得哪些最实用？想优先实现哪几个？
 2. SQL 查询助手（工具 12）是否需要？安全风险较高但运维价值大。
 3. 是否需要我直接开始实现第一梯队的工具？
+
+</details>

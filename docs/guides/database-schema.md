@@ -20,11 +20,15 @@
 mysql -u root -p < brief-wisdom-web/src/main/resources/all-init.sql
 ```
 
-该脚本包含：创建数据库、全部 18 张表结构（含 RBAC 表）、默认用户（`default-user/guest` 和 `admin/mouhin`
+该脚本包含：创建数据库、18 张表结构（含 RBAC 表）、默认用户（`default-user/guest` 和 `admin/mouhin`
 ）、默认角色（super_admin/admin/normal）、树形菜单、AI 模型配置、简历示例数据、知识库初始数据。
 
-> `all-init.sql` 为整合版初始化脚本，已包含 Flyway V1~V7 的所有变更。项目同时使用 Flyway
-> 管理增量迁移（V1 基线 → V2 性能索引 → V3 链接描述字段 → V4 提醒表 → V5 聊天记忆表 → V6 补充索引 → V7 反馈字段）。
+> **警告**：当前数据库实际共有 **23 张表**，`all-init.sql` 停留在 18 张表，**缺少** V9~V12 新增的
+> `chat_attachment`（V9）、`team` / `team_member` / `kb_share`（V10）、`kb_team`（V12）共 5 张表。用 `all-init.sql`
+> 初始化的库需要另外补建这些表；新建库建议以 Flyway 迁移（V1~V13）为准。
+
+> `all-init.sql` 已包含 Flyway V1~V7 的所有变更，V8~V13 的变更需通过 Flyway 迁移补齐。项目同时使用 Flyway
+> 管理增量迁移（V1 基线 → … → V13 修复中文字符集，完整清单见文末「Flyway 数据库迁移」）。
 
 **方式二：应用启动时自动建表**
 
@@ -47,7 +51,7 @@ chat_user (用户)
     │       └── chat_message (消息) [一对多]
     ├── user_oauth (第三方登录绑定) [一对多]
     ├── ai_audit_log (AI审计日志) [一对多]
-    ├── chat_memory (跨会话记忆) [一对多]
+    ├── chat_memory (对话记忆·会话内隔离) [一对多]
     ├── chat_reminder (定时提醒) [一对多]
     └── sys_user_role (用户角色关联) [一对多]
             └── sys_role (角色)
@@ -268,7 +272,7 @@ work_experience (工作经历)
 | sort_order  | INT          | 排序序号                                    |
 | status      | TINYINT      | 状态: 0-草稿, 1-已发布, 2-已归档                  |
 
-### chat_memory（跨会话记忆表）
+### chat_memory（对话记忆表·会话内隔离）
 
 | 字段                | 类型              | 说明                             |
 |-------------------|-----------------|--------------------------------|
@@ -276,8 +280,10 @@ work_experience (工作经历)
 | category          | VARCHAR(50)     | 记忆类别: preference/fact/context  |
 | memory_key        | VARCHAR(200)    | 记忆键（如 name、tech_stack、company） |
 | memory_value      | TEXT            | 记忆值                            |
-| source_session_id | VARCHAR(64)     | 来源会话 ID                        |
+| source_session_id | VARCHAR(64)     | 来源会话 ID（记忆按来源会话隔离）            |
 | access_count      | INT             | 访问次数（默认 0）                     |
+
+> ChatMemory 读取时按 `source_session_id` 过滤，同一用户不同会话之间的记忆相互隔离，并非跨会话共享。
 
 ### chat_reminder（定时提醒表）
 
@@ -287,6 +293,77 @@ work_experience (工作经历)
 | reminder_text | TEXT            | 提醒内容                           |
 | remind_time   | DATETIME        | 提醒时间                           |
 | status        | TINYINT UNSIGNED | 状态: 0-待处理, 1-已完成, 2-已过期, 3-已取消 |
+
+### chat_attachment（聊天附件表，V9 新增）
+
+用途：多模态附件元信息登记（图片理解链路）。
+
+| 字段         | 类型           | 说明                              |
+|------------|--------------|---------------------------------|
+| user_id    | VARCHAR(64)  | 上传者用户 ID                         |
+| session_id | VARCHAR(64)  | 所属会话 ID（发送消息时回填）                 |
+| message_id | BIGINT       | 所属消息 ID（发送消息时回填）                 |
+| file_name  | VARCHAR(255) | 原始文件名                            |
+| file_key   | VARCHAR(500) | 存储 key                           |
+| file_url   | VARCHAR(1000) | 可访问 URL                          |
+| media_type | VARCHAR(100) | MIME 类型                          |
+| file_size  | BIGINT       | 文件字节数                            |
+| category   | VARCHAR(20)  | 附件分类: image-图片, document-文档, audio-音频 |
+
+**索引**：`idx_chat_attachment_user_id (user_id)`、`idx_chat_attachment_session_id (session_id)`、`idx_chat_attachment_message_id (message_id)`
+
+### team（团队表，V10 新增）
+
+用途：团队协作与知识库共享授权。
+
+| 字段          | 类型           | 说明                    |
+|-------------|--------------|-----------------------|
+| name        | VARCHAR(100) | 团队名称                  |
+| description | VARCHAR(500) | 团队描述                  |
+| avatar      | VARCHAR(50)  | 团队头像/图标（默认 👥）        |
+| owner_id    | VARCHAR(64)  | 拥有者用户 ID               |
+
+**索引**：`idx_owner_id (owner_id)`、`idx_is_deleted (is_deleted)`
+
+### team_member（团队成员表，V10 新增）
+
+用途：团队协作与知识库共享授权。
+
+| 字段      | 类型           | 说明                                  |
+|---------|--------------|-------------------------------------|
+| team_id | BIGINT       | 团队 ID                                |
+| user_id | VARCHAR(64)  | 用户 ID                                |
+| role    | VARCHAR(20)  | 角色: owner-拥有者, admin-管理员, member-成员 |
+
+**唯一约束**：`UNIQUE INDEX uk_team_user (team_id, user_id, is_deleted)`
+**索引**：`idx_user_id (user_id)`、`idx_team_id (team_id)`
+
+### kb_share（知识库共享授权表，V10 新增）
+
+用途：团队协作与知识库共享授权。
+
+| 字段          | 类型           | 说明                        |
+|-------------|--------------|---------------------------|
+| kb_id       | BIGINT       | 知识库 ID                     |
+| target_type | VARCHAR(20)  | 授权目标类型: team-团队, user-个人  |
+| target_id   | VARCHAR(64)  | 授权目标 ID（团队 ID 或用户 ID）     |
+| permission  | VARCHAR(20)  | 权限: read-只读（目前仅支持 read）  |
+| shared_by   | VARCHAR(64)  | 授权人用户 ID                   |
+
+**唯一约束**：`UNIQUE INDEX uk_kb_target (kb_id, target_type, target_id, is_deleted)`
+**索引**：`idx_target (target_type, target_id)`、`idx_kb_id (kb_id)`
+
+### kb_team（知识库-团队关联表，V12 新增）
+
+用途：团队协作与知识库共享授权（支持一个知识库归属多个团队，即多 owner）。
+
+| 字段      | 类型     | 说明     |
+|---------|--------|--------|
+| kb_id   | BIGINT | 知识库 ID |
+| team_id | BIGINT | 团队 ID  |
+
+**唯一约束**：`UNIQUE INDEX uk_kb_team (kb_id, team_id, is_deleted)`
+**索引**：`idx_team_id (team_id)`、`idx_kb_id (kb_id)`
 
 ---
 
@@ -425,9 +502,15 @@ public class MybatisPlusConfig implements MetaObjectHandler {
 | V2 | `V2__add_performance_indexes.sql`      | 补充高频查询字段性能索引                                         |
 | V3 | `V3__alter_link_desc_to_text.sql`      | knowledge_document.link_desc 从 VARCHAR(500) 扩展为 TEXT |
 | V4 | `V4__create_chat_reminder_table.sql`   | 创建 chat_reminder 定时提醒表                               |
-| V5 | `V5__create_chat_memory_table.sql`     | 创建 chat_memory 跨会话记忆表                                |
+| V5 | `V5__create_chat_memory_table.sql`     | 创建 chat_memory 对话记忆表（会话内隔离）                          |
 | V6 | `V6__add_missing_indexes.sql`          | 补充 chat_reminder 性能索引                                |
 | V7 | `V7__add_feedback_fields.sql`          | chat_message 新增反馈字段（feedback_score/comment/time）     |
+| V8 | `V8__init_resume_knowledge_base.sql`   | 初始化简历知识库数据                                          |
+| V9 | `V9__multimodal_attachment.sql`        | ai_model 增加 supports_vision 视觉能力标记；创建 chat_attachment 多模态附件表 |
+| V10 | `V10__team_and_kb_share.sql`           | 创建 team/team_member/kb_share 表；knowledge_base 增加 owner_type/owner_id/creator_id 归属字段 |
+| V11 | `V11__move_team_menu_to_system_settings.sql` | 将团队相关菜单迁移到系统设置下                                |
+| V12 | `V12__kb_team_multi_owner.sql`         | 创建 kb_team 关联表，支持知识库归属多个团队（多 owner）                |
+| V13 | `V13__fix_chinese_charset.sql`         | 修复中文字符集                                              |
 
 ---
 

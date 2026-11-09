@@ -1,7 +1,7 @@
 # Brief-Wisdom
 
-> 基于 Spring Boot 4.0.7 / Spring AI 2.0.0 / Java 21 构建的 AI 智能对话平台，集成多模型管理、RAG 知识库、跨会话记忆、AI
-> 工具调用、RBAC 权限体系、多端实时同步、多方式认证、简历管理、安全合规等完整能力矩阵。
+> 基于 Spring Boot 4.0.7 / Spring AI 2.0.0 / Java 21 构建的 AI 智能对话平台，集成多模型管理、RAG 知识库、对话记忆、AI
+> 工具调用、RBAC 权限体系、多端实时同步、多方式认证、简历管理、团队协作、多模态图片理解、安全合规等完整能力矩阵。
 
 ---
 
@@ -9,16 +9,18 @@
 
 Brief-Wisdom 是一个全功能 AI 智能对话平台，围绕"对话即服务"理念构建，核心能力涵盖：
 
-- **AI 智能对话**：多模型管理（DashScope / DeepSeek / OpenAI / Anthropic）、SSE 流式输出、页面上下文感知、跨会话记忆、Token
+- **AI 智能对话**：多模型管理（默认启用 DashScope / DeepSeek，OpenAI / Anthropic 需在 `application.yml` 解除注释并配置 Key）、SSE 通道推送、页面上下文感知、对话记忆、Token
   统计与费用计算
 - **RAG 知识库**：Redis Vector Store (RediSearch) 向量化存储、三种文档类型、异步向量化、AI 按需语义检索
 - **AI 工具调用**：12 个 Function Calling 工具，覆盖知识检索、数据分析、集成自动化三大领域
-- **跨会话记忆**：正则自动提取 + AI 主动记忆，持久化用户偏好与上下文
+- **对话记忆**：正则自动提取 + AI 主动记忆，持久化用户偏好与上下文；按来源会话隔离，不跨会话泄漏
+- **多模态图片理解**：上传先行（upload-first）方案，附件落 `chat_attachment`，按 `supports_vision` 标记选择视觉模型，本地磁盘 / MinIO 可插拔存储
+- **团队协作**：三级成员角色（owner / admin / member）、团队知识库、知识库共享授权
 - **多方式认证**：用户名密码、手机短信、微信扫码、钉钉扫码、支付宝扫码、SSO 令牌、访客模式
 - **RBAC 权限控制**：三级角色、树形菜单、注解级权限、路由级保护
 - **多端实时同步**：SSE / WebSocket 可配置切换，统一事件协议，多设备同时在线
 - **安全合规**：三层防线（提示词→输入过滤→输出过滤）、Redis 分布式限流、XSS 防护
-- **简历管理**：工作经历 / 项目 / 成果 / 技术栈 CRUD，AI 润色（STAR 方法论），PDF 导出
+- **简历管理**：工作经历 / 项目 / 成果 / 技术栈 CRUD，AI 润色（STAR 方法论），浏览器打印导出 PDF
 - **费用统计**：多维度 AI 使用费用统计，按模型 / 用户 / 日期分析
 - **AI 审计系统**：输入拦截、输出过滤、风险检测全链路审计日志
 - **国际化（i18n）**：中英文支持，Cookie 语言切换
@@ -61,10 +63,10 @@ AI 模块通过 `ToolContextProvider` / `ResumeDataProvider` 接口（定义在 
 | 缓存              | Redis 6.0+（RediSearch 向量检索）+ Jedis 7.4.1 连接池     |
 | 分布式锁            | Redisson 3.40.2（`@DistributedLock` AOP 切面）       |
 | 实时通信            | SSE / WebSocket（`app.sync.transport` 可配置）        |
-| 前端              | 原生 HTML/CSS/JS（组件化架构，14+ 组件）                     |
+| 前端              | 原生 HTML/CSS/JS（组件化架构，16 个组件 + 16 个模板）             |
 | 构建工具            | Maven                                            |
 | API 文档          | SpringDoc OpenAPI 2.8.6（`/swagger-ui.html`）      |
-| DB 迁移           | Flyway（V1~V7）                                    |
+| DB 迁移           | Flyway（V1~V13）                                   |
 | 监控              | Actuator + Micrometer Prometheus                 |
 | JSON 兼容         | Jackson 2.x（Spring Boot 4 默认 Jackson 3.x，已做兼容处理） |
 
@@ -85,8 +87,9 @@ AI 模块通过 `ToolContextProvider` / `ResumeDataProvider` 接口（定义在 
 mysql -u root -p < brief-wisdom-web/src/main/resources/all-init.sql
 ```
 
-> `all-init.sql` 为一体化初始化脚本（整合版），包含全部 18 张表结构、RBAC 权限、菜单树、AI 模型配置、简历示例数据、知识库初始数据。
-> 项目同时使用 Flyway 管理增量迁移（V1 基线 → V2 性能索引 → V3 链接描述字段 → V4 提醒表 → V5 聊天记忆表 → V6 补充索引 → V7 反馈字段）。
+> `all-init.sql` 为一体化初始化脚本（整合版），包含 RBAC 权限、菜单树、AI 模型配置、简历示例数据、知识库初始数据，共 18 张表。
+> **注意**：项目实际 schema 已有 23 张表，`all-init.sql` 尚未跟进 V9~V12 新增的 `chat_attachment`（V9）、`team` / `team_member` / `kb_share`（V10）、`kb_team`（V12）五张表；从零建库请以 Flyway 迁移为准。
+> 项目同时使用 Flyway 管理增量迁移（V1 基线 → V2 性能索引 → V3 链接描述字段 → V4 提醒表 → V5 聊天记忆表 → V6 补充索引 → V7 反馈字段 → V8 简历知识库 → V9 多模态附件 → V10 团队与共享 → V11 团队菜单迁移 → V12 团队多拥有者 → V13 中文字符集修复）。
 
 ### 配置环境变量
 
@@ -101,7 +104,7 @@ cp .env.example .env
 ./mvnw spring-boot:run -pl brief-wisdom-web
 ```
 
-访问：http://localhost:8090
+访问：http://localhost:8092
 
 默认账号：`default-user/guest`（访客）、`admin/mouhin`（超级管理员）
 
@@ -113,12 +116,12 @@ cp .env.example .env
 
 | 能力       | 说明                                                                                                 |
 |----------|----------------------------------------------------------------------------------------------------|
-| 多模型管理    | 通过 `ChatModelRegistry` 统一管理 DashScope（通义千问）、DeepSeek、OpenAI、Anthropic（Claude）                      |
-| 流式输出     | SSE 流式推送（打字机效果），支持流式对话终止                                                                           |
+| 多模型管理    | 通过 `ChatModelRegistry` 按 `ai_model.provider` 路由，支持 DashScope（通义千问）、DeepSeek、OpenAI、Anthropic（Claude）；`application.yml` 默认仅启用 dashscope + deepseek，openai / anthropic 配置块处于注释状态，需解除注释并配置 API Key 后生效。Anthropic 思考模式尚未实现（`ChatModelRegistry` 中为 TODO） |
+| 流式输出     | SSE 通道推送（`SseEmitter` 桥接 `Flux<String>`），支持主动终止。**当前行为**：因 12 个工具恒注册，服务端走手动工具调用循环后整段返回（`Flux.just`），前端逐 chunk 全量重渲染形成打字机观感；逐 Token 真流式改造已列入计划（`chatModel.stream()` 分支目前不可达） |
 | 页面上下文感知  | AI 角色根据当前页面自动切换（`/`、`/about.html`、`/resume-manage.html`、`/system-settings.html`、`/ai-manage.html`） |
 | 多会话管理    | 多会话并行，首次消息自动生成会话标题                                                                                 |
 | Token 统计 | 逐消息 Token 计数与费用计算（按百万 Token 定价）                                                                    |
-| 上下文窗口    | 最近 10 条消息 + 跨会话页面上下文（最多 3 个会话、每会话 5 条）                                                             |
+| 上下文窗口    | 最近 10 条消息（`RECENT_MESSAGES_COUNT`）+ 当前页面上下文 + 本会话对话记忆                                                        |
 
 ### 二、RAG 知识库
 
@@ -133,14 +136,15 @@ cp .env.example .env
 | Markdown 导入 | `MarkdownImportService` 支持从文件系统批量导入                    |
 | 代码索引        | `ProjectCodeIndexService` 启动时构建内存代码索引，提供代码上下文          |
 
-### 三、跨会话记忆（ChatMemory）
+### 三、对话记忆（ChatMemory，会话内隔离）
 
 | 能力      | 说明                                         |
 |---------|--------------------------------------------|
+| 持久化范围    | 记忆按 `user_id` 落 `chat_memory` 表，跨会话**不共享**：注入上下文时按 `source_session_id` 过滤，仅返回本会话提取的记忆（`ChatMemoryService.buildMemoryContext`），避免某会话信息泄漏进其他会话 |
 | 正则自动提取  | 自动识别并提取用户姓名、公司、角色、技术栈、风格偏好、当前项目            |
 | AI 主动记忆 | 通过 `MemoryManagementTool` 支持列出 / 保存 / 删除记忆 |
 | 记忆分类    | preference（偏好）、fact（事实）、context（上下文）       |
-| 上下文注入   | 每次对话自动将相关记忆注入系统提示词                         |
+| 上下文注入   | 每次对话自动将本会话记忆注入系统提示词                         |
 
 ### 四、安全与合规
 
@@ -149,7 +153,7 @@ cp .env.example .env
 | 第一层：系统提示词 | 伦理合规引导，约束 AI 行为边界                       |
 | 第二层：输入过滤  | 关键词黑名单拦截 + 提示词注入检测（10 条正则模式）            |
 | 第三层：输出过滤  | PII 敏感信息替换（身份证号、手机号、银行卡号）               |
-| 分布式限流     | Redis Lua 脚本滑动窗口：20 次/秒 + 1,440,000 次/天 |
+| 分布式限流     | Redis Lua 脚本固定窗口（`INCR` + `EXPIRE` 原子操作，按秒 key `bw:ratelimit:s:*` 与按天 key `bw:ratelimit:day:*`）：20 次/秒 + 1,440,000 次/天 |
 | XSS 防护    | 前端 DOMPurify 过滤                         |
 | CORS      | 集中配置跨域策略                                |
 | 审计日志      | `ContentSecurityException` 触发审计记录       |
@@ -159,7 +163,7 @@ cp .env.example .env
 | 方式         | 说明                           |
 |------------|------------------------------|
 | 用户名 + 密码   | BCrypt 加密存储                  |
-| 手机 + 短信验证码 | Redis 存储，5 分钟过期，频率限制         |
+| 手机 + 短信验证码 | Redis 存储，5 分钟过期，频率限制。**当前未接通真实通道**：默认 `app.sms.provider=mock`，`SmsServiceImpl` 仅把验证码写入 Redis 与日志（L77 TODO），`AliyunSmsServiceImpl` 的 SDK 调用同样是 TODO |
 | 微信扫码登录     | 开放平台 OAuth                   |
 | 钉钉扫码登录     | OAuth 2.0                    |
 | 支付宝扫码登录    | RSA2 签名认证                    |
@@ -202,7 +206,7 @@ cp .env.example .env
 | 数据模型    | WorkExperience、Project、ProjectAchievement、WorkExperienceStack 四个实体 |
 | CRUD 管理 | 完整增删改查 + 在线编辑器                                                     |
 | AI 润色   | 单字段润色、全简历润色、优化建议（STAR 方法论）                                         |
-| 展示页面    | 深色/浅色主题切换、PDF 导出                                                   |
+| 展示页面    | 深色/浅色主题切换、浏览器打印导出 PDF（前端 `window.print()`，服务端不生成 PDF）                                     |
 | 缓存      | Redis 缓存，30 分钟 TTL                                                 |
 
 ### 十、费用统计
@@ -238,8 +242,8 @@ cp .env.example .env
 
 | 能力    | 说明                                   |
 |-------|--------------------------------------|
-| 页面数量  | 7 个功能页面 + 1 个测试页面                    |
-| 组件体系  | 14+ JS 组件（`.js` + `.template.js` 配对） |
+| 页面数量  | 7 个功能页面 + 1 个测试页面（`test-session.html`）             |
+| 组件体系  | 16 个组件 + 16 个模板（`.js` + `.template.js` 配对）         |
 | 组件加载  | `component-loader.js` 统一注册和初始化       |
 | AI 助手 | 浮动 Widget，全局可用                       |
 | 安全    | DOMPurify XSS 防护                     |
@@ -248,13 +252,38 @@ cp .env.example .env
 
 | 能力      | 说明                                                                                                        |
 |---------|-----------------------------------------------------------------------------------------------------------|
-| DB 迁移   | Flyway：V1（基线）→ V2（性能索引）→ V3（link_desc 改 TEXT）→ V4（chat_reminder 表）→ V5（chat_memory 表）→ V6（补充索引）→ V7（反馈字段） |
+| DB 迁移   | Flyway：V1（基线）→ V2（性能索引）→ V3（link_desc 改 TEXT）→ V4（chat_reminder 表）→ V5（chat_memory 表）→ V6（补充索引）→ V7（反馈字段）→ V8（简历知识库）→ V9（多模态附件 + `supports_vision`）→ V10（团队 + 共享授权）→ V11（团队菜单迁移）→ V12（`kb_team` 多拥有者）→ V13（中文字符集修复） |
 | 虚拟线程    | Java 21 Virtual Threads（`bw-vt-*` 命名）                                                                     |
 | 监控      | Actuator + Prometheus 指标暴露                                                                                |
 | API 文档  | SpringDoc OpenAPI（`/swagger-ui.html`）                                                                     |
 | 异常处理    | `GlobalExceptionHandler` 处理 10+ 异常类型                                                                      |
 | 响应包装    | `ResultAutoWrapperAdvice` 自动统一响应格式                                                                        |
 | JSON 兼容 | Jackson 2.x 兼容（Spring Boot 4 默认 Jackson 3.x）                                                              |
+
+### 十五、团队协作
+
+| 能力       | 说明                                                                        |
+|----------|---------------------------------------------------------------------------|
+| 团队管理     | 创建 / 更新 / 删除团队，`GET /api/team/my` 获取我的团队；接口见 `TeamController`（基址 `/api/team`）      |
+| 成员与角色    | 三级角色 owner / admin / member，支持添加成员、移除成员、变更角色（`team_member` 表，唯一索引 `uk_team_user`） |
+| 团队知识库    | `knowledge_base` 增加 `owner_type`（personal / team）、`owner_id`、`creator_id` 三列 |
+| 共享授权     | `kb_share` 支持按团队（target_type=team）或按个人（target_type=user）授权，`permission` 目前仅 `read`   |
+| 可见性过滤    | `KnowledgeServiceImpl` 按用户所属团队与共享记录过滤可见知识库                                |
+| 数据表      | `team` / `team_member` / `kb_share`（V10）、`kb_team`（V12）                   |
+
+> 尚未实现：共享会话、多租户隔离。
+
+### 十六、多模态附件与图片理解
+
+| 能力       | 说明                                                                              |
+|----------|---------------------------------------------------------------------------------|
+| 上传先行     | `POST /api/ai/upload` 先上传拿到 `attachmentId`，再把 ID 随消息发送，规避 `EventSource` 只能 GET 的限制    |
+| 附件登记     | `chat_attachment` 表（V9）记录 file_name / file_key / file_url / media_type / category 等元信息 |
+| 存储可插拔    | `app.storage.type` 切换 `local`（本地磁盘 + `/uploads` 前缀）与 `minio`（S3 兼容）                |
+| 视觉模型标记   | `ai_model.supports_vision` 标记支持图片输入的模型，内置 qwen-vl-max 等                              |
+| 消息组装     | 发送时按 ID 从存储读取文件，组装 Spring AI `Media` 送入视觉模型（`AiAgentService.buildUserMessage`）        |
+
+> 尚未实现：PDF / Word 等文档正文解析（知识库 FILE 类型目前仅索引文件名，未解析内容）、语音输入、图片生成。
 
 ---
 
@@ -334,7 +363,7 @@ cp .env.example .env
 - [实时同步架构](docs/architecture/sync-architecture.md) — SSE / WebSocket 方案选型与实现
 - [RAG 向量检索架构](docs/architecture/rag-architecture.md) — Redis Vector Store RAG 设计
 - [简历数据接入知识库](docs/architecture/resume-knowledge-integration.md) — 简历模块数据写入知识库方案
-- [跨会话记忆](docs/architecture/chat-memory.md) — ChatMemory 功能设计
+- [对话记忆](docs/architecture/chat-memory.md) — ChatMemory 功能设计（会话内隔离）
 
 ### 功能特性
 
@@ -356,11 +385,11 @@ cp .env.example .env
 
 ### 短期（3-6 个月）
 
-知识库增强（分块策略优化、重排序机制）、对话质量评估体系。PWA 基础支持已完成（manifest.json + Service Worker），后续可增强离线缓存策略。
+逐 Token 真流式改造（当前 SSE 通道整段返回，`chatModel.stream()` 分支需与工具调用循环打通）、知识库增强（分块策略优化、重排序机制）、对话质量评估体系、真实短信通道接入（当前两实现均为 TODO）。PWA 基础支持已完成（manifest.json + Service Worker），后续可增强离线缓存策略。
 
 ### 中期（6-12 个月）
 
-团队协作（共享会话 / 团队知识库）、智能体工作流（可视化编排）、数据分析看板、语音交互、多模态支持。
+团队协作增强（共享会话、多租户隔离；团队知识库与共享授权已落地）、智能体工作流（可视化编排）、数据分析看板、语音交互、多模态增强（PDF / Word 文档解析、图片生成；图片理解已落地）。
 
 ### 长期（1-2 年）
 

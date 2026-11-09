@@ -36,7 +36,7 @@ description: >-
 
 - **Single source**: `SecurityConfig.corsConfigurationSource()`
 - Config: `app.cors.allowed-origins` (comma-separated)
-- Dev default: `http://localhost:8090,http://localhost:3000`
+- Dev default: `http://localhost:8092,http://localhost:3000`
 - Production: set to actual domain only
 - **Never** add `@CrossOrigin(origins = "*")` on Controllers
 - `allowCredentials(true)` — origins must be explicit, not `*`

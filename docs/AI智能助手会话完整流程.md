@@ -93,10 +93,10 @@ flowchart TB
 
 两个关键配置开关（`application.yml`）：
 
-- `app.chat.streaming: true` —— 是否启用流式输出（打字机效果），当前为 true。
+- `app.chat.streaming: true` —— 聊天模式开关，当前为 true。该开关由 `GET /api/ai/chat/config` 回报给前端，决定前端是否走 SSE 流式接口；它**不控制服务端是否逐 Token 输出**（见「阶段六」的现状说明）。
 - `app.sync.transport: websocket` —— 多端同步通道，当前为 websocket（端点 `/ws/sync`），可切换为 sse。
 
-一个重要安全设计：**前端从不传递 userId**。用户身份完全由后端 `UserContextHelper.getCurrentUserId()` 从 HTTP Session 解析，三级回退为：登录用户（Session）→ Spring Security 上下文 → 访客指纹（`guest-` + IP/浏览器/设备哈希）。因此未登录访客也能使用，且同设备 userId 恒定。
+一个重要安全设计：**前端从不传递 userId**。用户身份完全由后端 `UserContextHolder.getCurrentUserId()` 从 HTTP Session 解析，三级回退为：登录用户（Session）→ Spring Security 上下文 → 访客指纹（`guest-` + IP/浏览器/设备哈希）。因此未登录访客也能使用，且同设备 userId 恒定。
 
 ---
 
@@ -173,12 +173,14 @@ GET /api/ai/chat/session/{sessionId}/stream?message=<编码>&model=<编码>&page
 
 | SSE 事件 | data 内容 | 前端处理 |
 |---|---|---|
-| 默认 `message` | 增量文本 chunk | 累积全文 + marked **全量重渲染** + 尾部光标（打字机效果） |
+| 默认 `message` | 增量文本 chunk（**当前实现下通常是整段一个 chunk**） | 累积全文 + marked **全量重渲染** + 尾部光标（打字机效果） |
 | `complete` | `[DONE]` | 关闭连接、移除光标做最终渲染、触发兜底保存 |
 | `stopped` | `[STOPPED]` | 标记"已停止生成"，保留并保存已生成部分 |
 | `error` | `{type, message}` JSON | `CONTENT_BLOCKED` 渲染友好错误提示 |
 
 打字机效果的本质是：每收到一个 chunk 就用 `marked.parse()` 对累积全文重新渲染，并经 `DOMPurify.sanitize()` 防 XSS（项目未引入代码高亮库，代码块为原生 `<pre><code>`）。
+
+> **实现现状（2026-11-06 核对）**：12 个 AI 工具通过 `ToolConfig` 恒常注册，`chatStreamWithSession` 里的 `hasTools` 恒为 true，因此实际走「手动工具调用循环 → `return Flux.just(response)`」分支，整段回复一次性下发；逐 Token 的 `chatModel.stream()` 分支在当前配置下不可达。SSE 通道、停止生成、`complete` / `stopped` / `error` 命名事件均为真实实现，只是文本粒度为整段。逐 Token 真流式改造已列入 README 短期规划。
 
 **停止生成**：用户点停止按钮 → `stopStreaming()` 置 `isUserStopped=true`、关闭 EventSource、调用 `DELETE /api/ai/chat/stream/stop`。后端从 `activeStreamSubscriptions`（`Map<userId, Disposable>`）取出该用户的 Reactor 订阅并 `dispose()`，Flux 收到取消异常后走 `stopped` 分支。
 
@@ -265,7 +267,7 @@ sequenceDiagram
 
 ### 十、关键设计要点
 
-聊天内容流（打字机）始终走 SSE（`SseEmitter` 桥接 `Flux<String>`），而多端同步通知是可插拔的独立通道（SSE 或 WebSocket），两者职责分离、互不干扰。流式接口用 GET 仅为兼容浏览器原生 `EventSource`。
+聊天内容流走 SSE（`SseEmitter` 桥接 `Flux<String>`；当前文本粒度为整段，见「阶段六」现状说明），而多端同步通知是可插拔的独立通道（SSE 或 WebSocket），两者职责分离、互不干扰。流式接口用 GET 仅为兼容浏览器原生 `EventSource`。
 
 会话隔离是核心约束：每个会话的 AI 上下文只包含本会话自身的最近消息与本会话记忆，不会拉取同一用户其他会话的记录或记忆，从根本上避免上下文串扰。
 

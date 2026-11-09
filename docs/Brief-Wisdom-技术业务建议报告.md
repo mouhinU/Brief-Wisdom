@@ -4,6 +4,14 @@
 **技术栈**: Spring Boot 4.0.7 / Spring AI 2.0.0 / Java 21 / Redis Vector Store (RediSearch)
 **分析范围**: 全模块代码审查 + 文档完整性审查
 
+> 说明：本报告为 2026-07-16 的初版快照，各条建议的「现状」按当时代码描述；后续实施进展以
+> [analysis/technical-business-recommendations.md](analysis/technical-business-recommendations.md)（最后更新 2026-11-06）为准。
+> 本次复核仅修正与源码不符的事实性表述：服务端口为 **8092**（`application.yml:2`、根目录 `Dockerfile` `EXPOSE 8092`）；
+> 数据库实际 **23 张表**（`all-init.sql` 只含 18 张，缺 `chat_attachment`/`team`/`team_member`/`kb_share`/`kb_team`）；
+> Flyway 实际有 **13 个脚本**（V1~V13）；限流为**固定窗口**（Redis INCR + EXPIRE，按秒 key + 按天 key），非滑动窗口；
+> ChatMemory 按 `sourceSessionId` 过滤，会话之间相互隔离，统一表述为「对话记忆（会话内隔离）」；
+> 团队协作中的团队/成员/角色、团队知识库与知识库共享授权**已实现**，仅共享会话与多租户隔离尚未实现。
+
 ---
 
 ## 一、文档整理完成情况
@@ -18,10 +26,10 @@
 | docs/README.md | 112 | 文档索引与导航 |
 | docs/architecture/sync-architecture.md | 320 | SSE/WebSocket 实时同步架构 |
 | docs/architecture/rag-architecture.md | 188 | Redis Vector Store RAG 设计 |
-| docs/architecture/chat-memory.md | 162 | 跨会话记忆功能设计 |
+| docs/architecture/chat-memory.md | 162 | 对话记忆（会话内隔离）功能设计 |
 | docs/features/ai-polish/README.md | 262 | AI 润色组件完整文档 |
 | docs/guides/developer-guide.md | 317 | 开发者快速入门 |
-| docs/guides/database-schema.md | 483 | 数据库表结构（含全部 18 张表） |
+| docs/guides/database-schema.md | 483 | 数据库表结构（代码实际 23 张表；`all-init.sql` 仅 18 张，其余 `chat_attachment`/`team`/`team_member`/`kb_share`/`kb_team` 由 Flyway V9/V10/V12 建表） |
 | docs/guides/LOG_CONFIGURATION.md | 148 | 日志配置说明 |
 | docs/guides/MARKDOWN_IMPORT_GUIDE.md | 235 | Markdown 导入指南 |
 | docs/analysis/README.md | 126 | 项目能力总结与未来规划 |
@@ -219,7 +227,7 @@ RUN ./mvnw clean package -DskipTests
 # Runtime stage
 FROM eclipse-temurin:21-jre
 COPY --from=builder /app/brief-wisdom-web/target/*.jar app.jar
-EXPOSE 8090
+EXPOSE 8092
 ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
@@ -282,6 +290,12 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 **工作量**：约 2-3 周。
 
+**落地进展（截至 2026-11-06）**：本条建议不再属于纯未来规划——团队知识库、团队管理界面（成员增删、三级角色
+owner/admin/member）与知识库共享授权已实现：`TeamServiceImpl` + `TeamController`（`/api/team`，覆盖团队 CRUD、成员管理、
+团队知识库、共享/撤销共享/共享列表/获取共享给我的知识库），数据表 `team`/`team_member`/`kb_share`/`kb_team`（Flyway V10、
+V12），`knowledge_base` 增加 `owner_type`(personal|team)/`owner_id`/`creator_id`，`KnowledgeServiceImpl` 已接入可见性过滤；
+`kb_share.permission` 当前仅支持 `read`。**仍未实现**：共享会话、多租户隔离。
+
 ---
 
 ## 四、优先级总览
@@ -302,7 +316,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 | **P3** | service 模块迁移收尾 | 1-2 天 |
 | **P3** | Docker 生产部署 | 4-6 小时 |
 | **P3** | 对话质量评估 | 2-3 天 |
-| **P3** | 团队协作能力 | 2-3 周 |
+| **P3** | 团队协作能力（团队知识库/共享授权已实现，共享会话与多租户待做） | 2-3 周 |
 
 ---
 
@@ -310,7 +324,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 从代码质量和功能完整度来看，Brief-Wisdom 已经具备以下竞争优势：
 
-1. **功能完整度高**：12 个 AI 工具、7 种认证方式、完整的 RBAC 体系、RAG 知识库、跨会话记忆，在同类个人项目中属于功能矩阵非常完整的实现。
+1. **功能完整度高**：12 个 AI 工具、7 种认证方式、完整的 RBAC 体系、RAG 知识库、对话记忆（会话内隔离），在同类个人项目中属于功能矩阵非常完整的实现。
 
 2. **架构设计合理**：领域模块划分清晰（ai/system/resume），依赖方向单一（上层→下层），通过 SPI 接口（ToolContextProvider/ResumeDataProvider）实现模块解耦，具备较好的可扩展性。
 
@@ -323,3 +337,4 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 ---
 
 **报告生成时间**: 2026-07-16
+**文档复核时间**: 2026-11-06（仅修正与源码不符的事实性表述）

@@ -52,23 +52,23 @@
 #### 1. 导入 docs 目录
 
 ```bash
-curl -X POST "http://localhost:8090/api/knowledge/import/docs?baseId=1"
+curl -X POST "http://localhost:8092/api/knowledge/import/docs?baseId=1"
 ```
 
 #### 2. 导入 AGENTS.md
 
 ```bash
-curl -X POST "http://localhost:8090/api/knowledge/import/agents?baseId=1"
+curl -X POST "http://localhost:8092/api/knowledge/import/agents?baseId=1"
 ```
 
 #### 3. 导入自定义目录
 
 ```bash
 # 非递归导入
-curl -X POST "http://localhost:8090/api/knowledge/import/markdown?baseId=1&sourceDir=docs/guides&recursive=false"
+curl -X POST "http://localhost:8092/api/knowledge/import/markdown?baseId=1&sourceDir=docs/guides&recursive=false"
 
 # 递归导入
-curl -X POST "http://localhost:8090/api/knowledge/import/markdown?baseId=1&sourceDir=docs&recursive=true"
+curl -X POST "http://localhost:8092/api/knowledge/import/markdown?baseId=1&sourceDir=docs&recursive=true"
 ```
 
 **参数说明：**
@@ -235,7 +235,7 @@ docs/
 ## 相关文档
 
 - [知识库管理功能说明](../README.md)
-- [API 接口文档](http://localhost:8090/swagger-ui.html)（SpringDoc OpenAPI，需启动应用）
+- [API 接口文档](http://localhost:8092/swagger-ui.html)（SpringDoc OpenAPI，需启动应用）
 - [开发者指南](./developer-guide.md)
 
 ---

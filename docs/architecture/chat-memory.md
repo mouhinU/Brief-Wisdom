@@ -1,6 +1,8 @@
-# 跨会话记忆功能设计
+# 对话记忆功能设计（会话内隔离）
 
-> Brief-Wisdom 实现了跨会话记忆（Chat Memory）功能，使 AI 能够记住用户的偏好、事实和项目上下文，在不同会话之间保持连贯的个性化体验。
+> Brief-Wisdom 实现了对话记忆（Chat Memory）功能，使 AI 能够记住用户的偏好、事实和项目上下文，并在同一会话的后续对话中保持连贯的个性化体验。
+>
+> **命名勘误**：本文档标题与 README 早期版本曾使用「跨会话记忆」，与实现不符。`ChatMemoryService.buildMemoryContext` 按 `source_session_id` 过滤，同一用户的不同会话之间记忆**相互隔离**，这是有意设计（防止某会话的信息泄漏到其他会话上下文）。持久化的只是记忆数据本身（按 `user_id` 落库），检索范围不跨会话。
 
 **技术栈**：Spring Boot 4.0.7 / Spring AI 2.0.0 / Java 21
 
@@ -8,7 +10,7 @@
 
 ## 功能概述
 
-跨会话记忆允许 AI 在多次对话中记住用户的关键信息，例如姓名、公司、技术栈偏好、当前项目等。这些信息在每次对话时自动注入到系统提示词中，使
+对话记忆允许 AI 在一次会话的多轮对话中记住用户的关键信息，例如姓名、公司、技术栈偏好、当前项目等。这些信息在每次对话时自动注入到系统提示词中，使
 AI 能够提供更个性化的回答。
 
 记忆的来源有两种：
@@ -57,7 +59,7 @@ AI 能够提供更个性化的回答。
 | category        | String   | 记忆类别：`preference` / `fact` / `context` |
 | memoryKey       | String   | 记忆键（如 `name`、`tech_stack`、`company`）   |
 | memoryValue     | String   | 记忆值                                    |
-| sourceSessionId | String   | 来源会话 ID                                |
+| sourceSessionId | String   | 来源会话 ID（记忆按此字段与会话绑定，检索时只返回本会话记忆）       |
 | accessCount     | Integer  | 访问次数（默认 0）                             |
 | create_time     | DATETIME | 创建时间                                   |
 | update_time     | DATETIME | 更新时间                                   |
@@ -160,4 +162,4 @@ chatMemoryService.extractMemoriesFromMessage(userId, message, sessionId);
 
 ---
 
-**最后更新**: 2026-07-15
+**最后更新**: 2026-11-06

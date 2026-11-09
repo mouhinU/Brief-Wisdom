@@ -43,7 +43,7 @@ public class SecurityConfig {
     /**
      * CORS 允许的域名列表，逗号分隔
      */
-    @Value("${app.cors.allowed-origins:http://localhost:8090,http://localhost:3000}")
+    @Value("${app.cors.allowed-origins:http://localhost:8092,http://localhost:3000}")
     private String allowedOrigins;
 
     @Bean

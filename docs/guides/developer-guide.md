@@ -82,7 +82,10 @@ docker-compose up -d mysql redis
 mysql -u root -p < brief-wisdom-web/src/main/resources/all-init.sql
 ```
 
-> 该脚本会创建数据库、全部 18 张表结构、RBAC 权限数据、AI 模型配置、简历示例数据和知识库初始数据。
+> 该脚本会创建数据库、18 张表结构、RBAC 权限数据、AI 模型配置、简历示例数据和知识库初始数据。
+>
+> 注意: `all-init.sql` 目前仅覆盖其中 18 张表，尚未包含 V9~V12 新增的 `chat_attachment`（V9）、`team` / `team_member` / `kb_share`（V10）、`kb_team`（V12）
+> 这 5 张表；新建数据库建议以 Flyway 迁移脚本（V1~V13）为准。
 
 ### 2. 启动应用
 
@@ -98,9 +101,9 @@ mvn spring-boot:run -pl brief-wisdom-web
 
 访问以下地址确认服务正常:
 
-- **主页**: http://localhost:8090
-- **个人简历**: http://localhost:8090/about.html
-- **登录页面**: http://localhost:8090/login.html
+- **主页**: http://localhost:8092
+- **个人简历**: http://localhost:8092/about.html
+- **登录页面**: http://localhost:8092/login.html
 
 **默认账号**:
 
@@ -208,7 +211,7 @@ chore:    构建过程或辅助工具变动
 3. 检查 Network 标签，确认请求 URL 包含正确的 sessionId
 4. 测试后端 API:
    ```bash
-   curl -X POST http://localhost:8090/api/ai/session
+   curl -X POST http://localhost:8092/api/ai/session
    # 应返回: {"success":true,"data":"uuid-here"}
    ```
 
@@ -292,15 +295,15 @@ redis-cli TTL "bw:menu:tree::[\"admin\"]"
 
 ```bash
 # 获取启用的 AI 模型列表
-curl http://localhost:8090/api/ai/models/enabled
+curl http://localhost:8092/api/ai/models/enabled
 
 # 创建会话
-curl -X POST http://localhost:8090/api/ai/session \
+curl -X POST http://localhost:8092/api/ai/session \
   -H "Content-Type: application/json" \
   -d '{"title":"测试会话","pageContext":"/about.html"}'
 
 # 发送聊天消息
-curl -X POST http://localhost:8090/api/ai/chat/session/{sessionId} \
+curl -X POST http://localhost:8092/api/ai/chat/session/{sessionId} \
   -H "Content-Type: application/json" \
   -d '{"content":"你好","model":"qwen-max"}'
 ```
@@ -311,7 +314,7 @@ curl -X POST http://localhost:8090/api/ai/chat/session/{sessionId} \
 
 - 阅读 [README.md](../README.md) 了解完整功能列表
 - 查看 [RAG 架构设计](architecture/rag-architecture.md) 理解知识库实现
-- 查看 [跨会话记忆](architecture/chat-memory.md) 理解记忆功能
+- 查看 [对话记忆（会话内隔离）](architecture/chat-memory.md) 理解记忆功能
 - 参考 [数据库表结构](database-schema.md) 了解数据模型
 - 参考 [日志配置](LOG_CONFIGURATION.md) 配置日志
 

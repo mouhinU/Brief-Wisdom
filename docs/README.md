@@ -11,12 +11,21 @@
 ```
 docs/
 ├── README.md                          # 文档索引（本文件）
+├── 多模态能力设计方案.md               # 多模态方案：上传先行 + 存储抽象 + 图片理解（文档解析/语音/生图待开发）
+├── AI工具设计方案.md                   # AI Tool Calling 设计方案（12 个工具已实现）
+├── AI智能助手会话完整流程.md            # 一次会话的端到端链路拆解（六阶段 + 时序图 + 接口速查）
+├── Brief-Wisdom-技术业务建议报告.md     # 技术业务建议报告（2026-07-16 初版快照）
+├── 文档整合分析报告.md                  # 文档体系整合分析
+├── 文档核对修订记录.md                  # 文档与源码逐项核对的修订记录
+│
+├── sql/
+│   └── V9_V10_新增SQL汇总.sql          # 多模态附件与团队协作新增表/字段汇总
 │
 ├── architecture/                      # 架构设计文档
 │   ├── sync-architecture.md           # 实时同步架构(SSE/WebSocket)
 │   ├── rag-architecture.md            # RAG 向量检索架构(Redis Vector Store)
 │   ├── resume-knowledge-integration.md # 简历数据接入知识库方案
-│   └── chat-memory.md                 # 跨会话记忆功能设计
+│   └── chat-memory.md                 # 对话记忆功能设计（会话内隔离）
 │
 ├── features/                          # 功能特性文档
 │   └── ai-polish/
@@ -50,7 +59,15 @@ docs/
 - [实时同步架构](architecture/sync-architecture.md) — SSE/WebSocket 方案选型、事件推送机制
 - [RAG 向量检索架构](architecture/rag-architecture.md) — Redis Vector Store RAG 设计、LazyVectorStore 降级
 - [简历数据接入知识库](architecture/resume-knowledge-integration.md) — 简历模块数据写入知识库方案
-- [跨会话记忆](architecture/chat-memory.md) — ChatMemory 功能设计、自动提取、AI 工具调用
+- [对话记忆](architecture/chat-memory.md) — ChatMemory 功能设计（会话内隔离）、自动提取、AI 工具调用
+
+### 方案与流程
+
+- [多模态能力设计方案](多模态能力设计方案.md) — 上传先行 + 可插拔存储 + 图片理解；文档解析/语音/生图待开发
+- [AI 工具设计方案](AI工具设计方案.md) — Tool Calling 设计，12 个工具已实现
+- [AI 智能助手会话完整流程](AI智能助手会话完整流程.md) — 一次会话的六阶段链路与接口速查
+- [文档整合分析报告](文档整合分析报告.md) — 文档体系整合分析
+- [文档核对修订记录](文档核对修订记录.md) — 文档与源码逐项核对的修订记录
 
 ### 功能开发
 
@@ -64,6 +81,7 @@ docs/
 
 - [项目能力总结与规划](analysis/README.md) — 能力评估、已完成建设、未来规划、AI 插件设计蓝图
 - [技术业务建议报告](analysis/technical-business-recommendations.md) — 10 项技术建议 + 5 项业务建议，含优先级评估
+- [技术业务建议报告（初版快照）](Brief-Wisdom-技术业务建议报告.md) — 2026-07-16 原稿，保留建议推演过程
 
 ---
 
@@ -81,7 +99,7 @@ docs/
 1. [开发者快速入门](guides/developer-guide.md) — 熟悉项目结构
 2. [AGENTS.md](../AGENTS.md) — 遵循编码规范
 3. 查看相关模块的现有代码（如 `brief-wisdom-ai/`）
-4. 参考类似功能的实现（如 RAG 架构、跨会话记忆）
+4. 参考类似功能的实现（如 RAG 架构、对话记忆）
 
 ### 进行性能优化的开发者
 
@@ -115,4 +133,4 @@ docs/
 
 ---
 
-**最后更新**: 2026-07-21
+**最后更新**: 2026-11-06

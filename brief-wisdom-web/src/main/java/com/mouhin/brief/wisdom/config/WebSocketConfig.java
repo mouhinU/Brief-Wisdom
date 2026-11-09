@@ -30,7 +30,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final WebSocketSyncHandler webSocketSyncHandler;
     private final WebSocketSyncHandshakeInterceptor handshakeInterceptor;
 
-    @Value("${app.cors.allowed-origins:http://localhost:8090,http://localhost:3000}")
+    @Value("${app.cors.allowed-origins:http://localhost:8092,http://localhost:3000}")
     private String allowedOrigins;
 
     @Override

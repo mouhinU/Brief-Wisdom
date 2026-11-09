@@ -12,8 +12,8 @@ Brief-Wisdom 是一个**功能较完整的企业级 AI 对话平台**，架构�
 
 ### 核心优势
 
-1. **完善的 AI 对话平台架构** — 多模型管理（DashScope/DeepSeek/OpenAI/Anthropic）、流式输出（SSE
-   打字机效果）、页面上下文感知、会话历史管理、跨会话记忆（ChatMemory）
+1. **完善的 AI 对话平台架构** — 多模型管理（DashScope/DeepSeek/OpenAI/Anthropic）、SSE 流式通道（当前按整段推送，
+   逐 Token 的真流式改造已列入计划）、页面上下文感知、会话历史管理、对话记忆（ChatMemory，按 `sourceSessionId` 过滤，会话之间相互隔离）
 2. **企业级权限体系** — RBAC 三级角色（super_admin/admin/normal）、树形菜单（目录→菜单→按钮）、`@RequiresPermission`
    细粒度权限控制、动态菜单加载
 3. **高性能缓存架构** — Redis 分布式缓存（Spring Cache + 自定义 TTL）、Spring Session 持久化（`bw:session` 命名空间）、Redisson
@@ -34,13 +34,20 @@ Brief-Wisdom 是一个**功能较完整的企业级 AI 对话平台**，架构�
 | N+1 查询修复              | ✅  | AiManageServiceImpl 批量聚合查询                         |
 | SpringDoc OpenAPI     | ✅  | 已集成，访问 /swagger-ui.html                            |
 | BizException 体系       | ✅  | 模块化异常 + BizExceptionEnums 错误码                      |
-| Flyway 数据库迁移          | ✅  | V1__baseline ~ V8__init_resume_knowledge_base（共 8 个迁移脚本） |
+| Flyway 数据库迁移          | ✅  | V1__baseline ~ V13__fix_chinese_charset（共 13 个迁移脚本）        |
 | SQL 性能索引              | ✅  | chat_session.user_id、chat_message.session_id 等     |
 | CI/CD                 | ✅  | .github/workflows/ci.yml 自动 compile + test         |
 | Actuator + Prometheus | ✅  | 健康检查与 metrics 端点已接入                                |
 | Docker 安全             | ✅  | MySQL/Redis 绑定 127.0.0.1，资源限制                      |
 | 统一 apiRequest         | ✅  | 管理端组件已迁移                                           |
 | OpenAPI 注解补全          | ✅  | 所有 Controller 已补全                                  |
+| 团队协作（部分）            | ✅  | 团队/成员/三级角色（owner/admin/member）、团队知识库、知识库共享授权；`/api/team` + `team`/`team_member`/`kb_share`/`kb_team`（Flyway V10、V12） |
+| 多模态图片理解             | ✅  | 上传先行（`POST /api/ai/upload` + `chat_attachment`）、`app.storage.type` 可切 local/minio、`ai_model.supports_vision` + Spring AI `Media` 组装 |
+
+> 说明：团队协作目前仅覆盖知识库维度的共享（`kb_share.target_type` 支持 `team` / `user` 两级授权，`permission` 当前只有
+> `read`），共享会话与多租户隔离尚未实现；`knowledge_base` 通过 `owner_type`(personal|team)、`owner_id`、`creator_id`
+> 区分归属，`KnowledgeServiceImpl` 已接入可见性过滤。多模态目前只落地图片理解，PDF/Word 等文档正文解析（知识库 FILE
+> 类型现仅索引文件名）、语音输入、图片生成均未实现。
 
 ---
 
@@ -72,11 +79,11 @@ Brief-Wisdom 是一个**功能较完整的企业级 AI 对话平台**，架构�
 
 | 方向     | 说明                          |
 |--------|-----------------------------|
-| 团队协作   | 共享会话、团队知识库、多租户隔离            |
+| 团队协作   | 部分已完成：团队/成员/角色、团队知识库、知识库共享授权已落地（当前共享权限仅 `read`）；共享会话、多租户隔离待规划 |
 | 智能体工作流 | 可视化编排多步 Agent（类似 LangGraph） |
 | 数据分析看板 | 用户行为、热门问题、模型性能监控            |
-| 语音交互   | Web Speech API / 阿里云语音      |
-| 多模态    | 图片上传 + Qwen-VL / GPT-4V     |
+| 语音交互   | Web Speech API / 阿里云语音（未实现，`chat_attachment.category` 已预留 `audio`） |
+| 多模态    | 图片理解已落地；文档解析（PDF/Word）、语音输入、图片生成待开发 |
 
 ### 长期（1-2 年）
 
