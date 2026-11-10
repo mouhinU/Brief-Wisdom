@@ -74,6 +74,8 @@ public class AiAgentService {
     private static final String ROLE_ASSISTANT = "assistant";
     // 消息类型常量
     private static final String MESSAGE_TYPE_TEXT = "text";
+    // 单轮对话允许的最大工具调用轮次
+    private static final int MAX_TOOL_ROUNDS = 5;
     // 附件分类：图片（参与视觉理解）
     private static final String CATEGORY_IMAGE = "image";
     // 图片默认 MIME 类型（附件 MIME 缺失或非法时回退）
@@ -1048,102 +1050,31 @@ public class AiAgentService {
             throw new AIException("AI 模型不可用，请稍后重试");
         }
 
-        // 有工具时使用 call() 路径（支持工具调用循环），无工具时使用 stream() 路径（流式输出）
+        // 有工具时使用逐 Token 流式的工具调用循环，无工具时同样使用 stream() 流式输出
         boolean hasTools = toolCallbackProvider != null && toolCallbackProvider.getToolCallbacks().length > 0;
 
         if (hasTools) {
-            // === 工具可用路径：手动实现工具调用循环（兼容 DashScope 等 OpenAI 兼容协议） ===
-            log.info("[AI] 工具已注册，使用手动工具调用循环");
+            log.info("[AI] 工具已注册，使用逐 Token 流式的工具调用循环");
             ChatOptions chatOptions = buildChatOptions(provider, model, true);
             ToolCallback[] toolCallbacks = toolCallbackProvider.getToolCallbacks();
 
-            // 构建可变的消息列表（用于多轮工具调用）
+            // 构建可变的消息列表（工具调用结果会逐轮追加）
             List<org.springframework.ai.chat.messages.Message> messages = new ArrayList<>();
             messages.add(new SystemMessage(systemPrompt));
             messages.add(buildUserMessage(context.toString(), parsedAttachmentIds));
 
             long startTime = System.currentTimeMillis();
-            String response = "";
-            int maxToolRounds = 5;
-            int round = 0;
+            StringBuilder responseAccumulator = new StringBuilder();
 
-            try {
-                while (round < maxToolRounds) {
-                    round++;
-                    Prompt prompt = new Prompt(messages, chatOptions);
-                    ChatResponse chatResponse = chatModel.call(prompt);
-
-                    if (chatResponse == null || chatResponse.getResult() == null || chatResponse.getResult().getOutput() == null) {
-                        return Flux.error(new AIException("AI 模型返回为空，请稍后重试"));
-                    }
-
-                    AssistantMessage assistantMessage = chatResponse.getResult().getOutput();
-
-                    if (!assistantMessage.hasToolCalls()) {
-                        // 模型没有调用工具，返回最终文本回复
-                        response = assistantMessage.getText();
-                        if (response == null) {
-                            response = "";
-                        }
-                        log.info("[AI] 工具调用循环结束，共 {} 轮", round);
-                        break;
-                    }
-
-                    // 模型调用了工具，执行工具并将结果加入消息列表
-                    log.info("[AI] 第 {} 轮工具调用，工具数: {}", round, assistantMessage.getToolCalls().size());
-                    messages.add(assistantMessage);
-
-                    List<ToolResponseMessage.ToolResponse> toolResponses = new ArrayList<>();
-                    for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
-                        String toolName = toolCall.name();
-                        String toolArgs = toolCall.arguments();
-                        log.info("[AI] 调用工具: {}, 参数: {}", toolName, toolArgs);
-
-                        // 查找对应的 ToolCallback
-                        ToolCallback matchedCallback = null;
-                        for (ToolCallback callback : toolCallbacks) {
-                            if (callback.getToolDefinition().name().equals(toolName)) {
-                                matchedCallback = callback;
-                                break;
-                            }
-                        }
-
-                        String toolResult;
-                        if (matchedCallback != null) {
-                            try {
-                                toolResult = matchedCallback.call(toolArgs);
-                                log.info("[AI] 工具 {} 执行成功，结果长度: {}", toolName, toolResult.length());
-                            } catch (Exception e) {
-                                toolResult = "工具执行失败: " + e.getMessage();
-                                log.error("[AI] 工具 {} 执行失败: {}", toolName, e.getMessage());
-                            }
-                        } else {
-                            toolResult = "未找到工具: " + toolName;
-                            log.warn("[AI] 未找到工具: {}", toolName);
-                        }
-                        toolResponses.add(new ToolResponseMessage.ToolResponse(toolCall.id(), toolName, toolResult));
-                    }
-                    // 将工具执行结果作为 ToolResponseMessage 加入消息列表
-                    messages.add(ToolResponseMessage.builder().responses(toolResponses).build());
-                }
-
-                if (round >= maxToolRounds) {
-                    log.warn("[AI] 工具调用达到最大轮次 {}，强制结束", maxToolRounds);
-                }
-            } catch (Exception e) {
-                log.error("[AI] 模型调用失败: {}", e.getMessage(), e);
-                return Flux.error(new AIException(translateApiError(e)));
-            }
-
-            long elapsed = System.currentTimeMillis() - startTime;
-            log.info("[AI] 模型: {}, 总耗时: {}ms, 工具调用轮次: {}", model, elapsed, round);
-
-            // 输出过滤
-            response = contentFilterService.filterOutput(response, sessionId, userId, null);
-            log.info("[AI] 回复(含工具调用, 模型: {}): {}", model, response);
-
-            chatSyncService.notifyUser(userId, "message_added", sessionId);
-            return Flux.just(response);
+            return streamToolRound(chatModel, messages, chatOptions, toolCallbacks, 0)
+                    .doOnNext(responseAccumulator::append)
+                    .doOnComplete(() -> log.info("[AI] 流式回复(含工具调用, 模型: {})完成, 长度: {}, 总耗时: {}ms",
+                            model, responseAccumulator.length(), System.currentTimeMillis() - startTime))
+                    .doOnComplete(() -> chatSyncService.notifyUser(userId, "message_added", sessionId))
+                    .onErrorMap(error -> {
+                        log.error("[AI] 模型调用失败: {}", error.getMessage(), error);
+                        return error instanceof AIException ? error : new AIException(translateApiError(error));
+                    });
         }
 
         // === 无工具路径：使用 stream() 流式输出 ===
@@ -1232,6 +1163,114 @@ public class AiAgentService {
                 .doOnError(error -> {
                     log.error("[流式] 错误: {}", error.getMessage());
                 });
+    }
+
+    /**
+     * 带工具调用的逐 Token 流式循环。
+     * <p>
+     * 每一轮都用 stream() 请求模型：模型返回工具调用时本轮不产生可见文本，执行工具后递归进入下一轮；
+     * 模型返回文本回答时，文本增量实时下发给调用方。
+     * <p>
+     * 不依赖实例状态，声明为静态包级方法以便同包单元测试直接驱动多轮工具循环。
+     *
+     * @param chatModel     目标模型
+     * @param messages      可变消息列表，工具调用结果会逐轮追加
+     * @param options       携带工具回调的对话选项
+     * @param toolCallbacks 可用的工具回调
+     * @param round         当前轮次，从 0 开始
+     * @return 文本片段流
+     */
+    static Flux<String> streamToolRound(ChatModel chatModel,
+                                        List<org.springframework.ai.chat.messages.Message> messages,
+                                        ChatOptions options,
+                                        ToolCallback[] toolCallbacks,
+                                        int round) {
+        if (round >= MAX_TOOL_ROUNDS) {
+            log.warn("[AI] 工具调用达到最大轮次 {}，强制结束", MAX_TOOL_ROUNDS);
+            return Flux.empty();
+        }
+
+        Prompt prompt = new Prompt(new ArrayList<>(messages), options);
+        java.util.concurrent.atomic.AtomicReference<AssistantMessage> pendingToolCall =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicBoolean emittedText = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+        Flux<String> roundFlux = chatModel.stream(prompt)
+                .concatMap(chatResponse -> {
+                    if (chatResponse == null || chatResponse.getResult() == null
+                            || chatResponse.getResult().getOutput() == null) {
+                        return Flux.empty();
+                    }
+                    AssistantMessage output = chatResponse.getResult().getOutput();
+                    if (output.hasToolCalls()) {
+                        log.info("[AI] 第 {} 轮工具调用，工具数: {}", round + 1, output.getToolCalls().size());
+                        pendingToolCall.set(output);
+                        return Flux.empty();
+                    }
+                    String text = output.getText();
+                    if (text == null || text.isEmpty()) {
+                        return Flux.empty();
+                    }
+                    emittedText.set(true);
+                    return Flux.just(text);
+                });
+
+        return roundFlux.concatWith(Flux.defer(() -> {
+            AssistantMessage toolCallMessage = pendingToolCall.get();
+            if (toolCallMessage == null) {
+                if (round == 0 && !emittedText.get()) {
+                    return Flux.error(new AIException("AI 模型返回为空，请稍后重试"));
+                }
+                log.info("[AI] 工具调用循环结束，共 {} 轮", round);
+                return Flux.empty();
+            }
+            messages.add(toolCallMessage);
+            messages.add(ToolResponseMessage.builder()
+                    .responses(executeToolCalls(toolCallMessage.getToolCalls(), toolCallbacks))
+                    .build());
+            return streamToolRound(chatModel, messages, options, toolCallbacks, round + 1);
+        }));
+    }
+
+    /**
+     * 执行模型请求的工具调用，返回可回填给模型的工具结果。
+     *
+     * @param toolCalls     模型请求的工具调用列表
+     * @param toolCallbacks 可用的工具回调
+     * @return 工具执行结果
+     */
+    private static List<ToolResponseMessage.ToolResponse> executeToolCalls(List<AssistantMessage.ToolCall> toolCalls,
+                                                                           ToolCallback[] toolCallbacks) {
+        List<ToolResponseMessage.ToolResponse> toolResponses = new ArrayList<>();
+        for (AssistantMessage.ToolCall toolCall : toolCalls) {
+            String toolName = toolCall.name();
+            String toolArgs = toolCall.arguments();
+            log.info("[AI] 调用工具: {}, 参数: {}", toolName, toolArgs);
+
+            ToolCallback matchedCallback = null;
+            for (ToolCallback callback : toolCallbacks) {
+                if (callback.getToolDefinition().name().equals(toolName)) {
+                    matchedCallback = callback;
+                    break;
+                }
+            }
+
+            String toolResult;
+            if (matchedCallback != null) {
+                try {
+                    toolResult = matchedCallback.call(toolArgs);
+                    log.info("[AI] 工具 {} 执行成功，结果长度: {}", toolName, toolResult.length());
+                } catch (Exception e) {
+                    toolResult = "工具执行失败: " + e.getMessage();
+                    log.error("[AI] 工具 {} 执行失败: {}", toolName, e.getMessage());
+                }
+            } else {
+                toolResult = "未找到工具: " + toolName;
+                log.warn("[AI] 未找到工具: {}", toolName);
+            }
+            toolResponses.add(new ToolResponseMessage.ToolResponse(toolCall.id(), toolName, toolResult));
+        }
+        return toolResponses;
     }
 
     /**

@@ -70,10 +70,13 @@ app:
   "{\"error\":\"" + e.getMessage() + "\"}"
   ```
 - `GlobalExceptionHandler.clearProducibleMediaTypes()` required for SSE error fallback
-- Current behaviour: tools are always registered, so a request runs the manual tool loop and the reply is pushed
-  **as a whole** (`return Flux.just(response)`, `AiAgentService` ~L1146); the per-token `chatModel.stream()` branch
-  (~L1160) is unreachable with the current configuration. The SSE channel itself works — do not document the output
-  as token-by-token streaming until the real-streaming refactor lands.
+- Current behaviour: tools are always registered, so `chatStreamWithSession` runs `AiAgentService.streamToolRound`
+  (up to 5 rounds) — every round uses `chatModel.stream()`. Spring AI 2.0's `OpenAiChatModel.internalStream`
+  aggregates tool-call deltas into one response while content deltas arrive per chunk, so tool rounds execute
+  tools silently and the final answer's tokens are forwarded live. The no-tools branch (Usage capture + server-side
+  save) stays unreachable while tools are registered. Note the streaming chunks are **not** passed through
+  `contentFilterService.filterOutput` before delivery — that filter only applies to the server-saved copy on the
+  no-tools path, and the tool path is saved by the frontend via `/message/save`.
 
 ## RAG / Knowledge Base
 

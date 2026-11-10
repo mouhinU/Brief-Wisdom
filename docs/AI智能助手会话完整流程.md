@@ -93,7 +93,7 @@ flowchart TB
 
 两个关键配置开关（`application.yml`）：
 
-- `app.chat.streaming: true` —— 聊天模式开关，当前为 true。该开关由 `GET /api/ai/chat/config` 回报给前端，决定前端是否走 SSE 流式接口；它**不控制服务端是否逐 Token 输出**（见「阶段六」的现状说明）。
+- `app.chat.streaming: true` —— 聊天模式开关，当前为 true。该开关由 `GET /api/ai/chat/config` 回报给前端，只决定前端走 SSE 流式接口还是一次性返回的同步接口；服务端两条路径都按 Token 增量输出（见「阶段四」第 8 步）。
 - `app.sync.transport: websocket` —— 多端同步通道，当前为 websocket（端点 `/ws/sync`），可切换为 sse。
 
 一个重要安全设计：**前端从不传递 userId**。用户身份完全由后端 `UserContextHolder.getCurrentUserId()` 从 HTTP Session 解析，三级回退为：登录用户（Session）→ Spring Security 上下文 → 访客指纹（`guest-` + IP/浏览器/设备哈希）。因此未登录访客也能使用，且同设备 userId 恒定。
@@ -157,11 +157,11 @@ GET /api/ai/chat/session/{sessionId}/stream?message=<编码>&model=<编码>&page
 5. **构建上下文**：取本会话最近 10 条消息（`findRecentMessages`）作为对话历史。注意上下文**只含当前会话自身**的消息，不注入其他会话，确保会话间隔离。
 6. **拼装系统提示词**：在基础提示词上依次叠加 —— 页面上下文（`getSystemPromptWithContext`）、知识库 RAG 检索结果（`knowledgeRagService`，基于当前消息检索相关文档）、当前会话记忆（`chatMemoryService.buildMemoryContext(userId, sessionId)`，仅本会话记忆）。
 7. **模型路由**：`chatModelRegistry.getChatModel(provider, model, thinkingMode)`，按 `provider:model[:thinking]` 缓存键惰性创建 ChatModel（OpenAI 兼容系 / Anthropic）。
-8. **调用模型**，分两条路径：
-   - **有工具**：手动工具调用循环（最多 5 轮），`chatModel.call()` 执行工具并把结果回填消息列表，最终以 `Flux.just(全文)` 返回（伪流式）。
-   - **无工具**：`chatModel.stream()` 真流式，逐 chunk 输出。
-9. **输出过滤** `filterOutput`：将身份证/手机号/银行卡等正则替换为 `[敏感信息已过滤]`。
-10. **保存 AI 回复**：在 `doOnComplete` 中用真实 Token 用量（或按 3 字符≈1 token 估算）保存 AI 消息、更新会话 `message_count`，并触发 `notifyUser(message_added)`。
+8. **调用模型**，两条路径都以 `chatModel.stream()` 逐 Token 输出：
+   - **有工具**（当前恒成立，12 个工具由 `ToolConfig` 注册）：`AiAgentService.streamToolRound` 递归循环（最多 5 轮）。每轮用 `stream()` 请求模型 —— Spring AI 2.0 的 `OpenAiChatModel.internalStream` 会把工具调用分片聚合成一条带 `toolCalls` 的响应，而文本分片逐条下发；因此工具轮不产生可见文本，由 `executeToolCalls` 执行工具、把 `AssistantMessage` + `ToolResponseMessage` 追加到消息列表后进入下一轮，模型不再请求工具时该轮文本实时下发。
+   - **无工具**：`buildChatOptions(provider, model, false)` 不带工具回调，`chatModel.stream()` 逐 chunk 输出。
+9. **输出过滤** `filterOutput`：将身份证/手机号/银行卡等正则替换为 `[敏感信息已过滤]`。**只作用于「无工具」路径服务端落库的副本**；流式分片下发前无法整体正则替换，逐 chunk 过滤会截断敏感串，故明文分片直接透传（改造前「有工具」路径是先过滤整段再下发，这是本次改造唯一的对外行为变化）。
+10. **保存 AI 回复**：「无工具」路径在 `doOnComplete` 中用真实 Token 用量（或按 3 字符≈1 token 估算）保存 AI 消息并更新会话 `message_count`；「有工具」路径不服务端落库，消息由前端 `/message/save` 保存，`doOnComplete` 只触发 `notifyUser(message_added)`。
 
 同步接口（普通模式）走 `chatWithSession`，逻辑类似但额外带 2 次重试退避（401/402/403 不重试），且一次性返回完整文本。
 
@@ -173,14 +173,14 @@ GET /api/ai/chat/session/{sessionId}/stream?message=<编码>&model=<编码>&page
 
 | SSE 事件 | data 内容 | 前端处理 |
 |---|---|---|
-| 默认 `message` | 增量文本 chunk（**当前实现下通常是整段一个 chunk**） | 累积全文 + marked **全量重渲染** + 尾部光标（打字机效果） |
+| 默认 `message` | 增量文本 chunk（一个 chunk 对应模型返回的一段 Token） | 累积全文 + marked **全量重渲染** + 尾部光标（打字机效果） |
 | `complete` | `[DONE]` | 关闭连接、移除光标做最终渲染、触发兜底保存 |
 | `stopped` | `[STOPPED]` | 标记"已停止生成"，保留并保存已生成部分 |
 | `error` | `{type, message}` JSON | `CONTENT_BLOCKED` 渲染友好错误提示 |
 
 打字机效果的本质是：每收到一个 chunk 就用 `marked.parse()` 对累积全文重新渲染，并经 `DOMPurify.sanitize()` 防 XSS（项目未引入代码高亮库，代码块为原生 `<pre><code>`）。
 
-> **实现现状（2026-11-06 核对）**：12 个 AI 工具通过 `ToolConfig` 恒常注册，`chatStreamWithSession` 里的 `hasTools` 恒为 true，因此实际走「手动工具调用循环 → `return Flux.just(response)`」分支，整段回复一次性下发；逐 Token 的 `chatModel.stream()` 分支在当前配置下不可达。SSE 通道、停止生成、`complete` / `stopped` / `error` 命名事件均为真实实现，只是文本粒度为整段。逐 Token 真流式改造已列入 README 短期规划。
+> **实现现状（2026-11-10 更新）**：此前 12 个 AI 工具通过 `ToolConfig` 恒常注册，`hasTools` 恒为 true，流式请求始终走「`chatModel.call()` 手动循环 → `Flux.just(全文)`」的伪流式分支。现已改造为 `AiAgentService.streamToolRound` 逐轮换用 `chatModel.stream()`：工具轮聚合执行、不进下游文本流，最终答案的 Token 增量实时下发（`brief-wisdom-ai` 的 `AiAgentServiceStreamToolRoundTest` 覆盖分片数量与多轮工具行为）。SSE 通道、停止生成、`complete` / `stopped` / `error` 命名事件均为真实实现。
 
 **停止生成**：用户点停止按钮 → `stopStreaming()` 置 `isUserStopped=true`、关闭 EventSource、调用 `DELETE /api/ai/chat/stream/stop`。后端从 `activeStreamSubscriptions`（`Map<userId, Disposable>`）取出该用户的 Reactor 订阅并 `dispose()`，Flux 收到取消异常后走 `stopped` 分支。
 

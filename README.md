@@ -117,7 +117,7 @@ cp .env.example .env
 | 能力       | 说明                                                                                                 |
 |----------|----------------------------------------------------------------------------------------------------|
 | 多模型管理    | 通过 `ChatModelRegistry` 按 `ai_model.provider` 路由，支持 DashScope（通义千问）、DeepSeek、OpenAI、Anthropic（Claude）；`application.yml` 默认仅启用 dashscope + deepseek，openai / anthropic 配置块处于注释状态，需解除注释并配置 API Key 后生效。Anthropic 思考模式尚未实现（`ChatModelRegistry` 中为 TODO） |
-| 流式输出     | SSE 通道推送（`SseEmitter` 桥接 `Flux<String>`），支持主动终止。**当前行为**：因 12 个工具恒注册，服务端走手动工具调用循环后整段返回（`Flux.just`），前端逐 chunk 全量重渲染形成打字机观感；逐 Token 真流式改造已列入计划（`chatModel.stream()` 分支目前不可达） |
+| 流式输出     | SSE 通道推送（`SseEmitter` 桥接 `Flux<String>`），支持主动终止。**当前行为**：工具调用循环已改为逐轮换用 `chatModel.stream()`，最终答案的文本增量实时下发（真流式），工具轮只执行工具不产出可见文本；前端按 chunk 累积并全量重渲染形成打字机观感。注意流式分片在下发前不做输出过滤，`contentFilterService.filterOutput` 仅作用于服务端落库的副本 |
 | 页面上下文感知  | AI 角色根据当前页面自动切换（`/`、`/about.html`、`/resume-manage.html`、`/system-settings.html`、`/ai-manage.html`） |
 | 多会话管理    | 多会话并行，首次消息自动生成会话标题                                                                                 |
 | Token 统计 | 逐消息 Token 计数与费用计算（按百万 Token 定价）                                                                    |
@@ -385,7 +385,7 @@ cp .env.example .env
 
 ### 短期（3-6 个月）
 
-逐 Token 真流式改造（当前 SSE 通道整段返回，`chatModel.stream()` 分支需与工具调用循环打通）、知识库增强（分块策略优化、重排序机制）、对话质量评估体系、真实短信通道接入（当前两实现均为 TODO）。PWA 基础支持已完成（manifest.json + Service Worker），后续可增强离线缓存策略。
+知识库增强（分块策略优化、重排序机制）、对话质量评估体系、真实短信通道接入（当前两实现均为 TODO）。PWA 基础支持已完成（manifest.json + Service Worker），后续可增强离线缓存策略；逐 Token 真流式改造已完成（工具调用循环改为逐轮 `chatModel.stream()`，见「流式输出」行）。
 
 ### 中期（6-12 个月）
 

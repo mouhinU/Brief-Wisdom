@@ -12,8 +12,8 @@ Brief-Wisdom 是一个**功能较完整的企业级 AI 对话平台**，架构�
 
 ### 核心优势
 
-1. **完善的 AI 对话平台架构** — 多模型管理（DashScope/DeepSeek/OpenAI/Anthropic）、SSE 流式通道（当前按整段推送，
-   逐 Token 的真流式改造已列入计划）、页面上下文感知、会话历史管理、对话记忆（ChatMemory，按 `sourceSessionId` 过滤，会话之间相互隔离）
+1. **完善的 AI 对话平台架构** — 多模型管理（DashScope/DeepSeek/OpenAI/Anthropic）、SSE 流式通道（工具调用循环逐轮换用
+   `chatModel.stream()`，最终答案按 Token 增量下发）、页面上下文感知、会话历史管理、对话记忆（ChatMemory，按 `sourceSessionId` 过滤，会话之间相互隔离）
 2. **企业级权限体系** — RBAC 三级角色（super_admin/admin/normal）、树形菜单（目录→菜单→按钮）、`@RequiresPermission`
    细粒度权限控制、动态菜单加载
 3. **高性能缓存架构** — Redis 分布式缓存（Spring Cache + 自定义 TTL）、Spring Session 持久化（`bw:session` 命名空间）、Redisson
