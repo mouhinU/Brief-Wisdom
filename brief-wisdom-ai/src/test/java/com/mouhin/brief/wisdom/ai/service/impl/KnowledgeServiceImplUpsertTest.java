@@ -1,5 +1,6 @@
 package com.mouhin.brief.wisdom.ai.service.impl;
 
+import com.mouhin.brief.wisdom.ai.service.KnowledgeVectorService;
 import com.mouhin.brief.wisdom.common.knowledge.KnowledgeDocumentBO;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeDocument;
 import com.mouhin.brief.wisdom.persistence.repository.KnowledgeBaseRepository;
@@ -31,6 +32,12 @@ class KnowledgeServiceImplUpsertTest {
 
     @Mock
     private KnowledgeDocumentRepository knowledgeDocumentRepository;
+
+    @Mock
+    private KnowledgeVectorService knowledgeVectorService;
+
+    @Mock
+    private java.util.concurrent.Executor briefWisdomExecutor;
 
     @InjectMocks
     private KnowledgeServiceImpl knowledgeService;

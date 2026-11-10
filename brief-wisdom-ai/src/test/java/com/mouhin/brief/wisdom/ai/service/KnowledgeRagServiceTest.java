@@ -1,8 +1,6 @@
 package com.mouhin.brief.wisdom.ai.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mouhin.brief.wisdom.persistence.model.KnowledgeDocument;
-import com.mouhin.brief.wisdom.persistence.repository.KnowledgeDocumentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,7 +27,7 @@ import static org.mockito.Mockito.when;
 class KnowledgeRagServiceTest {
 
     @Mock
-    private KnowledgeDocumentRepository knowledgeDocumentRepository;
+    private KnowledgeVectorService knowledgeVectorService;
 
     @InjectMocks
     private KnowledgeRagService knowledgeRagService;
@@ -59,11 +57,8 @@ class KnowledgeRagServiceTest {
     @Test
     @DisplayName("有匹配文档时应返回结果")
     void testRetrieveWithMatchingDocs() {
-        Page<KnowledgeDocument> page = new Page<>(1, 10);
-        page.setRecords(List.of(sampleDoc));
-
-        when(knowledgeDocumentRepository.searchByTitle(anyString(), anyInt(), anyInt()))
-                .thenReturn(page);
+        when(knowledgeVectorService.searchBySimilarity(anyString(), anyInt()))
+                .thenReturn(List.of(sampleDoc));
 
         List<KnowledgeDocument> result = knowledgeRagService.retrieveRelevantDocuments("Spring Boot 配置");
 
