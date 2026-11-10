@@ -28,6 +28,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.metadata.DefaultUsage;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -1065,11 +1066,15 @@ public class AiAgentService {
 
             long startTime = System.currentTimeMillis();
             StringBuilder responseAccumulator = new StringBuilder();
+            java.util.concurrent.atomic.AtomicReference<Usage> lastUsage =
+                    new java.util.concurrent.atomic.AtomicReference<>();
 
-            return streamToolRound(chatModel, messages, chatOptions, toolCallbacks, 0)
+            return streamToolRound(chatModel, messages, chatOptions, toolCallbacks, 0, lastUsage)
                     .doOnNext(responseAccumulator::append)
                     .doOnComplete(() -> log.info("[AI] 流式回复(含工具调用, 模型: {})完成, 长度: {}, 总耗时: {}ms",
                             model, responseAccumulator.length(), System.currentTimeMillis() - startTime))
+                    .doOnComplete(() -> persistStreamedAssistantMessage(sessionId, userId, model,
+                            responseAccumulator.toString(), lastUsage.get()))
                     .doOnComplete(() -> chatSyncService.notifyUser(userId, "message_added", sessionId))
                     .onErrorMap(error -> {
                         log.error("[AI] 模型调用失败: {}", error.getMessage(), error);
@@ -1113,56 +1118,70 @@ public class AiAgentService {
                 .filter(text -> !text.isEmpty())
                 .doOnNext(responseAccumulator::append)
                 .doOnComplete(() -> {
-                    String fullResponse = responseAccumulator.toString();
-                    log.info("[流式] 完成, 响应长度: {}", fullResponse.length());
-
-                    // 服务端保存 AI 消息（含真实/估算 Token 数据），避免前端保存时丢失 Token 信息
-                    if (!fullResponse.isBlank()) {
-                        try {
-                            String filteredResponse = contentFilterService.filterOutput(fullResponse, sessionId, userId, null);
-                            int tokens;
-                            double cost;
-                            Usage usage = lastUsage.get();
-                            if (usage != null && usage.getTotalTokens() != null && usage.getTotalTokens() > 0) {
-                                tokens = usage.getTotalTokens();
-                                int promptTokens = usage.getPromptTokens() != null ? usage.getPromptTokens() : 0;
-                                int completionTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens() : 0;
-                                cost = calculateCost(resolvedModel, promptTokens, completionTokens);
-                                log.info("[流式] 使用真实 Token 数据 - tokens: {}, cost: {}", tokens, cost);
-                            } else {
-                                tokens = estimateStreamingTokens(fullResponse);
-                                cost = estimateStreamingCost(resolvedModel, tokens);
-                                log.info("[流式] 使用估算 Token 数据 - tokens: {}, cost: {}", tokens, cost);
-                            }
-
-                            ChatMessage aiMsg = new ChatMessage();
-                            aiMsg.setSessionId(sessionId);
-                            aiMsg.setUserId(userId);
-                            aiMsg.setRole(ROLE_ASSISTANT);
-                            aiMsg.setContent(filteredResponse);
-                            aiMsg.setModel(resolvedModel);
-                            aiMsg.setTokens(tokens);
-                            aiMsg.setCost(cost);
-                            aiMsg.setMessageType(MESSAGE_TYPE_TEXT);
-                            messageRepository.save(aiMsg);
-
-                            // 更新会话消息计数
-                            long messageCount = messageRepository.countBySessionId(sessionId);
-                            ChatSession currentSession = sessionRepository.findBySessionId(sessionId);
-                            if (currentSession != null) {
-                                currentSession.setMessageCount((int) messageCount);
-                                sessionRepository.update(currentSession);
-                            }
-                        } catch (Exception e) {
-                            log.warn("[流式] 服务端保存 AI 消息失败，将由前端兜底保存: {}", e.getMessage());
-                        }
-                    }
-
+                    persistStreamedAssistantMessage(sessionId, userId, resolvedModel,
+                            responseAccumulator.toString(), lastUsage.get());
                     chatSyncService.notifyUser(userId, "message_added", sessionId);
                 })
                 .doOnError(error -> {
                     log.error("[流式] 错误: {}", error.getMessage());
                 });
+    }
+
+    /**
+     * 服务端落库流式回复的 AI 消息，优先使用提供商返回的真实 Usage。
+     * <p>
+     * 无工具路径与工具调用路径共用此逻辑，前端兜底保存由 {@link #saveStreamedMessage} 的幂等检查保证不重复。
+     *
+     * @param sessionId    会话 ID
+     * @param userId       用户 ID
+     * @param model        本次回复使用的模型
+     * @param fullResponse 累积的完整回复文本
+     * @param usage        提供商返回的 Token 用量，可能为 null
+     */
+    private void persistStreamedAssistantMessage(String sessionId, String userId, String model,
+                                                 String fullResponse, Usage usage) {
+        log.info("[流式] 完成, 响应长度: {}", fullResponse.length());
+        if (fullResponse.isBlank()) {
+            return;
+        }
+
+        try {
+            String filteredResponse = contentFilterService.filterOutput(fullResponse, sessionId, userId, null);
+            int tokens;
+            double cost;
+            if (usage != null && usage.getTotalTokens() != null && usage.getTotalTokens() > 0) {
+                tokens = usage.getTotalTokens();
+                int promptTokens = usage.getPromptTokens() != null ? usage.getPromptTokens() : 0;
+                int completionTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens() : 0;
+                cost = calculateCost(model, promptTokens, completionTokens);
+                log.info("[流式] 使用真实 Token 数据 - tokens: {}, cost: {}", tokens, cost);
+            } else {
+                tokens = estimateStreamingTokens(fullResponse);
+                cost = estimateStreamingCost(model, tokens);
+                log.info("[流式] 使用估算 Token 数据 - tokens: {}, cost: {}", tokens, cost);
+            }
+
+            ChatMessage aiMsg = new ChatMessage();
+            aiMsg.setSessionId(sessionId);
+            aiMsg.setUserId(userId);
+            aiMsg.setRole(ROLE_ASSISTANT);
+            aiMsg.setContent(filteredResponse);
+            aiMsg.setModel(model);
+            aiMsg.setTokens(tokens);
+            aiMsg.setCost(cost);
+            aiMsg.setMessageType(MESSAGE_TYPE_TEXT);
+            messageRepository.save(aiMsg);
+
+            // 更新会话消息计数
+            long messageCount = messageRepository.countBySessionId(sessionId);
+            ChatSession currentSession = sessionRepository.findBySessionId(sessionId);
+            if (currentSession != null) {
+                currentSession.setMessageCount((int) messageCount);
+                sessionRepository.update(currentSession);
+            }
+        } catch (Exception e) {
+            log.warn("[流式] 服务端保存 AI 消息失败，将由前端兜底保存: {}", e.getMessage());
+        }
     }
 
     /**
@@ -1185,6 +1204,27 @@ public class AiAgentService {
                                         ChatOptions options,
                                         ToolCallback[] toolCallbacks,
                                         int round) {
+        return streamToolRound(chatModel, messages, options, toolCallbacks, round,
+                new java.util.concurrent.atomic.AtomicReference<>());
+    }
+
+    /**
+     * 带工具调用的逐 Token 流式循环，同时把各轮累计的 Token 用量写回 usageHolder。
+     *
+     * @param chatModel     目标模型
+     * @param messages      可变消息列表，工具调用结果会逐轮追加
+     * @param options       携带工具回调的对话选项
+     * @param toolCallbacks 可用的工具回调
+     * @param round         当前轮次，从 0 开始
+     * @param usageHolder   跨轮次累积的 Token 用量容器，由调用方创建
+     * @return 文本片段流
+     */
+    static Flux<String> streamToolRound(ChatModel chatModel,
+                                        List<org.springframework.ai.chat.messages.Message> messages,
+                                        ChatOptions options,
+                                        ToolCallback[] toolCallbacks,
+                                        int round,
+                                        java.util.concurrent.atomic.AtomicReference<Usage> usageHolder) {
         if (round >= MAX_TOOL_ROUNDS) {
             log.warn("[AI] 工具调用达到最大轮次 {}，强制结束", MAX_TOOL_ROUNDS);
             return Flux.empty();
@@ -1194,8 +1234,20 @@ public class AiAgentService {
         java.util.concurrent.atomic.AtomicReference<AssistantMessage> pendingToolCall =
                 new java.util.concurrent.atomic.AtomicReference<>();
         java.util.concurrent.atomic.AtomicBoolean emittedText = new java.util.concurrent.atomic.AtomicBoolean(false);
+        // 本轮最后一个带用量的 chunk；提供商在流结束时给出本轮累计值
+        java.util.concurrent.atomic.AtomicReference<Usage> roundUsage =
+                new java.util.concurrent.atomic.AtomicReference<>();
 
         Flux<String> roundFlux = chatModel.stream(prompt)
+                .doOnNext(chatResponse -> {
+                    if (chatResponse == null || chatResponse.getMetadata() == null) {
+                        return;
+                    }
+                    Usage usage = chatResponse.getMetadata().getUsage();
+                    if (usage != null && usage.getTotalTokens() != null && usage.getTotalTokens() > 0) {
+                        roundUsage.set(usage);
+                    }
+                })
                 .concatMap(chatResponse -> {
                     if (chatResponse == null || chatResponse.getResult() == null
                             || chatResponse.getResult().getOutput() == null) {
@@ -1216,6 +1268,7 @@ public class AiAgentService {
                 });
 
         return roundFlux.concatWith(Flux.defer(() -> {
+            accumulateUsage(usageHolder, roundUsage.get());
             AssistantMessage toolCallMessage = pendingToolCall.get();
             if (toolCallMessage == null) {
                 if (round == 0 && !emittedText.get()) {
@@ -1228,8 +1281,33 @@ public class AiAgentService {
             messages.add(ToolResponseMessage.builder()
                     .responses(executeToolCalls(toolCallMessage.getToolCalls(), toolCallbacks))
                     .build());
-            return streamToolRound(chatModel, messages, options, toolCallbacks, round + 1);
+            return streamToolRound(chatModel, messages, options, toolCallbacks, round + 1, usageHolder);
         }));
+    }
+
+    /**
+     * 把单轮工具调用的 Token 用量累加进总量容器。
+     * <p>
+     * 每一轮工具调用都是一次独立的模型请求，因此按轮次求和才能反映整段回复的真实消耗。
+     *
+     * @param total      总量容器，由调用方创建
+     * @param roundUsage 本轮用量，提供商未返回时为 null
+     */
+    private static void accumulateUsage(java.util.concurrent.atomic.AtomicReference<Usage> total, Usage roundUsage) {
+        if (roundUsage == null) {
+            return;
+        }
+        total.updateAndGet(previous -> {
+            int promptTokens = nullableTokens(roundUsage.getPromptTokens())
+                    + (previous == null ? 0 : nullableTokens(previous.getPromptTokens()));
+            int completionTokens = nullableTokens(roundUsage.getCompletionTokens())
+                    + (previous == null ? 0 : nullableTokens(previous.getCompletionTokens()));
+            return new DefaultUsage(promptTokens, completionTokens);
+        });
+    }
+
+    private static int nullableTokens(Integer tokens) {
+        return tokens == null ? 0 : tokens;
     }
 
     /**

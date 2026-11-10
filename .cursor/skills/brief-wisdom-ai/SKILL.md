@@ -73,10 +73,12 @@ app:
 - Current behaviour: tools are always registered, so `chatStreamWithSession` runs `AiAgentService.streamToolRound`
   (up to 5 rounds) — every round uses `chatModel.stream()`. Spring AI 2.0's `OpenAiChatModel.internalStream`
   aggregates tool-call deltas into one response while content deltas arrive per chunk, so tool rounds execute
-  tools silently and the final answer's tokens are forwarded live. The no-tools branch (Usage capture + server-side
-  save) stays unreachable while tools are registered. Note the streaming chunks are **not** passed through
-  `contentFilterService.filterOutput` before delivery — that filter only applies to the server-saved copy on the
-  no-tools path, and the tool path is saved by the frontend via `/message/save`.
+  tools silently and the final answer's tokens are forwarded live. Both branches persist the assistant message
+  server-side through `persistStreamedAssistantMessage`, which uses the provider's `Usage` when present (tool
+  rounds accumulate their usage, since each round is billed separately) and falls back to character-based
+  estimation. Note the streaming chunks are **not** passed through `contentFilterService.filterOutput` before
+  delivery — the filter only applies to the saved copy; the frontend's `/message/save` stays as an idempotent
+  backstop.
 
 ## RAG / Knowledge Base
 

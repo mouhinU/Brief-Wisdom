@@ -37,13 +37,13 @@
 
 **实现方式**：`ReminderScheduler` 组件已实现 `@Scheduled(fixedRate = 60000)` 每分钟轮询到期提醒，通过 `ChatSyncService.notifyUser()` 推送 SSE/WebSocket 通知，并自动将提醒状态标记为已完成。`WebApplication` 已启用 `@EnableScheduling`。
 
-### 建议 2：流式对话 Token/Cost 追踪（优先级 P1）— ✅ 代码已完成（工具路径未服务端落库，见下方补充）
+### 建议 2：流式对话 Token/Cost 追踪（优先级 P1）— ✅ 代码已完成
 
-**完成时间**: 2026-07-22
+**完成时间**: 2026-07-22（2026-11-10 补齐工具路径）
 
-**实现方式**：在 `AiAgentService.chatStreamWithSession()` 的无工具调用路径中，通过 `AtomicReference<Usage>` 捕获流式响应最后一个 chunk 的 Usage 元数据，在 `doOnComplete` 回调中服务端自动保存 AI 消息（含真实 Token/Cost）。若提供商未返回 Usage，则使用 `estimateStreamingTokens()` / `estimateStreamingCost()` 按字符数估算。前端 `saveStreamedMessage()` 已改为幂等设计：检测到服务端已保存相同内容时跳过重复写入，仅在服务端使用估算值而前端有真实数据时补充更新。
+**实现方式**：`AiAgentService.chatStreamWithSession()` 的两条流式路径都通过 `AtomicReference<Usage>` 捕获 Usage 元数据，并在 `doOnComplete` 中调用同一个私有方法 `persistStreamedAssistantMessage()` 服务端落库 AI 消息（含真实 Token/Cost）。若提供商未返回 Usage，则使用 `estimateStreamingTokens()` / `estimateStreamingCost()` 按字符数估算。前端 `saveStreamedMessage()` 已改为幂等设计：检测到服务端已保存相同内容时跳过重复写入，仅在服务端使用估算值而前端有真实数据时补充更新。
 
-**现状补充（2026-11-10 更新）**：上述 Usage 捕获路径此前不生效——`AiAgentService` 中 12 个工具恒注册，流式请求始终走 `chatModel.call()` 手动循环并 `Flux.just(全文)` 整段下发。现已改造为 `streamToolRound` 逐轮 `chatModel.stream()`，工具调用与逐 Token 输出打通，前端能实时收到文本增量。但要留意：`hasTools` 在当前配置下恒为 true，所有流式请求都走这条新路径，而带 Usage 捕获与服务端落库的「无工具」分支依旧是不可达代码；新路径不服务端保存 AI 消息（由前端 `/message/save` 落库并估算 Token），因此真实 Token/Cost 记录仍未打通，需要后续把 Usage 捕获与落库逻辑合并进 `streamToolRound`。
+**现状补充（2026-11-10 更新）**：此前 `AiAgentService` 中 12 个工具恒注册，`hasTools` 恒为 true，流式请求全部走工具循环，而带 Usage 捕获与服务端落库的「无工具」分支是不可达代码，真实 Token/Cost 因此并未落库。现已分两步完成改造：一是把工具循环换成 `streamToolRound` 逐轮 `chatModel.stream()`（真流式）；二是把落库逻辑抽成 `persistStreamedAssistantMessage` 由两条路径共用，`streamToolRound` 逐轮捕获本轮 Usage 并跨轮累加（每轮工具调用都是一次独立计费的请求），`AiAgentServiceStreamToolRoundTest` 覆盖了跨轮累加的数值正确性。
 
 ### 建议 3：单元测试覆盖率提升（优先级 P1）— ✅ 部分完成
 
@@ -193,7 +193,7 @@
 
 4. **工程化基础好**：Flyway 数据库迁移、CI/CD、Actuator 监控、编码规范文档齐全，为后续迭代打下了良好基础。
 
-下一步的核心方向建议是：**补齐剩余测试**（KnowledgeVectorService / AiAgentService / ChatModelRegistry）→ **移动端响应式适配** → **团队协作剩余项（共享会话、多租户隔离）** → **多模态扩展（PDF/Word 文档解析、语音输入、图片生成）**。真流式（逐 Token）输出改造已于 2026-11-10 完成，遗留项是把 Usage 捕获与服务端落库合并进工具循环路径。
+下一步的核心方向建议是：**补齐剩余测试**（KnowledgeVectorService / AiAgentService / ChatModelRegistry）→ **移动端响应式适配** → **团队协作剩余项（共享会话、多租户隔离）** → **多模态扩展（PDF/Word 文档解析、语音输入、图片生成）**。真流式（逐 Token）输出改造与工具路径的 Usage 捕获、服务端落库均已于 2026-11-10 完成。
 
 ---
 

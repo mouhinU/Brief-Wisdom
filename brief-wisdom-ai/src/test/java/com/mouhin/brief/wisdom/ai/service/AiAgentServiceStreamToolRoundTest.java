@@ -8,6 +8,9 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.metadata.ChatResponseMetadata;
+import org.springframework.ai.chat.metadata.DefaultUsage;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -20,9 +23,11 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -157,5 +162,35 @@ class AiAgentServiceStreamToolRoundTest {
 
         assertThrows(AIException.class, () -> AiAgentService.streamToolRound(chatModel, initialMessages(),
                 CHAT_OPTIONS, new ToolCallback[0], 0).collectList().block());
+    }
+
+    @Test
+    @DisplayName("跨工具轮次的 Token 用量按轮累加回收")
+    void accumulatesUsageAcrossToolRounds() {
+        ScriptedChatModel chatModel = new ScriptedChatModel();
+        chatModel.addRound(List.of(toolCallChunk("call-1", "queryDatabase", "{\"sql\":\"SELECT 1\"}"),
+                usageChunk("让我查一下", 100, 5)));
+        chatModel.addRound(List.of(textChunk("结果是 1"), usageChunk("", 200, 30)));
+
+        AtomicInteger invocations = new AtomicInteger();
+        ToolCallback[] callbacks = {stubTool("queryDatabase", "1", invocations)};
+        AtomicReference<Usage> usageHolder = new AtomicReference<>();
+
+        List<String> chunks = AiAgentService.streamToolRound(chatModel, initialMessages(), CHAT_OPTIONS,
+                callbacks, 0, usageHolder).collectList().block();
+
+        assertEquals("让我查一下结果是 1", String.join("", chunks));
+        Usage usage = usageHolder.get();
+        assertNotNull(usage, "两轮用量都应被回收");
+        assertEquals(300, usage.getPromptTokens());
+        assertEquals(35, usage.getCompletionTokens());
+        assertEquals(335, usage.getTotalTokens());
+    }
+
+    private static ChatResponse usageChunk(String text, int promptTokens, int completionTokens) {
+        ChatResponseMetadata metadata = ChatResponseMetadata.builder()
+                .usage(new DefaultUsage(promptTokens, completionTokens))
+                .build();
+        return new ChatResponse(List.of(new Generation(AssistantMessage.builder().content(text).build())), metadata);
     }
 }

@@ -160,8 +160,8 @@ GET /api/ai/chat/session/{sessionId}/stream?message=<编码>&model=<编码>&page
 8. **调用模型**，两条路径都以 `chatModel.stream()` 逐 Token 输出：
    - **有工具**（当前恒成立，12 个工具由 `ToolConfig` 注册）：`AiAgentService.streamToolRound` 递归循环（最多 5 轮）。每轮用 `stream()` 请求模型 —— Spring AI 2.0 的 `OpenAiChatModel.internalStream` 会把工具调用分片聚合成一条带 `toolCalls` 的响应，而文本分片逐条下发；因此工具轮不产生可见文本，由 `executeToolCalls` 执行工具、把 `AssistantMessage` + `ToolResponseMessage` 追加到消息列表后进入下一轮，模型不再请求工具时该轮文本实时下发。
    - **无工具**：`buildChatOptions(provider, model, false)` 不带工具回调，`chatModel.stream()` 逐 chunk 输出。
-9. **输出过滤** `filterOutput`：将身份证/手机号/银行卡等正则替换为 `[敏感信息已过滤]`。**只作用于「无工具」路径服务端落库的副本**；流式分片下发前无法整体正则替换，逐 chunk 过滤会截断敏感串，故明文分片直接透传（改造前「有工具」路径是先过滤整段再下发，这是本次改造唯一的对外行为变化）。
-10. **保存 AI 回复**：「无工具」路径在 `doOnComplete` 中用真实 Token 用量（或按 3 字符≈1 token 估算）保存 AI 消息并更新会话 `message_count`；「有工具」路径不服务端落库，消息由前端 `/message/save` 保存，`doOnComplete` 只触发 `notifyUser(message_added)`。
+9. **输出过滤** `filterOutput`：将身份证/手机号/银行卡等正则替换为 `[敏感信息已过滤]`。**只作用于服务端落库的副本**；流式分片下发前无法整体正则替换，逐 chunk 过滤会截断敏感串，故明文分片直接透传（改造前「有工具」路径是先过滤整段再下发，这是真流式改造唯一的对外行为变化）。
+10. **保存 AI 回复**：两条路径都在 `doOnComplete` 里调用同一个 `persistStreamedAssistantMessage` 落库，并更新会话 `message_count`。Token/Cost 优先取提供商返回的真实 Usage —— 无工具路径取最后一个 chunk 的 Usage，工具路径由 `streamToolRound` 逐轮捕获本轮 Usage 并跨轮累加（每轮工具调用都是一次独立计费的模型请求）；提供商未返回 Usage 时按 3 字符≈1 token 估算。落库后触发 `notifyUser(message_added)`。
 
 同步接口（普通模式）走 `chatWithSession`，逻辑类似但额外带 2 次重试退避（401/402/403 不重试），且一次性返回完整文本。
 
@@ -188,7 +188,7 @@ GET /api/ai/chat/session/{sessionId}/stream?message=<编码>&model=<编码>&page
 
 ### 七、阶段六：持久化与多端同步
 
-**消息持久化（双保险）**：流式 AI 消息由**服务端**在 `doOnComplete` 中保存（含真实 Token 信息）；前端在收到 `complete` 后也会调 `POST /api/ai/message/save` 兜底，但服务层有**幂等检查**（末条 assistant 消息内容相同则跳过，仅补 Token），避免重复落库。若服务端保存失败，则由前端兜底生效。
+**消息持久化（双保险）**：流式 AI 消息由**服务端**在 `doOnComplete` 中保存（含真实或估算 Token/Cost，工具路径与无工具路径共用同一段落库逻辑）；前端在收到 `complete` 后也会调 `POST /api/ai/message/save` 兜底，但服务层有**幂等检查**（末条 assistant 消息内容相同则跳过，仅在服务端存的是估算值而前端有真实数据时补更新），避免重复落库。若服务端保存失败，则由前端兜底生效。
 
 **多端实时同步**：`ChatSyncService.notifyUser(userId, eventType, sessionId)` 向该用户所有在线设备推送轻量通知（只推 `{type, sessionId}`，不推消息体）。事件类型有三种：`session_created`、`session_deleted`、`message_added`。
 
